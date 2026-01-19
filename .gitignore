@@ -29,3 +29,7 @@ pnpm-debug.log*
 # Cache
 .cache/
 .turbo/
+
+docs/content
+.kiro
+docs/开发阶段所用信息.md
