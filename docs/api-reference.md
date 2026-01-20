@@ -38,6 +38,32 @@ POST /auth/login
 
 ## 用户模块 (User)
 
+### 获取当前用户信息 🔒
+
+```
+GET /users/me
+```
+
+**说明：** 根据 JWT Token 获取当前登录用户的信息
+
+**响应：**
+```json
+{
+  "id": "1",
+  "email": "admin@example.com",
+  "name": "管理员",
+  "role": "admin",
+  "avatar": "https://example.com/avatar.jpg",
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z"
+}
+```
+
+**错误响应：**
+- `401 Unauthorized` - Token 无效或已过期
+
+---
+
 ### 创建用户 🔒
 
 ```

@@ -20,6 +20,9 @@ const isDev =
   process.env.NODE_ENV === 'development' || process.env.CI;
 const loginPath = '/user/login';
 
+// Token 存储 key
+const TOKEN_KEY = 'access_token';
+
 /**
  * @see https://umijs.org/docs/api/runtime-config#getinitialstate
  * */
@@ -151,6 +154,28 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 export const request: RequestConfig = {
-  baseURL: 'https://proapi.azurewebsites.net',
   ...errorConfig,
+  requestInterceptors: [
+    (config: any) => {
+      // 添加 token 到请求头
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (token) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer ${token}`,
+        };
+      }
+      return config;
+    },
+  ],
+  responseInterceptors: [
+    (response: any) => {
+      // 401 时跳转登录页
+      if (response.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        history.push(loginPath);
+      }
+      return response;
+    },
+  ],
 };

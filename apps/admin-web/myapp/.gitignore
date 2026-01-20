@@ -9,6 +9,12 @@ _roadhog-api-doc
 # production
 /dist
 
+# env files (keep .env.example)
+.env
+.env.local
+.env.production
+.env.*.local
+
 # misc
 .DS_Store
 npm-debug.log*
