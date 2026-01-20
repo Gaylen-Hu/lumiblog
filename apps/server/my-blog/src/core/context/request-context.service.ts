@@ -1,6 +1,15 @@
 import { Injectable, Scope, Inject } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
-import { Request } from 'express';
+import type { Request } from 'express';
+
+// 扩展Request类型，添加user属性
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id?: string };
+    }
+  }
+}
 
 /**
  * 请求上下文数据
@@ -72,8 +81,7 @@ export class RequestContextService {
    * 提取用户 ID
    */
   private extractUserId(request: Request): string | undefined {
-    const user = request.user as { id?: string } | undefined;
-    return user?.id;
+    return request.user?.id;
   }
 
   /**
