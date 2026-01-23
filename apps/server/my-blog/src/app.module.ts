@@ -10,6 +10,7 @@ import { CategoryModule } from './category/category.module';
 import { TagModule } from './tag/tag.module';
 import { MediaModule } from './media/media.module';
 import { SeoModule } from './seo/seo.module';
+import { WechatModule } from './wechat/wechat.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SeoModule } from './seo/seo.module';
     CategoryModule,
     TagModule,
     MediaModule,
+    WechatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

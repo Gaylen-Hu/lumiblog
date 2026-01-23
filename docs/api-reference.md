@@ -758,3 +758,431 @@ interface Media {
   createdAt: string;
 }
 ```
+
+
+---
+
+## 微信公众号模块 (Wechat) 🔒
+
+所有微信接口需要 JWT 认证。
+
+### 素材管理
+
+#### 获取素材总数
+
+```
+GET /wechat/material/count
+```
+
+**响应：**
+```json
+{
+  "voice_count": 10,
+  "video_count": 5,
+  "image_count": 100,
+  "news_count": 20
+}
+```
+
+#### 获取素材列表
+
+```
+GET /wechat/material/list?type=image&offset=0&count=20
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| type | string | ✅ | 素材类型：image/voice/video/news |
+| offset | number | ❌ | 偏移量，默认 0 |
+| count | number | ❌ | 数量，默认 20，最大 20 |
+
+**响应：**
+```json
+{
+  "total_count": 100,
+  "item_count": 20,
+  "item": [
+    {
+      "media_id": "xxx",
+      "name": "image.jpg",
+      "update_time": 1704067200,
+      "url": "https://..."
+    }
+  ]
+}
+```
+
+#### 删除永久素材
+
+```
+DELETE /wechat/material/:mediaId
+```
+
+**响应：**
+```json
+{ "success": true }
+```
+
+### 草稿箱
+
+#### 新增草稿
+
+```
+POST /wechat/draft
+```
+
+**请求体：**
+```json
+{
+  "articles": [
+    {
+      "title": "文章标题",
+      "author": "作者",
+      "digest": "摘要",
+      "content": "<p>正文内容</p>",
+      "contentSourceUrl": "https://...",
+      "thumbMediaId": "封面图片media_id",
+      "needOpenComment": 0,
+      "onlyFansCanComment": 0
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | ✅ | 标题 |
+| content | string | ✅ | 正文（支持HTML） |
+| thumbMediaId | string | ✅ | 封面图片 media_id |
+| author | string | ❌ | 作者 |
+| digest | string | ❌ | 摘要 |
+| contentSourceUrl | string | ❌ | 原文链接 |
+| needOpenComment | number | ❌ | 是否打开评论（0否/1是） |
+| onlyFansCanComment | number | ❌ | 是否仅粉丝可评论 |
+
+**响应：**
+```json
+{
+  "media_id": "xxx"
+}
+```
+
+#### 获取草稿详情
+
+```
+GET /wechat/draft/:mediaId
+```
+
+**响应：**
+```json
+{
+  "news_item": [
+    {
+      "title": "文章标题",
+      "author": "作者",
+      "digest": "摘要",
+      "content": "<p>正文内容</p>",
+      "thumb_media_id": "xxx"
+    }
+  ]
+}
+```
+
+#### 删除草稿
+
+```
+DELETE /wechat/draft/:mediaId
+```
+
+**响应：**
+```json
+{ "success": true }
+```
+
+#### 更新草稿
+
+```
+POST /wechat/draft/update
+```
+
+**请求体：**
+```json
+{
+  "mediaId": "草稿media_id",
+  "index": 0,
+  "article": {
+    "title": "新标题",
+    "content": "<p>新内容</p>",
+    "thumbMediaId": "xxx"
+  }
+}
+```
+
+**响应：**
+```json
+{ "success": true }
+```
+
+#### 获取草稿总数
+
+```
+GET /wechat/draft/count
+```
+
+**响应：**
+```json
+{
+  "total_count": 10
+}
+```
+
+#### 获取草稿列表
+
+```
+GET /wechat/drafts?offset=0&count=20&noContent=0
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| offset | number | ❌ | 偏移量，默认 0 |
+| count | number | ❌ | 数量，默认 20 |
+| noContent | number | ❌ | 是否不返回正文（0返回/1不返回） |
+
+**响应：**
+```json
+{
+  "total_count": 10,
+  "item_count": 10,
+  "item": [
+    {
+      "media_id": "xxx",
+      "content": {
+        "news_item": [...]
+      },
+      "update_time": 1704067200
+    }
+  ]
+}
+```
+
+### 发布能力
+
+#### 发布草稿
+
+```
+POST /wechat/publish
+```
+
+**请求体：**
+```json
+{
+  "mediaId": "草稿media_id"
+}
+```
+
+**响应：**
+```json
+{
+  "publish_id": "xxx"
+}
+```
+
+#### 获取发布状态
+
+```
+GET /wechat/publish/status?publishId=xxx
+```
+
+**响应：**
+```json
+{
+  "publish_id": "xxx",
+  "publish_status": 0,
+  "article_id": "xxx",
+  "article_detail": {
+    "count": 1,
+    "item": [
+      {
+        "idx": 1,
+        "article_url": "https://..."
+      }
+    ]
+  }
+}
+```
+
+| publish_status | 说明 |
+|----------------|------|
+| 0 | 发布成功 |
+| 1 | 发布中 |
+| 2 | 原创审核中 |
+| 3 | 发布失败 |
+| 4 | 已删除 |
+
+#### 删除发布文章
+
+```
+DELETE /wechat/publish
+```
+
+**请求体：**
+```json
+{
+  "articleId": "article_id",
+  "index": 0
+}
+```
+
+**响应：**
+```json
+{ "success": true }
+```
+
+#### 获取已发布图文详情
+
+```
+GET /wechat/publish/article?articleId=xxx
+```
+
+**响应：**
+```json
+{
+  "news_item": [
+    {
+      "title": "文章标题",
+      "author": "作者",
+      "digest": "摘要",
+      "content": "<p>正文</p>",
+      "url": "https://...",
+      "is_deleted": false
+    }
+  ]
+}
+```
+
+#### 获取已发布消息列表
+
+```
+GET /wechat/publish/list?offset=0&count=20&noContent=0
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| offset | number | ❌ | 偏移量，默认 0 |
+| count | number | ❌ | 数量，默认 20 |
+| noContent | number | ❌ | 是否不返回正文 |
+
+**响应：**
+```json
+{
+  "total_count": 10,
+  "item_count": 10,
+  "item": [
+    {
+      "article_id": "xxx",
+      "content": {
+        "news_item": [...]
+      },
+      "update_time": 1704067200
+    }
+  ]
+}
+```
+
+### 数据分析
+
+#### 获取被动回复概要数据
+
+```
+GET /wechat/interface-summary?beginDate=2024-01-01&endDate=2024-01-07
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| beginDate | string | ✅ | 起始日期（YYYY-MM-DD） |
+| endDate | string | ✅ | 结束日期（最大跨度30天） |
+
+**响应：**
+```json
+{
+  "list": [
+    {
+      "ref_date": "2024-01-01",
+      "callback_count": 100,
+      "fail_count": 5,
+      "total_time_cost": 5000,
+      "max_time_cost": 200
+    }
+  ]
+}
+```
+
+#### 获取用户增减数据
+
+```
+GET /wechat/user-summary?beginDate=2024-01-01&endDate=2024-01-07
+```
+
+#### 获取累计用户数据
+
+```
+GET /wechat/user-cumulate?beginDate=2024-01-01&endDate=2024-01-07
+```
+
+#### 获取图文群发每日数据
+
+```
+GET /wechat/article-summary?beginDate=2024-01-01&endDate=2024-01-01
+```
+
+#### 获取消息发送概况数据
+
+```
+GET /wechat/upstream-msg?beginDate=2024-01-01&endDate=2024-01-07
+```
+
+### 微信接口错误码
+
+| 错误码 | 说明 | 解决方案 |
+|--------|------|----------|
+| -1 | 系统繁忙 | 稍后重试 |
+| 40001 | access_token 无效 | 检查 AppID/AppSecret 配置 |
+| 40007 | 无效的 media_id | 检查素材是否存在 |
+| 45028 | 草稿不存在 | 检查 media_id |
+| 61500 | 日期格式错误 | 使用 YYYY-MM-DD 格式 |
+| 61501 | 日期范围错误 | 检查日期跨度限制 |
+
+### TypeScript 类型定义
+
+```typescript
+// 素材总数
+interface MaterialCountResponse {
+  voice_count: number;
+  video_count: number;
+  image_count: number;
+  news_count: number;
+}
+
+// 草稿文章
+interface DraftArticle {
+  title: string;
+  author?: string;
+  digest?: string;
+  content: string;
+  content_source_url?: string;
+  thumb_media_id: string;
+  need_open_comment?: number;
+  only_fans_can_comment?: number;
+}
+
+// 发布状态
+interface FreepublishGetResponse {
+  publish_id: string;
+  publish_status: number;
+  article_id?: string;
+  article_detail?: {
+    count: number;
+    item: Array<{ idx: number; article_url: string }>;
+  };
+}
+```
