@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CoreModule } from './core';
+import { PrismaModule } from './prisma';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ArticleModule } from './article/article.module';
@@ -18,6 +19,7 @@ import { WechatModule } from './wechat/wechat.module';
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
     }),
+    PrismaModule,
     CoreModule,
     SeoModule,
     AuthModule,

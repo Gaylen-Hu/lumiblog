@@ -17,7 +17,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SafeUser } from './user.service';
+import { User as PrismaUser } from '@prisma/client';
+
+type SafeUser = Omit<PrismaUser, 'password'>;
 
 interface AuthenticatedRequest {
   user: {

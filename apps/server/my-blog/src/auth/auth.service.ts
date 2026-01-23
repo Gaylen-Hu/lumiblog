@@ -2,44 +2,35 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { UserService } from '../user/user.service';
+import { User as PrismaUser } from '@prisma/client';
 
-// TODO: 替换为真实的 User 类型（来自 Prisma）
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-}
-
-export type SafeUser = Omit<User, 'password'>;
+export type SafeUser = Omit<PrismaUser, 'password'>;
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
-
-  // TODO: 集成 Prisma 后替换为真实数据库查询
-  private async findUserByEmail(email: string): Promise<User | null> {
-    // 模拟用户数据，实际应从数据库查询
-    const mockUsers: User[] = [
-      {
-        id: '1',
-        email: 'admin@example.com',
-        // 密码: password123
-        password: await bcrypt.hash('password123', 10),
-        name: 'Admin',
-      },
-    ];
-    return mockUsers.find((u) => u.email === email) || null;
-  }
+  constructor(
+    private jwtService: JwtService,
+    private userService: UserService,
+  ) {}
 
   async validateUser(email: string, password: string): Promise<SafeUser | null> {
-    const user = await this.findUserByEmail(email);
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...result } = user;
-      return result;
+    console.log('validateUser called with email:', email);
+    const user = await this.userService.findByEmail(email);
+    console.log('User found:', user ? 'yes' : 'no');
+
+    if (!user) {
+      return null;
     }
-    return null;
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isPasswordValid);
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return this.userService.excludePassword(user);
   }
 
   async login(user: SafeUser) {
