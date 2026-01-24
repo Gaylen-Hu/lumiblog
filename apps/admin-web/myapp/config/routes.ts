@@ -37,7 +37,31 @@ export default [
     routes: [
       {
         path: '/content',
-        redirect: '/content/tags',
+        redirect: '/content/articles',
+      },
+      {
+        name: 'articles',
+        icon: 'read',
+        path: '/content/articles',
+        component: './content/articles',
+      },
+      {
+        name: 'article-create',
+        path: '/content/articles/create',
+        component: './content/articles/edit',
+        hideInMenu: true,
+      },
+      {
+        name: 'article-edit',
+        path: '/content/articles/edit/:id',
+        component: './content/articles/edit',
+        hideInMenu: true,
+      },
+      {
+        name: 'article-detail',
+        path: '/content/articles/:id',
+        component: './content/articles/detail',
+        hideInMenu: true,
       },
       {
         name: 'tags',
@@ -45,18 +69,18 @@ export default [
         path: '/content/tags',
         component: './content/tags',
       },
+      {
+        name: 'wechat',
+        icon: 'wechat',
+        path: '/content/wechat',
+        component: './content/wechat',
+      },
       // TODO: 后续添加
       // {
       //   name: 'categories',
       //   icon: 'folder',
       //   path: '/content/categories',
       //   component: './content/categories',
-      // },
-      // {
-      //   name: 'articles',
-      //   icon: 'read',
-      //   path: '/content/articles',
-      //   component: './content/articles',
       // },
     ],
   },

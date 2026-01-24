@@ -3,24 +3,18 @@
 
 declare namespace API {
   type CurrentUser = {
-    name?: string;
-    avatar?: string;
-    userid?: string;
+    id?: string;
     email?: string;
-    signature?: string;
-    title?: string;
-    group?: string;
-    tags?: { key?: string; label?: string }[];
+    name?: string;
+    role?: 'admin' | 'editor' | 'viewer';
+    avatar?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+    // 兼容旧字段
+    userid?: string;
+    access?: string;
     notifyCount?: number;
     unreadCount?: number;
-    country?: string;
-    access?: string;
-    geographic?: {
-      province?: { label?: string; key?: string };
-      city?: { label?: string; key?: string };
-    };
-    address?: string;
-    phone?: string;
   };
 
   type LoginResult = {

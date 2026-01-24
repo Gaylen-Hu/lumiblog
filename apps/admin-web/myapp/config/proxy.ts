@@ -15,10 +15,11 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
 
 export default {
   dev: {
-    // localhost:8000/api/** -> API_BASE_URL/api/**
+    // localhost:8000/api/** -> API_BASE_URL/v1/**
     '/api/': {
       target: API_BASE_URL,
       changeOrigin: true,
+      pathRewrite: { '^/api': '/v1' },
     },
   },
   /**
@@ -26,18 +27,18 @@ export default {
    * @doc https://github.com/chimurai/http-proxy-middleware
    */
   test: {
-    // localhost:8000/api/** -> https://preview.pro.ant.design/api/**
+    // localhost:8000/api/** -> https://preview.pro.ant.design/v1/**
     '/api/': {
       target: 'https://proapi.azurewebsites.net',
       changeOrigin: true,
-      pathRewrite: { '^': '' },
+      pathRewrite: { '^/api': '/v1' },
     },
   },
   pre: {
     '/api/': {
       target: 'your pre url',
       changeOrigin: true,
-      pathRewrite: { '^': '' },
+      pathRewrite: { '^/api': '/v1' },
     },
   },
 };
