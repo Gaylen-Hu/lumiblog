@@ -33,4 +33,5 @@ pnpm-debug.log*
 docs/content
 .kiro
 docs/开发阶段所用信息.md
-docs/docs\byte&beyond
+docs/byte&beyond
+docs/react-best-practices
