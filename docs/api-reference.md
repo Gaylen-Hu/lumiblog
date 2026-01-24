@@ -2,6 +2,8 @@
 
 Base URL: `http://localhost:3000`
 
+测试登录接口  admin@example.com  123456
+
 ## 认证说明
 
 需要认证的接口在请求头中携带 JWT Token：
@@ -20,10 +22,10 @@ POST /auth/login
 ```
 
 **请求体：**
-```json
-{
+```json 
+{ 
   "email": "admin@example.com",
-  "password": "password123"
+  "password": "123456"
 }
 ```
 
@@ -31,6 +33,22 @@ POST /auth/login
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+### 获取当前用户 Profile 🔒
+
+```
+GET /auth/profile
+```
+
+**说明：** 根据 JWT Token 获取当前登录用户的基本信息（来自 Token payload）
+
+**响应：**
+```json
+{
+  "userId": "1",
+  "email": "admin@example.com"
 }
 ```
 
@@ -214,6 +232,100 @@ POST /admin/articles
 }
 ```
 
+### 获取文章列表（管理端） 🔒
+
+```
+GET /admin/articles?page=1&limit=10&keyword=NestJS&isPublished=true
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | number | ❌ | 页码，默认 1 |
+| limit | number | ❌ | 每页数量，默认 10，最大 100 |
+| keyword | string | ❌ | 搜索关键词（标题） |
+| isPublished | boolean | ❌ | 发布状态筛选 |
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "title": "NestJS 入门指南",
+      "slug": "nestjs-getting-started",
+      "summary": "本文介绍 NestJS 的基础概念和使用方法",
+      "content": "# NestJS 入门\n\nNestJS 是一个...",
+      "coverImage": "https://example.com/cover.jpg",
+      "isPublished": true,
+      "publishedAt": "2024-01-15T12:00:00.000Z",
+      "seoTitle": "NestJS 入门教程 - 2024最新版",
+      "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用",
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 10
+}
+```
+
+### 获取单个文章（管理端） 🔒
+
+```
+GET /admin/articles/:id
+```
+
+**响应：** 同创建文章响应
+
+**错误响应：**
+- `404 Not Found` - 文章不存在
+
+### 更新文章 🔒
+
+```
+PATCH /admin/articles/:id
+```
+
+**请求体：**
+```json
+{
+  "title": "NestJS 入门指南（更新版）",
+  "summary": "更新后的摘要",
+  "content": "更新后的内容"
+}
+```
+
+**响应：** 同创建文章响应
+
+### 删除文章 🔒
+
+```
+DELETE /admin/articles/:id
+```
+
+**响应：** `204 No Content`
+
+### 发布文章 🔒
+
+```
+POST /admin/articles/:id/publish
+```
+
+**说明：** 将草稿文章发布
+
+**响应：** 同创建文章响应（isPublished 变为 true，publishedAt 设置为当前时间）
+
+### 取消发布文章 🔒
+
+```
+POST /admin/articles/:id/unpublish
+```
+
+**说明：** 将已发布文章改为草稿
+
+**响应：** 同创建文章响应（isPublished 变为 false）
+
 ### 获取已发布文章列表（公开）
 
 ```
@@ -380,6 +492,14 @@ GET /categories
 
 **响应：** 扁平列表，结构同单个分类
 
+### 获取分类列表（管理端） 🔒
+
+```
+GET /admin/categories
+```
+
+**响应：** 扁平列表，结构同单个分类
+
 ### 获取单个分类 🔒
 
 ```
@@ -482,6 +602,14 @@ GET /tags/popular?limit=10
 | limit | number | ❌ | 返回数量，默认 10 |
 
 **响应：** 按 `articleCount` 降序排列的标签列表
+
+### 获取所有标签（管理端） 🔒
+
+```
+GET /admin/tags
+```
+
+**响应：** 同公开接口
 
 ### 获取单个标签 🔒
 
@@ -1184,5 +1312,356 @@ interface FreepublishGetResponse {
     count: number;
     item: Array<{ idx: number; article_url: string }>;
   };
+}
+```
+
+---
+
+## AI 模块 🔒
+
+AI 翻译和 SEO 优化功能，需要配置 OpenAI API Key。
+
+### 翻译文章
+
+```
+POST /admin/ai/translate
+```
+
+**请求体：**
+```json
+{
+  "title": "NestJS 入门指南",
+  "content": "# NestJS 入门\n\nNestJS 是一个...",
+  "summary": "本文介绍 NestJS 的基础概念",
+  "targetLanguage": "en"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | ✅ | 标题 |
+| content | string | ✅ | 正文内容 |
+| summary | string | ❌ | 摘要 |
+| targetLanguage | string | ❌ | 目标语言：en/zh，默认 en |
+
+**响应：**
+```json
+{
+  "title": "NestJS Getting Started Guide",
+  "content": "# Getting Started with NestJS\n\nNestJS is a...",
+  "summary": "This article introduces the basic concepts of NestJS",
+  "targetLanguage": "en"
+}
+```
+
+### SEO 优化
+
+```
+POST /admin/ai/seo-optimize
+```
+
+**请求体：**
+```json
+{
+  "title": "NestJS 入门指南",
+  "content": "# NestJS 入门\n\nNestJS 是一个...",
+  "summary": "本文介绍 NestJS 的基础概念"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | ✅ | 标题 |
+| content | string | ✅ | 正文内容 |
+| summary | string | ❌ | 摘要 |
+
+**响应：**
+```json
+{
+  "seoTitle": "NestJS 入门教程：从零开始构建企业级 Node.js 应用",
+  "seoDescription": "详细介绍 NestJS 框架的核心概念、模块化架构和最佳实践，帮助你快速上手构建可扩展的服务端应用。",
+  "keywords": "NestJS, Node.js, TypeScript, 后端框架, 企业级应用"
+}
+```
+
+---
+
+## 文章扩展功能 🔒
+
+### AI 翻译文章
+
+```
+POST /admin/articles/:id/translate
+```
+
+**请求体：**
+```json
+{
+  "createNewArticle": false
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| createNewArticle | boolean | ❌ | 是否创建新文章保存翻译结果，默认 false |
+
+**响应：**
+```json
+{
+  "title": "NestJS Getting Started Guide",
+  "content": "# Getting Started with NestJS\n\nNestJS is a...",
+  "summary": "This article introduces the basic concepts of NestJS",
+  "targetLanguage": "en",
+  "newArticleId": "2"
+}
+```
+
+> 如果 `createNewArticle` 为 true，会创建一篇新文章（slug 后缀 `-en`），并返回 `newArticleId`
+
+### AI 生成 SEO 信息
+
+```
+POST /admin/articles/:id/seo-optimize
+```
+
+**响应：**
+```json
+{
+  "seoTitle": "NestJS 入门教程：从零开始构建企业级 Node.js 应用",
+  "seoDescription": "详细介绍 NestJS 框架的核心概念、模块化架构和最佳实践。",
+  "keywords": "NestJS, Node.js, TypeScript, 后端框架",
+  "autoUpdated": true
+}
+```
+
+> `autoUpdated` 为 true 表示已自动更新文章的 seoTitle 和 seoDescription 字段
+
+### 发布到微信公众号
+
+```
+POST /admin/articles/:id/publish-wechat
+```
+
+**请求体：**
+```json
+{
+  "author": "作者名",
+  "thumbMediaId": "封面图片media_id",
+  "needOpenComment": true,
+  "onlyFansCanComment": false,
+  "publishImmediately": false
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| author | string | ❌ | 作者名 |
+| thumbMediaId | string | ❌ | 封面图片 media_id（需先上传到微信） |
+| needOpenComment | boolean | ❌ | 是否打开评论，默认 true |
+| onlyFansCanComment | boolean | ❌ | 是否仅粉丝可评论，默认 false |
+| publishImmediately | boolean | ❌ | 是否立即发布，默认 false（仅保存草稿） |
+
+**响应：**
+```json
+{
+  "mediaId": "草稿media_id",
+  "publishId": "发布任务ID（仅立即发布时返回）",
+  "status": "draft"
+}
+```
+
+| status | 说明 |
+|--------|------|
+| draft | 已保存为草稿 |
+| publishing | 发布中 |
+| published | 已发布 |
+
+---
+
+## OSS 直传模块
+
+阿里云 OSS 客户端直传，前端直接上传文件到 OSS，无需经过后端中转。
+
+### 获取上传签名 🔒
+
+```
+POST /oss/signature
+```
+
+**请求体：**
+```json
+{
+  "filename": "photo.jpg",
+  "mimeType": "image/jpeg",
+  "size": 102400,
+  "category": "image",
+  "directory": "articles"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| filename | string | ✅ | 原始文件名 |
+| mimeType | string | ✅ | MIME 类型 |
+| size | number | ✅ | 文件大小（字节） |
+| category | string | ❌ | 文件类别：image/video/audio/document |
+| directory | string | ❌ | 自定义目录前缀 |
+
+**响应：**
+```json
+{
+  "host": "https://bucket.oss-cn-hangzhou.aliyuncs.com",
+  "key": "images/2024/01/15/1705312800000-abc123.jpg",
+  "policy": "eyJleHBpcmF0aW9uIjoiMjAyNC0wMS0xNVQxMDowNTowMC4wMDBaIiwiY29uZGl0aW9ucyI6W3siYnVja2V0IjoiYnVja2V0In0sWyJlcSIsIiRrZXkiLCJpbWFnZXMvMjAyNC8wMS8xNS8xNzA1MzEyODAwMDAwLWFiYzEyMy5qcGciXSxbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwwLDEwNDg1NzYwXV19",
+  "signature": "xxx",
+  "accessKeyId": "xxx",
+  "expire": 1705312800,
+  "url": "https://bucket.oss-cn-hangzhou.aliyuncs.com/images/2024/01/15/1705312800000-abc123.jpg",
+  "callback": "eyJjYWxsYmFja1VybCI6Imh0dHBzOi8vYXBpLmV4YW1wbGUuY29tL3YxL29zcy9jYWxsYmFjayIsImNhbGxiYWNrQm9keSI6ImJ1Y2tldD0ke2J1Y2tldH0mb2JqZWN0PSR7b2JqZWN0fSZldGFnPSR7ZXRhZ30mc2l6ZT0ke3NpemV9Jm1pbWVUeXBlPSR7bWltZVR5cGV9IiwiY2FsbGJhY2tCb2R5VHlwZSI6ImFwcGxpY2F0aW9uL3gtd3d3LWZvcm0tdXJsZW5jb2RlZCJ9"
+}
+```
+
+### 批量获取签名 🔒
+
+```
+POST /oss/signatures
+```
+
+**请求体：**
+```json
+[
+  { "filename": "photo1.jpg", "mimeType": "image/jpeg", "size": 102400 },
+  { "filename": "photo2.png", "mimeType": "image/png", "size": 204800 }
+]
+```
+
+**响应：** 签名数组
+
+### OSS 上传回调
+
+```
+POST /oss/callback
+```
+
+> 由 OSS 服务器调用，无需认证
+
+**请求体：**
+```
+bucket=xxx&object=images/2024/01/15/xxx.jpg&etag=xxx&size=102400&mimeType=image/jpeg
+```
+
+**响应：**
+```json
+{
+  "success": true,
+  "url": "https://bucket.oss-cn-hangzhou.aliyuncs.com/images/2024/01/15/xxx.jpg",
+  "filename": "xxx.jpg",
+  "size": 102400,
+  "mimeType": "image/jpeg"
+}
+```
+
+### 前端上传示例
+
+```typescript
+// 1. 获取签名
+const signatureRes = await fetch('/v1/oss/signature', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    filename: file.name,
+    mimeType: file.type,
+    size: file.size
+  })
+});
+const signature = await signatureRes.json();
+
+// 2. 直传到 OSS
+const formData = new FormData();
+formData.append('key', signature.key);
+formData.append('policy', signature.policy);
+formData.append('OSSAccessKeyId', signature.accessKeyId);
+formData.append('signature', signature.signature);
+if (signature.callback) {
+  formData.append('callback', signature.callback);
+}
+formData.append('file', file);
+
+const uploadRes = await fetch(signature.host, {
+  method: 'POST',
+  body: formData
+});
+
+// 3. 上传成功后使用 signature.url 作为文件地址
+console.log('文件地址:', signature.url);
+```
+
+### 文件大小限制
+
+| 类别 | 最大大小 |
+|------|----------|
+| image | 10MB |
+| video | 100MB |
+| audio | 50MB |
+| document | 20MB |
+
+### 支持的文件类型
+
+| 类别 | MIME 类型 |
+|------|-----------|
+| image | image/jpeg, image/png, image/gif, image/webp, image/svg+xml |
+| video | video/mp4, video/webm, video/ogg, video/quicktime |
+| audio | audio/mpeg, audio/wav, audio/ogg, audio/webm |
+| document | application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document |
+
+### TypeScript 类型定义
+
+```typescript
+// OSS 签名请求
+interface GetOssSignatureDto {
+  filename: string;
+  mimeType: string;
+  size: number;
+  category?: 'image' | 'video' | 'audio' | 'document';
+  directory?: string;
+}
+
+// OSS 签名响应
+interface OssSignatureResponse {
+  host: string;
+  key: string;
+  policy: string;
+  signature: string;
+  accessKeyId: string;
+  expire: number;
+  url: string;
+  callback?: string;
+}
+
+// AI 翻译响应
+interface TranslateResponse {
+  title: string;
+  content: string;
+  summary: string | null;
+  targetLanguage: string;
+  newArticleId?: string;
+}
+
+// SEO 优化响应
+interface SeoOptimizeResponse {
+  seoTitle: string;
+  seoDescription: string;
+  keywords: string;
+  autoUpdated?: boolean;
+}
+
+// 微信发布响应
+interface PublishToWechatResponse {
+  mediaId: string;
+  publishId?: string;
+  status: 'draft' | 'publishing' | 'published';
 }
 ```
