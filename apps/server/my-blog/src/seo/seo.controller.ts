@@ -1,26 +1,27 @@
 import { Controller, Get, Header } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiProduces } from '@nestjs/swagger';
 import { SeoService } from './seo.service';
 
 /**
  * SEO 公开控制器
  */
+@ApiTags('SEO')
 @Controller()
 export class SeoController {
   constructor(private readonly seoService: SeoService) {}
 
-  /**
-   * 获取 robots.txt
-   */
+  @ApiOperation({ summary: '获取 robots.txt', description: '获取搜索引擎爬虫配置文件' })
+  @ApiProduces('text/plain')
+  @ApiResponse({ status: 200, description: '返回 robots.txt 内容' })
   @Get('robots.txt')
   @Header('Content-Type', 'text/plain')
   getRobots(): string {
     return this.seoService.generateRobots();
   }
 
-  /**
-   * 获取 sitemap.xml
-   * TODO: 集成文章、分类、标签数据
-   */
+  @ApiOperation({ summary: '获取 sitemap.xml', description: '获取网站地图 XML 文件' })
+  @ApiProduces('application/xml')
+  @ApiResponse({ status: 200, description: '返回 sitemap.xml 内容' })
   @Get('sitemap.xml')
   @Header('Content-Type', 'application/xml')
   getSitemap(): string {

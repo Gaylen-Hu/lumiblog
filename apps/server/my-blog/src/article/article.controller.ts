@@ -11,6 +11,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ArticleService } from './article.service';
 import {
   CreateArticleDto,
@@ -31,14 +38,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 /**
  * 文章管理控制器（管理端）
  */
+@ApiTags('文章管理')
+@ApiBearerAuth('JWT-auth')
 @Controller({ path: 'admin/articles', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class AdminArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
-  /**
-   * 创建文章草稿
-   */
+  @ApiOperation({ summary: '创建文章草稿', description: '创建新的文章草稿' })
+  @ApiResponse({ status: 201, description: '创建成功', type: ArticleResponseDto })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 409, description: 'slug 已存在' })
   @Post()
   async create(
     @Body() createArticleDto: CreateArticleDto,
@@ -46,9 +56,8 @@ export class AdminArticleController {
     return this.articleService.create(createArticleDto);
   }
 
-  /**
-   * 获取文章列表（管理端）
-   */
+  @ApiOperation({ summary: '获取文章列表', description: '分页获取文章列表，支持关键词搜索和发布状态筛选' })
+  @ApiResponse({ status: 200, description: '获取成功', type: PaginatedAdminArticleListDto })
   @Get()
   async findAll(
     @Query() query: AdminQueryArticleDto,
@@ -61,17 +70,19 @@ export class AdminArticleController {
     });
   }
 
-  /**
-   * 获取单个文章
-   */
+  @ApiOperation({ summary: '获取文章详情', description: '根据 ID 获取文章完整信息' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '获取成功', type: ArticleResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<ArticleResponseDto> {
     return this.articleService.findById(id);
   }
 
-  /**
-   * 更新文章
-   */
+  @ApiOperation({ summary: '更新文章', description: '更新文章内容' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '更新成功', type: ArticleResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -80,34 +91,38 @@ export class AdminArticleController {
     return this.articleService.update(id, updateArticleDto);
   }
 
-  /**
-   * 删除文章
-   */
+  @ApiOperation({ summary: '删除文章', description: '删除指定文章' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 204, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {
     return this.articleService.delete(id);
   }
 
-  /**
-   * 发布文章
-   */
+  @ApiOperation({ summary: '发布文章', description: '将草稿文章发布' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '发布成功', type: ArticleResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Post(':id/publish')
   async publish(@Param('id') id: string): Promise<ArticleResponseDto> {
     return this.articleService.publish(id);
   }
 
-  /**
-   * 取消发布文章
-   */
+  @ApiOperation({ summary: '取消发布文章', description: '将已发布文章转为草稿' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '取消发布成功', type: ArticleResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Post(':id/unpublish')
   async unpublish(@Param('id') id: string): Promise<ArticleResponseDto> {
     return this.articleService.unpublish(id);
   }
 
-  /**
-   * AI 翻译文章
-   */
+  @ApiOperation({ summary: 'AI 翻译文章', description: '使用 AI 将文章翻译为目标语言' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '翻译成功', type: TranslateArticleResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Post(':id/translate')
   async translate(
     @Param('id') id: string,
@@ -116,9 +131,10 @@ export class AdminArticleController {
     return this.articleService.translateArticle(id, dto);
   }
 
-  /**
-   * AI 生成 SEO 信息
-   */
+  @ApiOperation({ summary: 'AI 生成 SEO 信息', description: '使用 AI 自动生成文章的 SEO 标题、描述和关键词' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '生成成功', type: SeoOptimizeArticleResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Post(':id/seo-optimize')
   async optimizeSeo(
     @Param('id') id: string,
@@ -126,9 +142,10 @@ export class AdminArticleController {
     return this.articleService.optimizeSeo(id);
   }
 
-  /**
-   * 发布到微信公众号
-   */
+  @ApiOperation({ summary: '发布到微信公众号', description: '将文章发布到微信公众号草稿箱或直接发布' })
+  @ApiParam({ name: 'id', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '发布成功', type: PublishToWechatResponseDto })
+  @ApiResponse({ status: 404, description: '文章不存在' })
   @Post(':id/publish-wechat')
   async publishToWechat(
     @Param('id') id: string,
@@ -141,13 +158,13 @@ export class AdminArticleController {
 /**
  * 文章公开控制器（C端）
  */
+@ApiTags('文章')
 @Controller({ path: 'articles', version: '1' })
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
-  /**
-   * 查询已发布文章列表
-   */
+  @ApiOperation({ summary: '获取已发布文章列表', description: '分页获取已发布的文章列表（公开接口）' })
+  @ApiResponse({ status: 200, description: '获取成功', type: PaginatedArticleListDto })
   @Get()
   async findAll(
     @Query() query: QueryArticleDto,

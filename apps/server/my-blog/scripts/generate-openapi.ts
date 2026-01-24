@@ -1,27 +1,12 @@
-import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
+import { AppModule } from '../src/app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+async function generateOpenApiSpec() {
+  const app = await NestFactory.create(AppModule, { logger: false });
 
-  // 启用 URI 版本控制，默认版本为 v1
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-    prefix: 'v',
-  });
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-
-  // 配置 Swagger OpenAPI 文档
   const config = new DocumentBuilder()
     .setTitle('My Blog API')
     .setDescription('个人博客系统 API 文档')
@@ -50,18 +35,17 @@ async function bootstrap() {
     .addTag('AI', 'AI 翻译和 SEO 优化')
     .addTag('微信公众号', '微信公众号素材和发布管理')
     .addTag('SEO', 'SEO 相关接口')
+    .addServer('http://localhost:3000', '本地开发环境')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      docExpansion: 'none',
-      filter: true,
-      showRequestDuration: true,
-    },
-  });
 
-  await app.listen(process.env.PORT ?? 3000);
+  // 输出到文件
+  const outputPath = join(__dirname, '..', 'openapi.json');
+  writeFileSync(outputPath, JSON.stringify(document, null, 2));
+  console.log(`OpenAPI 文档已生成: ${outputPath}`);
+
+  await app.close();
 }
-bootstrap();
+
+generateOpenApiSpec();

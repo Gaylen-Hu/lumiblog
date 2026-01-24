@@ -1,2 +1,2 @@
 export * from './translate.dto';
-export * from './seo-optimize.dto';
+export { SeoOptimizeDto, SeoOptimizeResponseDto } from './seo-optimize.dto';

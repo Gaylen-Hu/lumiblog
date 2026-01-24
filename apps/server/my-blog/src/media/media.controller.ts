@@ -13,6 +13,15 @@ import {
   Body,
   BadRequestException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
 import { UploadMediaDto, QueryMediaDto, MediaResponseDto, PaginatedMediaListDto } from './dto';
@@ -37,11 +46,34 @@ interface MulterFile {
 /**
  * 媒体管理控制器
  */
+@ApiTags('媒体管理')
+@ApiBearerAuth('JWT-auth')
 @Controller({ path: 'admin/media', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
+  @ApiOperation({ summary: '上传媒体文件', description: '上传图片、视频等媒体文件' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: '要上传的文件',
+        },
+        alt: {
+          type: 'string',
+          description: '图片 alt 文本',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({ status: 201, description: '上传成功', type: MediaResponseDto })
+  @ApiResponse({ status: 400, description: '未选择文件或文件格式不支持' })
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(
@@ -63,6 +95,8 @@ export class MediaController {
     });
   }
 
+  @ApiOperation({ summary: '获取媒体列表', description: '分页获取媒体文件列表' })
+  @ApiResponse({ status: 200, description: '获取成功', type: PaginatedMediaListDto })
   @Get()
   async findAll(@Query() query: QueryMediaDto): Promise<PaginatedMediaListDto> {
     return this.mediaService.findAll({
@@ -72,11 +106,19 @@ export class MediaController {
     });
   }
 
+  @ApiOperation({ summary: '获取媒体详情', description: '根据 ID 获取媒体文件详细信息' })
+  @ApiParam({ name: 'id', description: '媒体 ID' })
+  @ApiResponse({ status: 200, description: '获取成功', type: MediaResponseDto })
+  @ApiResponse({ status: 404, description: '媒体不存在' })
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<MediaResponseDto> {
     return this.mediaService.findOne(id);
   }
 
+  @ApiOperation({ summary: '删除媒体文件', description: '删除指定媒体文件' })
+  @ApiParam({ name: 'id', description: '媒体 ID' })
+  @ApiResponse({ status: 204, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '媒体不存在' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {
