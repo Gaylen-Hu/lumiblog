@@ -1,5 +1,5 @@
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsInt, Min, Max, IsString, IsBoolean } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 
 /** 默认分页大小 */
 const DEFAULT_PAGE_SIZE = 10;
@@ -23,4 +23,23 @@ export class QueryArticleDto {
   @Min(1, { message: '每页数量最小为1' })
   @Max(MAX_PAGE_SIZE, { message: `每页数量最大为${MAX_PAGE_SIZE}` })
   limit?: number = DEFAULT_PAGE_SIZE;
+}
+
+/**
+ * 查询文章列表 DTO（管理端）
+ * 支持关键词搜索和发布状态筛选
+ */
+export class AdminQueryArticleDto extends QueryArticleDto {
+  @IsOptional()
+  @IsString()
+  keyword?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return undefined;
+  })
+  @IsBoolean({ message: 'isPublished 必须是布尔值' })
+  isPublished?: boolean;
 }

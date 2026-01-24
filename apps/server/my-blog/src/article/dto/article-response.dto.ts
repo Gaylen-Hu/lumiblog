@@ -81,7 +81,7 @@ export class ArticleListItemDto {
 }
 
 /**
- * 分页响应 DTO
+ * 分页响应 DTO（C端）
  */
 export class PaginatedArticleListDto {
   readonly data: ArticleListItemDto[];
@@ -91,6 +91,29 @@ export class PaginatedArticleListDto {
 
   constructor(params: {
     data: ArticleListItemDto[];
+    total: number;
+    page: number;
+    limit: number;
+  }) {
+    this.data = params.data;
+    this.total = params.total;
+    this.page = params.page;
+    this.limit = params.limit;
+  }
+}
+
+/**
+ * 分页响应 DTO（管理端）
+ * 包含完整文章信息
+ */
+export class PaginatedAdminArticleListDto {
+  readonly data: ArticleResponseDto[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
+
+  constructor(params: {
+    data: ArticleResponseDto[];
     total: number;
     page: number;
     limit: number;

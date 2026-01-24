@@ -7,12 +7,9 @@ import {
   MaxLength,
   IsEnum,
 } from 'class-validator';
+import { UserRole } from '@prisma/client';
 
-export enum UserRole {
-  ADMIN = 'admin',
-  EDITOR = 'editor',
-  VIEWER = 'viewer',
-}
+export { UserRole };
 
 export class CreateUserDto {
   @IsEmail({}, { message: '请输入有效的邮箱地址' })
@@ -32,7 +29,7 @@ export class CreateUserDto {
   name: string;
 
   @IsOptional()
-  @IsEnum(UserRole, { message: '角色必须是 admin、editor 或 viewer' })
+  @IsEnum(UserRole, { message: '角色必须是 ADMIN、EDITOR 或 VIEWER' })
   role?: UserRole;
 
   @IsOptional()

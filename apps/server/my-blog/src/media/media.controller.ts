@@ -37,7 +37,7 @@ interface MulterFile {
 /**
  * 媒体管理控制器
  */
-@Controller('admin/media')
+@Controller({ path: 'admin/media', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}

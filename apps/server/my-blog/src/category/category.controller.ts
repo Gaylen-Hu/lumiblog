@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 /**
  * 分类管理控制器（管理端）
  */
-@Controller('admin/categories')
+@Controller({ path: 'admin/categories', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class AdminCategoryController {
   constructor(private readonly categoryService: CategoryService) {}
@@ -55,7 +55,7 @@ export class AdminCategoryController {
 /**
  * 分类公开控制器（C端）
  */
-@Controller('categories')
+@Controller({ path: 'categories', version: '1' })
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 

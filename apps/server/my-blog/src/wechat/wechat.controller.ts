@@ -21,7 +21,7 @@ import {
   FreepublishPaginationDto,
 } from './dto/freepublish.dto';
 
-@Controller('wechat')
+@Controller({ path: 'wechat', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class WechatController {
   constructor(private readonly wechatService: WechatService) {}

@@ -50,3 +50,13 @@ export interface QueryArticleParams {
   page: number;
   limit: number;
 }
+
+/**
+ * 管理端查询文章参数
+ */
+export interface AdminQueryArticleParams {
+  page: number;
+  limit: number;
+  keyword?: string;
+  isPublished?: boolean;
+}

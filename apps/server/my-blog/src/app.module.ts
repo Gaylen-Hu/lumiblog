@@ -12,6 +12,8 @@ import { TagModule } from './tag/tag.module';
 import { MediaModule } from './media/media.module';
 import { SeoModule } from './seo/seo.module';
 import { WechatModule } from './wechat/wechat.module';
+import { AiModule } from './ai/ai.module';
+import { OssModule } from './oss/oss.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { WechatModule } from './wechat/wechat.module';
     TagModule,
     MediaModule,
     WechatModule,
+    AiModule,
+    OssModule,
   ],
   controllers: [AppController],
   providers: [AppService],

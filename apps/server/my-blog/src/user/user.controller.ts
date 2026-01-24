@@ -28,7 +28,7 @@ interface AuthenticatedRequest {
   };
 }
 
-@Controller('users')
+@Controller({ path: 'users', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}

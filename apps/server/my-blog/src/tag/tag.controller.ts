@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 /**
  * 标签管理控制器（管理端）
  */
-@Controller('admin/tags')
+@Controller({ path: 'admin/tags', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class AdminTagController {
   constructor(private readonly tagService: TagService) {}
@@ -56,7 +56,7 @@ export class AdminTagController {
 /**
  * 标签公开控制器（C端）
  */
-@Controller('tags')
+@Controller({ path: 'tags', version: '1' })
 export class TagController {
   constructor(private readonly tagService: TagService) {}
 
