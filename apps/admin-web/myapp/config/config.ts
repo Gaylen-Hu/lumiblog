@@ -180,5 +180,10 @@ export default defineConfig({
   exportStatic: {},
   define: {
     'process.env.CI': process.env.CI,
+    // 生产环境 API 地址
+    API_BASE_URL:
+      process.env.NODE_ENV === 'production'
+        ? 'https://api.example.com/v1'
+        : '',
   },
 });
