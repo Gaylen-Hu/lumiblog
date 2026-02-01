@@ -8,8 +8,14 @@ async function bootstrap() {
 
   // 启用 CORS
   app.enableCors({
-    origin: true,
+    origin: [
+      'http://localhost:8002',
+      'https://badmin.example.com',
+      'https://admin.example.com',
+    ],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
 
   // 启用 URI 版本控制，默认版本为 v1

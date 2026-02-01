@@ -81,7 +81,7 @@ cd "$PROJECT_ROOT/apps/admin-web/myapp"
 log_info "安装管理后台依赖..."
 $INSTALL_CMD install
 log_info "构建管理后台..."
-UMI_ENV=prod $INSTALL_CMD run build
+NODE_ENV=production UMI_ENV=prod $INSTALL_CMD run build
 
 # 安装serve（如果未安装）
 if ! command -v serve &> /dev/null; then

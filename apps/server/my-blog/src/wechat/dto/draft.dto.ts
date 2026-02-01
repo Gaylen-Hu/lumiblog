@@ -69,6 +69,7 @@ export class UpdateDraftDto {
 
   @ApiProperty({ description: '要更新的文章索引（从 0 开始）', example: 0 })
   @IsNumber()
+  @Type(() => Number)
   index: number;
 
   @ApiProperty({ description: '更新后的文章内容', type: DraftArticleDto })
@@ -83,16 +84,19 @@ export class UpdateDraftDto {
 export class DraftPaginationDto {
   @ApiPropertyOptional({ description: '偏移量', example: 0, default: 0 })
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   offset?: number = 0;
 
   @ApiPropertyOptional({ description: '每页数量', example: 20, default: 20 })
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   count?: number = 20;
 
   @ApiPropertyOptional({ description: '是否不返回内容（0-返回，1-不返回）', example: 0, default: 0 })
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   noContent?: number = 0;
 }

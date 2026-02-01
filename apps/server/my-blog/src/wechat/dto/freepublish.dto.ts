@@ -34,6 +34,7 @@ export class FreepublishDeleteDto {
   @ApiPropertyOptional({ description: '文章索引（多图文时使用）', example: 0 })
   @Type(() => Number)
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   index?: number;
 }
@@ -55,18 +56,21 @@ export class FreepublishPaginationDto {
   @ApiPropertyOptional({ description: '偏移量', example: 0, default: 0 })
   @Type(() => Number)
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   offset?: number = 0;
 
   @ApiPropertyOptional({ description: '每页数量', example: 20, default: 20 })
   @Type(() => Number)
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   count?: number = 20;
 
   @ApiPropertyOptional({ description: '是否不返回内容（0-返回，1-不返回）', example: 0, default: 0 })
   @Type(() => Number)
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   noContent?: number = 0;
 }

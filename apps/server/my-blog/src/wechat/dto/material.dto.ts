@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsOptional, IsNumber, IsIn } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * 素材类型
@@ -21,11 +22,13 @@ export class MaterialPaginationDto {
 
   @ApiPropertyOptional({ description: '偏移量', example: 0, default: 0 })
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   offset?: number = 0;
 
   @ApiPropertyOptional({ description: '每页数量', example: 20, default: 20 })
   @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   count?: number = 20;
 }
