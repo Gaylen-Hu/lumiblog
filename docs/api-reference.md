@@ -492,6 +492,14 @@ GET /categories
 
 **响应：** 扁平列表，结构同单个分类
 
+### 获取分类树（管理端） 🔒
+
+```
+GET /admin/categories/tree
+```
+
+**响应：** 树形结构，同公开接口 `/categories/tree`
+
 ### 获取分类列表（管理端） 🔒
 
 ```
@@ -1381,6 +1389,60 @@ POST /admin/ai/seo-optimize
   "seoTitle": "NestJS 入门教程：从零开始构建企业级 Node.js 应用",
   "seoDescription": "详细介绍 NestJS 框架的核心概念、模块化架构和最佳实践，帮助你快速上手构建可扩展的服务端应用。",
   "keywords": "NestJS, Node.js, TypeScript, 后端框架, 企业级应用"
+}
+```
+
+### 豆包对话
+
+```
+POST /admin/ai/doubao/chat
+```
+
+**请求体：**
+```json
+{
+  "prompt": "请帮我总结这篇文章的要点",
+  "systemPrompt": "你是一个专业的技术文章助手"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| prompt | string | ✅ | 用户提示词 |
+| systemPrompt | string | ❌ | 系统提示词 |
+
+**响应：**
+```json
+{
+  "content": "这篇文章的主要要点包括..."
+}
+```
+
+### 豆包多模态对话（图文）
+
+```
+POST /admin/ai/doubao/chat-with-image
+```
+
+**请求体：**
+```json
+{
+  "prompt": "你看见了什么？",
+  "imageUrl": "https://example.com/image.png",
+  "systemPrompt": "你是一个图像分析助手"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| prompt | string | ✅ | 用户提示词 |
+| imageUrl | string | ✅ | 图片 URL |
+| systemPrompt | string | ❌ | 系统提示词 |
+
+**响应：**
+```json
+{
+  "content": "图片中显示的是..."
 }
 ```
 

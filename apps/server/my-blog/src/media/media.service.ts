@@ -5,14 +5,15 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 import {
-  Media,
   StorageType,
   MediaType,
   UploadMediaParams,
   QueryMediaParams,
 } from './domain/media.model';
 import { MediaResponseDto, PaginatedMediaListDto } from './dto';
+import { Media, StorageType as PrismaStorageType, MediaType as PrismaMediaType } from '@prisma/client';
 
 /** 允许的图片 MIME 类型 */
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -22,10 +23,11 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 @Injectable()
 export class MediaService {
   private readonly logger = new Logger(MediaService.name);
-  private medias: Media[] = [];
-  private idCounter = 1;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * 上传媒体文件
@@ -36,27 +38,23 @@ export class MediaService {
     const mediaType = this.detectMediaType(params.mimeType);
     const url = this.buildUrl(params.storageType, params.storagePath);
 
-    const now = new Date();
-    const media: Media = {
-      id: String(this.idCounter++),
-      filename: params.filename,
-      originalName: params.originalName,
-      mimeType: params.mimeType,
-      size: params.size,
-      url,
-      storageType: params.storageType,
-      storagePath: params.storagePath,
-      mediaType,
-      width: params.width ?? null,
-      height: params.height ?? null,
-      alt: params.alt ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const media = await this.prisma.media.create({
+      data: {
+        filename: params.filename,
+        originalName: params.originalName,
+        mimeType: params.mimeType,
+        size: params.size,
+        url,
+        storageType: this.toPrismaStorageType(params.storageType),
+        storagePath: params.storagePath,
+        mediaType: this.toPrismaMediaType(mediaType),
+        width: params.width ?? null,
+        height: params.height ?? null,
+        alt: params.alt ?? null,
+      },
+    });
 
-    this.medias.push(media);
     this.logger.log(`媒体上传成功: ${media.id}`);
-
     return this.toResponseDto(media);
   }
 
@@ -64,17 +62,19 @@ export class MediaService {
    * 查询媒体列表
    */
   async findAll(params: QueryMediaParams): Promise<PaginatedMediaListDto> {
-    let filtered = [...this.medias];
+    const where = params.mediaType
+      ? { mediaType: this.toPrismaMediaType(params.mediaType) }
+      : {};
 
-    if (params.mediaType) {
-      filtered = filtered.filter((m) => m.mediaType === params.mediaType);
-    }
-
-    const total = filtered.length;
-    const start = (params.page - 1) * params.limit;
-    const items = filtered
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      .slice(start, start + params.limit);
+    const [items, total] = await Promise.all([
+      this.prisma.media.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (params.page - 1) * params.limit,
+        take: params.limit,
+      }),
+      this.prisma.media.count({ where }),
+    ]);
 
     return new PaginatedMediaListDto({
       data: items.map((m) => this.toResponseDto(m)),
@@ -98,7 +98,7 @@ export class MediaService {
   async remove(id: string): Promise<void> {
     const media = await this.findById(id);
     // TODO: 实际删除存储文件
-    this.medias = this.medias.filter((m) => m.id !== id);
+    await this.prisma.media.delete({ where: { id } });
     this.logger.log(`媒体删除成功: ${id}, 路径: ${media.storagePath}`);
   }
 
@@ -110,7 +110,7 @@ export class MediaService {
   }
 
   private async findById(id: string): Promise<Media> {
-    const media = this.medias.find((m) => m.id === id);
+    const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) {
       throw new NotFoundException('媒体不存在');
     }
@@ -150,6 +150,46 @@ export class MediaService {
     }
   }
 
+  private toPrismaStorageType(type: StorageType): PrismaStorageType {
+    const map: Record<StorageType, PrismaStorageType> = {
+      [StorageType.LOCAL]: 'local',
+      [StorageType.OSS]: 'oss',
+      [StorageType.S3]: 's3',
+    };
+    return map[type];
+  }
+
+  private toPrismaMediaType(type: MediaType): PrismaMediaType {
+    const map: Record<MediaType, PrismaMediaType> = {
+      [MediaType.IMAGE]: 'image',
+      [MediaType.VIDEO]: 'video',
+      [MediaType.AUDIO]: 'audio',
+      [MediaType.DOCUMENT]: 'document',
+      [MediaType.OTHER]: 'other',
+    };
+    return map[type];
+  }
+
+  private fromPrismaStorageType(type: PrismaStorageType): StorageType {
+    const map: Record<PrismaStorageType, StorageType> = {
+      local: StorageType.LOCAL,
+      oss: StorageType.OSS,
+      s3: StorageType.S3,
+    };
+    return map[type];
+  }
+
+  private fromPrismaMediaType(type: PrismaMediaType): MediaType {
+    const map: Record<PrismaMediaType, MediaType> = {
+      image: MediaType.IMAGE,
+      video: MediaType.VIDEO,
+      audio: MediaType.AUDIO,
+      document: MediaType.DOCUMENT,
+      other: MediaType.OTHER,
+    };
+    return map[type];
+  }
+
   private toResponseDto(media: Media): MediaResponseDto {
     return new MediaResponseDto({
       id: media.id,
@@ -158,8 +198,8 @@ export class MediaService {
       mimeType: media.mimeType,
       size: media.size,
       url: media.url,
-      storageType: media.storageType,
-      mediaType: media.mediaType,
+      storageType: this.fromPrismaStorageType(media.storageType),
+      mediaType: this.fromPrismaMediaType(media.mediaType),
       width: media.width,
       height: media.height,
       alt: media.alt,

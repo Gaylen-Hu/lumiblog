@@ -40,6 +40,13 @@ export class AdminCategoryController {
     return this.categoryService.create(dto);
   }
 
+  @ApiOperation({ summary: '获取分类树', description: '获取分类的树形结构（管理端）' })
+  @ApiResponse({ status: 200, description: '获取成功', type: [CategoryTreeNodeDto] })
+  @Get('tree')
+  async findTree(): Promise<CategoryTreeNodeDto[]> {
+    return this.categoryService.findTree();
+  }
+
   @ApiOperation({ summary: '获取分类列表', description: '获取所有分类（扁平列表）' })
   @ApiResponse({ status: 200, description: '获取成功', type: [CategoryResponseDto] })
   @Get()

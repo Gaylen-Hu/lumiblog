@@ -9,6 +9,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AiService } from './ai.service';
 import { TranslateDto, TranslateResponseDto } from './dto/translate.dto';
 import { SeoOptimizeDto, SeoOptimizeResponseDto } from './dto/seo-optimize.dto';
+import {
+  DoubaoPromptDto,
+  DoubaoImagePromptDto,
+  DoubaoResponseDto,
+} from './dto/doubao.dto';
 
 @ApiTags('AI')
 @ApiBearerAuth('JWT-auth')
@@ -33,5 +38,31 @@ export class AiController {
     @Body() dto: SeoOptimizeDto,
   ): Promise<SeoOptimizeResponseDto> {
     return this.aiService.optimizeSeo(dto);
+  }
+
+  @ApiOperation({ summary: '豆包对话', description: '使用豆包 AI 进行文本对话' })
+  @ApiResponse({ status: 200, description: '对话成功', type: DoubaoResponseDto })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 503, description: 'AI 服务不可用' })
+  @Post('doubao/chat')
+  async doubaoChat(@Body() dto: DoubaoPromptDto): Promise<DoubaoResponseDto> {
+    const content = await this.aiService.callDoubao(dto.prompt, dto.systemPrompt);
+    return new DoubaoResponseDto(content);
+  }
+
+  @ApiOperation({ summary: '豆包多模态对话', description: '使用豆包 AI 进行图文对话' })
+  @ApiResponse({ status: 200, description: '对话成功', type: DoubaoResponseDto })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 503, description: 'AI 服务不可用' })
+  @Post('doubao/chat-with-image')
+  async doubaoChatWithImage(
+    @Body() dto: DoubaoImagePromptDto,
+  ): Promise<DoubaoResponseDto> {
+    const content = await this.aiService.callDoubaoWithImage(
+      dto.prompt,
+      dto.imageUrl,
+      dto.systemPrompt,
+    );
+    return new DoubaoResponseDto(content);
   }
 }

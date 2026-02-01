@@ -5,8 +5,10 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { Category, CreateCategoryParams, UpdateCategoryParams } from './domain/category.model';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateCategoryParams, UpdateCategoryParams } from './domain/category.model';
 import { CategoryResponseDto, CategoryTreeNodeDto } from './dto';
+import { Category } from '@prisma/client';
 
 /** 最大分类层级 */
 const MAX_CATEGORY_LEVEL = 3;
@@ -14,8 +16,8 @@ const MAX_CATEGORY_LEVEL = 3;
 @Injectable()
 export class CategoryService {
   private readonly logger = new Logger(CategoryService.name);
-  private categories: Category[] = [];
-  private idCounter = 1;
+
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * 创建分类
@@ -36,23 +38,19 @@ export class CategoryService {
       }
     }
 
-    const now = new Date();
-    const category: Category = {
-      id: String(this.idCounter++),
-      name: params.name,
-      slug: params.slug,
-      description: params.description ?? null,
-      parentId: params.parentId ?? null,
-      level,
-      path,
-      sortOrder: params.sortOrder ?? 0,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const category = await this.prisma.category.create({
+      data: {
+        name: params.name,
+        slug: params.slug,
+        description: params.description ?? null,
+        parentId: params.parentId ?? null,
+        level,
+        path,
+        sortOrder: params.sortOrder ?? 0,
+      },
+    });
 
-    this.categories.push(category);
     this.logger.log(`分类创建成功: ${category.id}`);
-
     return this.toResponseDto(category);
   }
 
@@ -60,20 +58,22 @@ export class CategoryService {
    * 获取分类树
    */
   async findTree(): Promise<CategoryTreeNodeDto[]> {
-    const rootCategories = this.categories
-      .filter((c) => c.parentId === null)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+    const allCategories = await this.prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
+    });
 
-    return rootCategories.map((root) => this.buildTreeNode(root));
+    const rootCategories = allCategories.filter((c) => c.parentId === null);
+    return rootCategories.map((root) => this.buildTreeNode(root, allCategories));
   }
 
   /**
    * 获取所有分类（扁平列表）
    */
   async findAll(): Promise<CategoryResponseDto[]> {
-    return this.categories
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((c) => this.toResponseDto(c));
+    const categories = await this.prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
+    });
+    return categories.map((c) => this.toResponseDto(c));
   }
 
   /**
@@ -88,7 +88,7 @@ export class CategoryService {
    * 根据路径获取分类
    */
   async findByPath(path: string): Promise<CategoryResponseDto | null> {
-    const category = this.categories.find((c) => c.path === path);
+    const category = await this.prisma.category.findFirst({ where: { path } });
     return category ? this.toResponseDto(category) : null;
   }
 
@@ -96,31 +96,35 @@ export class CategoryService {
    * 更新分类
    */
   async update(id: string, params: UpdateCategoryParams): Promise<CategoryResponseDto> {
-    const category = await this.findById(id);
+    const existing = await this.findById(id);
 
-    if (params.slug && params.slug !== category.slug) {
+    if (params.slug && params.slug !== existing.slug) {
       await this.validateSlugUnique(params.slug, id);
     }
 
-    const updated: Category = {
-      ...category,
-      name: params.name ?? category.name,
-      slug: params.slug ?? category.slug,
-      description: params.description ?? category.description,
-      sortOrder: params.sortOrder ?? category.sortOrder,
-      updatedAt: new Date(),
-    };
-
-    if (params.slug && params.slug !== category.slug) {
-      updated.path = this.rebuildPath(updated);
-      this.updateChildrenPaths(id, updated.path);
+    let newPath = existing.path;
+    if (params.slug && params.slug !== existing.slug) {
+      newPath = this.rebuildPath(existing, params.slug);
     }
 
-    const index = this.categories.findIndex((c) => c.id === id);
-    this.categories[index] = updated;
-    this.logger.log(`分类更新成功: ${id}`);
+    const category = await this.prisma.category.update({
+      where: { id },
+      data: {
+        name: params.name,
+        slug: params.slug,
+        description: params.description,
+        sortOrder: params.sortOrder,
+        path: newPath,
+      },
+    });
 
-    return this.toResponseDto(updated);
+    // 更新子分类路径
+    if (params.slug && params.slug !== existing.slug) {
+      await this.updateChildrenPaths(id, newPath);
+    }
+
+    this.logger.log(`分类更新成功: ${id}`);
+    return this.toResponseDto(category);
   }
 
   /**
@@ -129,17 +133,19 @@ export class CategoryService {
   async remove(id: string): Promise<void> {
     await this.findById(id);
 
-    const hasChildren = this.categories.some((c) => c.parentId === id);
-    if (hasChildren) {
+    const hasChildren = await this.prisma.category.count({
+      where: { parentId: id },
+    });
+    if (hasChildren > 0) {
       throw new BadRequestException('该分类下存在子分类，无法删除');
     }
 
-    this.categories = this.categories.filter((c) => c.id !== id);
+    await this.prisma.category.delete({ where: { id } });
     this.logger.log(`分类删除成功: ${id}`);
   }
 
   private async findById(id: string): Promise<Category> {
-    const category = this.categories.find((c) => c.id === id);
+    const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) {
       throw new NotFoundException('分类不存在');
     }
@@ -147,40 +153,72 @@ export class CategoryService {
   }
 
   private async validateSlugUnique(slug: string, excludeId?: string): Promise<void> {
-    const existing = this.categories.find(
-      (c) => c.slug === slug && c.id !== excludeId,
-    );
+    const existing = await this.prisma.category.findFirst({
+      where: {
+        slug,
+        id: excludeId ? { not: excludeId } : undefined,
+      },
+    });
     if (existing) {
       throw new ConflictException('该 slug 已被使用');
     }
   }
 
-  private buildTreeNode(category: Category): CategoryTreeNodeDto {
-    const children = this.categories
+  private buildTreeNode(category: Category, allCategories: Category[]): CategoryTreeNodeDto {
+    const children = allCategories
       .filter((c) => c.parentId === category.id)
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((child) => this.buildTreeNode(child));
+      .map((child) => this.buildTreeNode(child, allCategories));
 
-    return new CategoryTreeNodeDto({ ...category, children });
+    return new CategoryTreeNodeDto({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      parentId: category.parentId,
+      level: category.level,
+      path: category.path,
+      sortOrder: category.sortOrder,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+      children,
+    });
   }
 
-  private rebuildPath(category: Category): string {
+  private rebuildPath(category: Category, newSlug: string): string {
     if (!category.parentId) {
-      return `/${category.slug}`;
+      return `/${newSlug}`;
     }
-    const parent = this.categories.find((c) => c.id === category.parentId);
-    return parent ? `${parent.path}/${category.slug}` : `/${category.slug}`;
+    const parentPath = category.path.substring(0, category.path.lastIndexOf('/'));
+    return `${parentPath}/${newSlug}`;
   }
 
-  private updateChildrenPaths(parentId: string, parentPath: string): void {
-    const children = this.categories.filter((c) => c.parentId === parentId);
+  private async updateChildrenPaths(parentId: string, parentPath: string): Promise<void> {
+    const children = await this.prisma.category.findMany({
+      where: { parentId },
+    });
+
     for (const child of children) {
-      child.path = `${parentPath}/${child.slug}`;
-      this.updateChildrenPaths(child.id, child.path);
+      const newPath = `${parentPath}/${child.slug}`;
+      await this.prisma.category.update({
+        where: { id: child.id },
+        data: { path: newPath },
+      });
+      await this.updateChildrenPaths(child.id, newPath);
     }
   }
 
   private toResponseDto(category: Category): CategoryResponseDto {
-    return new CategoryResponseDto(category);
+    return new CategoryResponseDto({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      parentId: category.parentId,
+      level: category.level,
+      path: category.path,
+      sortOrder: category.sortOrder,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+    });
   }
 }

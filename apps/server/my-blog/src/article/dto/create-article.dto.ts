@@ -5,6 +5,8 @@ import {
   IsOptional,
   MaxLength,
   Matches,
+  IsIn,
+  IsUUID,
 } from 'class-validator';
 
 /**
@@ -83,4 +85,23 @@ export class CreateArticleDto {
   @IsString()
   @MaxLength(300, { message: 'SEO描述长度不能超过300字符' })
   seoDescription?: string;
+
+  @ApiPropertyOptional({
+    description: '语言标识',
+    example: 'zh-CN',
+    enum: ['zh-CN', 'en-US'],
+    default: 'zh-CN',
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(['zh-CN', 'en-US'], { message: '语言标识只能是 zh-CN 或 en-US' })
+  locale?: string;
+
+  @ApiPropertyOptional({
+    description: '翻译组ID，同组文章互为翻译版本',
+    example: 'a1971975-1cbf-492a-9943-59b9263035d1',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: '翻译组ID必须是有效的UUID' })
+  translationGroupId?: string;
 }
