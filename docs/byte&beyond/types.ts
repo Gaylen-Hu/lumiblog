@@ -1,23 +1,31 @@
 
-export interface Post {
+export interface Article {
   id: string;
   title: string;
   excerpt: string;
-  content: string;
-  author: string;
   date: string;
-  readTime: string;
   category: string;
-  imageUrl: string;
   tags: string[];
 }
 
-export type Theme = 'light' | 'dark';
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  techStack: string[];
+  imageUrl: string;
+  link: string;
+}
 
-export interface BlogState {
-  posts: Post[];
-  selectedPost: Post | null;
-  theme: Theme;
-  isSearchOpen: boolean;
-  searchQuery: string;
+export interface MicroPost {
+  id: string;
+  content: string;
+  date: string;
+  image?: string;
+}
+
+export interface TechStack {
+  name: string;
+  level: number; // 0 to 100
+  icon?: string;
 }

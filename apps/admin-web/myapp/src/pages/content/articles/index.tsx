@@ -36,7 +36,7 @@ const ArticleList: React.FC = () => {
     }
   };
 
-  const handleTogglePublish = async (record: BlogAPI.Article) => {
+  const handleTogglePublish = async (record: BlogAPI.ArticleWithRelations) => {
     try {
       if (record.isPublished) {
         await unpublishArticle(record.id);
@@ -75,7 +75,7 @@ const ArticleList: React.FC = () => {
     }
   };
 
-  const getMoreMenuItems = (record: BlogAPI.Article) => [
+  const getMoreMenuItems = (record: BlogAPI.ArticleWithRelations) => [
     {
       key: 'translate',
       icon: <TranslationOutlined />,
@@ -96,7 +96,7 @@ const ArticleList: React.FC = () => {
     },
   ];
 
-  const columns: ProColumns<BlogAPI.Article>[] = [
+  const columns: ProColumns<BlogAPI.ArticleWithRelations>[] = [
     {
       title: '封面',
       dataIndex: 'coverImage',
@@ -128,6 +128,32 @@ const ArticleList: React.FC = () => {
       dataIndex: 'summary',
       ellipsis: true,
       search: false,
+    },
+    {
+      title: '分类',
+      dataIndex: ['category', 'name'],
+      search: false,
+      width: 100,
+      render: (_, record) =>
+        record.category ? record.category.name : <span style={{ color: '#999' }}>-</span>,
+    },
+    {
+      title: '标签',
+      dataIndex: 'tags',
+      search: false,
+      width: 150,
+      render: (_, record) =>
+        record.tags && record.tags.length > 0 ? (
+          <Space size={[0, 4]} wrap>
+            {record.tags.map((tag) => (
+              <Tag key={tag.id} color="blue">
+                {tag.name}
+              </Tag>
+            ))}
+          </Space>
+        ) : (
+          <span style={{ color: '#999' }}>-</span>
+        ),
     },
     {
       title: '状态',
@@ -189,7 +215,7 @@ const ArticleList: React.FC = () => {
 
   return (
     <PageContainer>
-      <ProTable<BlogAPI.Article>
+      <ProTable<BlogAPI.ArticleWithRelations>
         headerTitle="文章列表"
         actionRef={actionRef}
         rowKey="id"

@@ -14,6 +14,7 @@ import { SeoModule } from './seo/seo.module';
 import { WechatModule } from './wechat/wechat.module';
 import { AiModule } from './ai/ai.module';
 import { OssModule } from './oss/oss.module';
+import { PublicModule } from './public/public.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { OssModule } from './oss/oss.module';
     WechatModule,
     AiModule,
     OssModule,
+    PublicModule,
   ],
   controllers: [AppController],
   providers: [AppService],

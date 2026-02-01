@@ -7,7 +7,7 @@ export async function getArticles(params?: {
   keyword?: string;
   isPublished?: boolean;
 }) {
-  return request<BlogAPI.PaginatedResponse<BlogAPI.Article>>('/api/admin/articles', {
+  return request<BlogAPI.PaginatedResponse<BlogAPI.ArticleWithRelations>>('/api/admin/articles', {
     method: 'GET',
     params,
   });

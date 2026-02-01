@@ -50,6 +50,56 @@ declare namespace BlogAPI {
     children: CategoryTreeNode[];
   }
 
+  interface CreateCategoryParams {
+    name: string;
+    slug: string;
+    description?: string;
+    parentId?: string;
+    sortOrder?: number;
+  }
+
+  interface UpdateCategoryParams {
+    name?: string;
+    slug?: string;
+    description?: string;
+    sortOrder?: number;
+  }
+
+  // 媒体
+  interface Media {
+    id: string;
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+    storageType: 'local' | 'oss' | 's3';
+    mediaType: 'image' | 'video' | 'audio' | 'document' | 'other';
+    width: number | null;
+    height: number | null;
+    alt: string | null;
+    createdAt: string;
+  }
+
+  interface OssSignatureRequest {
+    filename: string;
+    mimeType: string;
+    size: number;
+    category?: 'image' | 'video' | 'audio' | 'document';
+    directory?: string;
+  }
+
+  interface OssSignatureResponse {
+    host: string;
+    key: string;
+    policy: string;
+    signature: string;
+    accessKeyId: string;
+    expire: number;
+    url: string;
+    callback?: string;
+  }
+
   // 文章
   interface Article {
     id: string;
@@ -74,6 +124,8 @@ declare namespace BlogAPI {
     coverImage?: string;
     seoTitle?: string;
     seoDescription?: string;
+    categoryId?: string;
+    tagIds?: string[];
   }
 
   interface UpdateArticleParams {
@@ -84,6 +136,16 @@ declare namespace BlogAPI {
     coverImage?: string;
     seoTitle?: string;
     seoDescription?: string;
+    categoryId?: string;
+    tagIds?: string[];
+  }
+
+  // 扩展文章类型，添加分类和标签关联
+  interface ArticleWithRelations extends Article {
+    categoryId: string | null;
+    category: Category | null;
+    tagIds: string[];
+    tags: Tag[];
   }
 
   // AI 翻译

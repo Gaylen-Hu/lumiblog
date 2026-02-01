@@ -1,39 +1,108 @@
+import Link from 'next/link';
 import HeroSection from '@/components/HeroSection';
 import PostCard from '@/components/PostCard';
-import { getAllPosts } from '@/lib/mock-data';
+import ProjectCard from '@/components/ProjectCard';
+import { getAllPosts, MOCK_PROJECTS } from '@/lib/mock-data';
 
 export default function Home() {
   // TODO: 后端需要实现文章列表接口
   const posts = getAllPosts();
+  const projects = MOCK_PROJECTS.slice(0, 3);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-12 pb-24">
+    <div className="animate-page-fade">
       <HeroSection />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
+      {/* Latest Articles Section */}
+      <section className="py-24 px-6 md:px-12 lg:px-24 bg-white dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <h2 className="text-3xl font-bold text-[#111111] dark:text-white">
+              最新文章
+            </h2>
+            <Link
+              href="/posts"
+              className="text-blue-600 font-medium flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              全部文章
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </svg>
+            </Link>
+          </div>
 
-      {posts.length === 0 && (
-        <div className="py-20 text-center">
-          <svg
-            className="w-12 h-12 text-slate-300 mx-auto mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <h3 className="text-xl font-bold text-slate-400">暂无文章</h3>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+
+          {posts.length === 0 && (
+            <div className="py-20 text-center">
+              <svg
+                className="w-12 h-12 text-gray-300 mx-auto mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <h3 className="text-xl font-bold text-gray-400">暂无文章</h3>
+            </div>
+          )}
         </div>
-      )}
+      </section>
+
+      {/* Featured Projects Section */}
+      <section className="py-24 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <h2 className="text-3xl font-bold text-[#111111] dark:text-white">
+              精选项目
+            </h2>
+            <Link
+              href="/projects"
+              className="text-blue-600 font-medium flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              全部项目
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </svg>
+            </Link>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+            {projects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

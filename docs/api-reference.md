@@ -1665,3 +1665,383 @@ interface PublishToWechatResponse {
   status: 'draft' | 'publishing' | 'published';
 }
 ```
+
+
+---
+
+## 公开接口模块 (Public)
+
+博客前端使用的公开接口，无需认证。
+
+### 获取文章列表
+
+```
+GET /public/articles?page=1&pageSize=10&category=tech&tag=typescript&search=NestJS
+```
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | number | ❌ | 1 | 页码 |
+| pageSize | number | ❌ | 10 | 每页数量（最大100） |
+| category | string | ❌ | - | 分类 slug 筛选 |
+| tag | string | ❌ | - | 标签 slug 筛选 |
+| search | string | ❌ | - | 搜索关键词（标题/摘要） |
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "slug": "future-of-neural-interfaces",
+      "title": "神经接口的未来",
+      "excerpt": "探索神经接口技术的最新进展",
+      "author": {
+        "name": "John Doe",
+        "avatar": null
+      },
+      "publishedAt": "2024-10-12T00:00:00.000Z",
+      "readTime": "6 分钟",
+      "category": {
+        "id": "1",
+        "name": "技术",
+        "slug": "tech"
+      },
+      "coverImage": "https://example.com/cover.jpg",
+      "tags": [
+        { "id": "1", "name": "TypeScript", "slug": "typescript" }
+      ]
+    }
+  ],
+  "total": 100,
+  "page": 1,
+  "pageSize": 10,
+  "totalPages": 10
+}
+```
+
+### 获取文章详情
+
+```
+GET /public/articles/:slug
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| slug | string | 文章唯一标识 |
+
+**响应：**
+```json
+{
+  "id": "1",
+  "slug": "future-of-neural-interfaces",
+  "title": "神经接口的未来",
+  "excerpt": "探索神经接口技术的最新进展",
+  "content": "# 神经接口的未来\n\n这是一篇关于...",
+  "author": {
+    "name": "John Doe",
+    "avatar": null,
+    "bio": "全栈开发者"
+  },
+  "publishedAt": "2024-10-12T00:00:00.000Z",
+  "updatedAt": "2024-10-12T00:00:00.000Z",
+  "readTime": "6 分钟",
+  "category": {
+    "id": "1",
+    "name": "技术",
+    "slug": "tech"
+  },
+  "coverImage": "https://example.com/cover.jpg",
+  "tags": [
+    { "id": "1", "name": "TypeScript", "slug": "typescript" }
+  ],
+  "seo": {
+    "metaTitle": "神经接口的未来 - 技术前沿",
+    "metaDescription": "深入探讨神经接口技术的发展趋势",
+    "ogImage": "https://example.com/cover.jpg"
+  }
+}
+```
+
+**错误响应：**
+- `404 Not Found` - 文章不存在
+
+### 获取文章 Slugs（SSG 用）
+
+```
+GET /public/articles/slugs
+```
+
+**响应：**
+```json
+{
+  "slugs": ["future-of-neural-interfaces", "minimalism-in-spatial-computing"]
+}
+```
+
+### 获取项目列表
+
+```
+GET /public/projects?page=1&pageSize=10&featured=true
+```
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| page | number | ❌ | 1 | 页码 |
+| pageSize | number | ❌ | 10 | 每页数量 |
+| featured | boolean | ❌ | - | 是否只返回精选项目 |
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "title": "My Blog",
+      "description": "一个现代化的博客系统",
+      "techStack": ["Next.js", "NestJS", "TypeScript"],
+      "coverImage": "https://example.com/project.jpg",
+      "link": "https://example.com",
+      "githubUrl": "https://github.com/example/my-blog",
+      "featured": true,
+      "order": 1
+    }
+  ],
+  "total": 10,
+  "page": 1,
+  "pageSize": 10,
+  "totalPages": 1
+}
+```
+
+### 获取分类列表
+
+```
+GET /public/categories
+```
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "name": "技术",
+      "slug": "tech",
+      "description": "技术相关文章",
+      "articleCount": 10
+    }
+  ]
+}
+```
+
+### 获取标签列表
+
+```
+GET /public/tags
+```
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "name": "TypeScript",
+      "slug": "typescript",
+      "articleCount": 5
+    }
+  ]
+}
+```
+
+### 获取站点配置
+
+```
+GET /public/site-config
+```
+
+**响应：**
+```json
+{
+  "siteName": "NOVA",
+  "siteDescription": "探索技术与设计的前沿",
+  "logo": null,
+  "favicon": null,
+  "socialLinks": {
+    "github": "https://github.com/example",
+    "twitter": "https://twitter.com/example"
+  },
+  "owner": {
+    "name": "John Doe",
+    "avatar": null,
+    "bio": "全栈开发者，热爱技术与设计",
+    "email": "hello@example.com"
+  },
+  "seo": {
+    "defaultTitle": "NOVA - 探索技术与设计的前沿",
+    "defaultDescription": "一个关于技术、设计和创新的博客",
+    "defaultOgImage": null
+  }
+}
+```
+
+### 搜索文章
+
+```
+GET /public/search?q=NestJS&page=1&pageSize=10
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| q | string | ✅ | 搜索关键词 |
+| page | number | ❌ | 页码 |
+| pageSize | number | ❌ | 每页数量 |
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "slug": "building-restful-api-with-nestjs",
+      "title": "使用 NestJS 构建 RESTful API",
+      "excerpt": "学习如何使用 NestJS 构建高质量的 RESTful API",
+      "highlight": "...使用 <mark>NestJS</mark> 框架...",
+      "category": "技术",
+      "publishedAt": "2024-10-12T00:00:00.000Z"
+    }
+  ],
+  "total": 5,
+  "page": 1,
+  "pageSize": 10
+}
+```
+
+### TypeScript 类型定义
+
+```typescript
+// 作者信息
+interface Author {
+  name: string;
+  avatar: string | null;
+  bio?: string | null;
+}
+
+// 分类简要信息
+interface CategoryBrief {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// 标签简要信息
+interface TagBrief {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// 公开文章列表项
+interface PublicArticleListItem {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  author: Author;
+  publishedAt: string;
+  readTime: string;
+  category: CategoryBrief | null;
+  coverImage: string | null;
+  tags: TagBrief[];
+}
+
+// SEO 信息
+interface SeoInfo {
+  metaTitle: string | null;
+  metaDescription: string | null;
+  ogImage: string | null;
+}
+
+// 公开文章详情
+interface PublicArticleDetail extends PublicArticleListItem {
+  content: string;
+  updatedAt: string;
+  seo: SeoInfo;
+}
+
+// 分页文章列表响应
+interface PaginatedPublicArticleList {
+  data: PublicArticleListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// 公开项目
+interface PublicProject {
+  id: string;
+  title: string;
+  description: string;
+  techStack: string[];
+  coverImage: string | null;
+  link: string | null;
+  githubUrl: string | null;
+  featured: boolean;
+  order: number;
+}
+
+// 公开分类（含文章数量）
+interface PublicCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  articleCount: number;
+}
+
+// 公开标签（含文章数量）
+interface PublicTag {
+  id: string;
+  name: string;
+  slug: string;
+  articleCount: number;
+}
+
+// 站点配置
+interface SiteConfig {
+  siteName: string;
+  siteDescription: string;
+  logo: string | null;
+  favicon: string | null;
+  socialLinks: {
+    github?: string;
+    twitter?: string;
+    linkedin?: string;
+    weibo?: string;
+  };
+  owner: {
+    name: string;
+    avatar: string | null;
+    bio: string | null;
+    email: string | null;
+  };
+  seo: {
+    defaultTitle: string | null;
+    defaultDescription: string | null;
+    defaultOgImage: string | null;
+  };
+}
+
+// 搜索结果项
+interface SearchResultItem {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  highlight: string | null;
+  category: string | null;
+  publishedAt: string;
+}
+```

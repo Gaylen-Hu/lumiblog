@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPostBySlug, getAllPosts } from '@/lib/mock-data';
 import type { Metadata } from 'next';
+import ReadingProgress from '@/components/ReadingProgress';
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
@@ -39,14 +40,16 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   return (
-    <article className="max-w-4xl mx-auto px-6 py-12 md:py-20">
-      <header className="mb-12">
+    <article className="min-h-screen bg-white pb-32 animate-page-fade">
+      <ReadingProgress />
+
+      <div className="max-w-3xl mx-auto px-6 pt-12">
         <Link
-          href="/"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium text-slate-600 dark:text-slate-300 mb-8"
+          href="/posts"
+          className="group flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-[#111111] transition-colors mb-12"
         >
           <svg
-            className="w-5 h-5"
+            className="w-4 h-4 group-hover:-translate-x-1 transition-transform"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -55,126 +58,130 @@ export default async function PostPage({ params }: PostPageProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M15 19l-7-7 7-7"
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
             />
           </svg>
-          返回首页
+          返回文章列表
         </Link>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {post.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest border border-slate-200 dark:border-slate-700 rounded-full text-slate-500 dark:text-slate-400"
+        <div className="flex items-center gap-4 mb-6">
+          <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold tracking-widest uppercase rounded-full">
+            {post.category}
+          </span>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              #{tag}
-            </span>
-          ))}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            {post.readTime}
+          </div>
         </div>
 
-        <h1 className="text-4xl md:text-6xl font-bold mb-8 text-slate-900 dark:text-white leading-tight">
+        <h1 className="text-4xl md:text-6xl font-bold text-[#111111] leading-[1.1] mb-8 tracking-tight">
           {post.title}
         </h1>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
-          <PostMeta icon="user" label="作者" value={post.author} />
-          <PostMeta icon="calendar" label="日期" value={post.date} />
-          <PostMeta icon="clock" label="阅读时间" value={post.readTime} />
-          <PostMeta icon="category" label="分类" value={post.category} />
-        </div>
-      </header>
-
-      <div className="relative aspect-video mb-12 rounded-[2rem] overflow-hidden shadow-2xl">
-        <Image
-          src={post.imageUrl}
-          alt={post.title}
-          fill
-          className="object-cover"
-          priority
-          sizes="(max-width: 896px) 100vw, 896px"
-        />
-      </div>
-
-      <div className="prose-content text-xl text-slate-700 dark:text-slate-300 leading-relaxed">
-        {post.content.split('\n\n').map((para, i) => {
-          if (para.startsWith('### ')) {
-            return (
-              <h3
-                key={i}
-                className="text-2xl font-bold text-slate-900 dark:text-white mt-8 mb-4"
+        <div className="flex items-center justify-between border-y border-gray-100 py-6 mb-16">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 overflow-hidden" />
+            <div>
+              <p className="text-sm font-bold text-[#111111]">{post.author}</p>
+              <p className="text-xs text-gray-400">{post.date}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-[#111111]">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {para.replace('### ', '')}
-              </h3>
-            );
-          }
-          return (
-            <p key={i} className="mb-6">
-              {para}
-            </p>
-          );
-        })}
-      </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                />
+              </svg>
+            </button>
+            <button className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-[#111111]">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-      <div className="mt-20 pt-10 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
-        <p className="text-slate-400 italic text-sm">感谢阅读。</p>
-        <div className="flex gap-4">
-          <ShareButton label="𝕏" />
-          <ShareButton label="in" />
+        {/* Article Body Content */}
+        <div className="prose prose-lg max-w-none text-[#333333] leading-relaxed">
+          <p className="text-xl font-light text-[#555555] mb-8 leading-relaxed italic border-l-4 border-blue-100 pl-6">
+            {post.excerpt}
+          </p>
+
+          <div className="my-12 rounded-[32px] overflow-hidden shadow-xl border border-gray-100">
+            <Image
+              src={post.imageUrl}
+              alt={post.title}
+              width={1200}
+              height={800}
+              className="w-full"
+              priority
+            />
+          </div>
+
+          {post.content.split('\n\n').map((para, i) => {
+            if (para.startsWith('### ')) {
+              return (
+                <h2
+                  key={i}
+                  className="text-2xl font-bold mt-12 mb-6 text-[#111111]"
+                >
+                  {para.replace('### ', '')}
+                </h2>
+              );
+            }
+            return (
+              <p key={i} className="mb-8">
+                {para}
+              </p>
+            );
+          })}
+        </div>
+
+        {/* Tags */}
+        <div className="mt-16 pt-8 border-t border-gray-100">
+          <div className="flex flex-wrap gap-2">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm font-medium text-gray-600"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </article>
-  );
-}
-
-function PostMeta({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
-  const icons: Record<string, React.ReactNode> = {
-    user: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    ),
-    calendar: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-    clock: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    category: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-      </svg>
-    ),
-  };
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-blue-500">{icons[icon]}</span>
-      <div>
-        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
-          {label}
-        </p>
-        <p className="text-sm font-semibold dark:text-slate-200">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function ShareButton({ label }: { label: string }) {
-  return (
-    <button className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 hover:text-blue-500 hover:border-blue-500 transition-all">
-      {label}
-    </button>
   );
 }

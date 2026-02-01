@@ -1,8 +1,18 @@
-import { PageContainer, ProForm, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
+import {
+  PageContainer,
+  ProForm,
+  ProFormSelect,
+  ProFormText,
+  ProFormTextArea,
+  ProFormTreeSelect,
+} from '@ant-design/pro-components';
 import { App, Card, Spin } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { history, useParams } from '@umijs/max';
 import { getArticle, createArticle, updateArticle } from '@/services/blog/article';
+import { getCategoryTree } from '@/services/blog/category';
+import { getTags } from '@/services/blog/tag';
+import MarkdownEditor, { clearMarkdownDraft } from '@/components/MarkdownEditor';
 
 const ArticleEdit: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -10,6 +20,33 @@ const ArticleEdit: React.FC = () => {
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [initialValues, setInitialValues] = useState<BlogAPI.Article>();
+  const [categoryTreeData, setCategoryTreeData] = useState<BlogAPI.CategoryTreeNode[]>([]);
+  const [tagsData, setTagsData] = useState<BlogAPI.Tag[]>([]);
+
+  // Fetch category tree on mount
+  useEffect(() => {
+    getCategoryTree()
+      .then((data) => setCategoryTreeData(data))
+      .catch(() => message.error('获取分类列表失败'));
+  }, [message]);
+
+  // Fetch tags on mount
+  useEffect(() => {
+    getTags()
+      .then((data) => setTagsData(data))
+      .catch(() => message.error('获取标签列表失败'));
+  }, [message]);
+
+  // Convert category tree to TreeSelect format
+  const convertToTreeSelectData = (
+    nodes: BlogAPI.CategoryTreeNode[],
+  ): { title: string; value: string; children?: { title: string; value: string }[] }[] => {
+    return nodes.map((node) => ({
+      title: node.name,
+      value: node.id,
+      children: node.children?.length ? convertToTreeSelectData(node.children) : undefined,
+    }));
+  };
 
   useEffect(() => {
     if (isEdit && id) {
@@ -30,6 +67,8 @@ const ArticleEdit: React.FC = () => {
         await createArticle(values);
         message.success('创建成功');
       }
+      // Clear the draft after successful save
+      clearMarkdownDraft(`article-${id || 'new'}`);
       history.push('/content/articles');
     } catch {
       message.error(isEdit ? '更新失败' : '创建失败');
@@ -75,6 +114,33 @@ const ArticleEdit: React.FC = () => {
               { pattern: /^[a-z0-9-]+$/, message: '只能包含小写字母、数字和连字符' },
             ]}
           />
+          <ProFormTreeSelect
+            name="categoryId"
+            label="分类"
+            placeholder="请选择分类（可选）"
+            fieldProps={{
+              treeData: convertToTreeSelectData(categoryTreeData),
+              showSearch: true,
+              treeNodeFilterProp: 'title',
+              allowClear: true,
+              treeLine: true,
+            }}
+          />
+          <ProFormSelect
+            name="tagIds"
+            label="标签"
+            placeholder="请选择标签（可选）"
+            fieldProps={{
+              mode: 'multiple',
+              showSearch: true,
+              optionFilterProp: 'label',
+              allowClear: true,
+            }}
+            options={tagsData.map((tag) => ({
+              label: tag.name,
+              value: tag.id,
+            }))}
+          />
           <ProFormTextArea
             name="summary"
             label="摘要"
@@ -82,12 +148,15 @@ const ArticleEdit: React.FC = () => {
             rules={[{ max: 500, message: '摘要不能超过500个字符' }]}
             fieldProps={{ rows: 3 }}
           />
-          <ProFormTextArea
+          <ProForm.Item
             name="content"
             label="正文"
-            placeholder="请输入文章正文（支持 Markdown）"
-            fieldProps={{ rows: 15 }}
-          />
+          >
+            <MarkdownEditor
+              height={500}
+              draftKey={`article-${id || 'new'}`}
+            />
+          </ProForm.Item>
           <ProFormText
             name="coverImage"
             label="封面图"

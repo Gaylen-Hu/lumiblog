@@ -6,6 +6,12 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // 启用 CORS
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
   // 启用 URI 版本控制，默认版本为 v1
   app.enableVersioning({
     type: VersioningType.URI,
@@ -26,6 +32,8 @@ async function bootstrap() {
     .setTitle('My Blog API')
     .setDescription('个人博客系统 API 文档')
     .setVersion('1.0')
+    .addServer('https://api.example.com', '生产环境')
+    .addServer('http://localhost:3000', '本地开发')
     .addBearerAuth(
       {
         type: 'http',
@@ -53,7 +61,11 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+  
+  // 设置 Swagger UI，同时提供 JSON 和 YAML 格式
   SwaggerModule.setup('api-docs', app, document, {
+    jsonDocumentUrl: '/api-docs/json',
+    yamlDocumentUrl: '/api-docs/yaml',
     swaggerOptions: {
       persistAuthorization: true,
       docExpansion: 'none',

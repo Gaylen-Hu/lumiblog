@@ -1,93 +1,94 @@
 'use client';
 
 import Link from 'next/link';
-import { useTheme } from './ThemeProvider';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+const navItems = [
+  { name: '首页', href: '/' },
+  { name: '文章', href: '/posts' },
+  { name: '项目', href: '/projects' },
+  { name: '关于', href: '/about' },
+];
 
 export default function Header() {
-  const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/70 dark:bg-slate-950/70 border-b border-slate-200/50 dark:border-slate-800/50 transition-all">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link
-          href="/"
-          className="flex items-center space-x-2 group cursor-pointer"
-        >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:rotate-12 transition-transform">
-            <svg
-              className="w-6 h-6"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold tracking-tighter">NOVA</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center space-x-8">
+    <header
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+        isScrolled
+          ? 'frosted-glass border-b border-gray-200/50 py-3'
+          : 'bg-transparent py-6'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
+        <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="text-xl font-bold tracking-tight text-[#111111] dark:text-white"
           >
-            首页
+            NOVA<span className="text-blue-500">.</span>
           </Link>
-          <Link
-            href="/categories"
-            className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            分类
-          </Link>
-          <Link
-            href="/tags"
-            className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            标签
-          </Link>
-          <Link
-            href="/about"
-            className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            关于
-          </Link>
-        </nav>
 
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="切换主题"
-          >
-            {theme === 'light' ? (
-              <svg
-                className="w-5 h-5 text-slate-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="w-5 h-5 text-yellow-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                />
-              </svg>
-            )}
-          </button>
+          <nav className="hidden md:flex items-center gap-6">
+            {navItems.map((item) => {
+              const isActive =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-sm font-medium transition-colors relative group px-1 ${
+                    isActive
+                      ? 'text-[#111111] dark:text-white'
+                      : 'text-[#555555] dark:text-gray-400 hover:text-[#111111] dark:hover:text-white'
+                  }`}
+                >
+                  {item.name}
+                  <span
+                    className={`absolute -bottom-1 left-0 h-0.5 bg-blue-500 transition-all ${
+                      isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                    }`}
+                  />
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="relative hidden sm:block">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              placeholder="搜索..."
+              className="pl-10 pr-4 py-1.5 text-sm bg-gray-100/50 dark:bg-gray-800/50 border border-transparent rounded-full focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-300 dark:focus:border-blue-700 outline-none transition-all w-48 md:w-64"
+            />
+          </div>
         </div>
       </div>
     </header>

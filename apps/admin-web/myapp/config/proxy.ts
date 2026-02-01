@@ -29,14 +29,14 @@ export default {
   test: {
     // localhost:8000/api/** -> https://preview.pro.ant.design/v1/**
     '/api/': {
-      target: 'https://proapi.azurewebsites.net',
+      target: 'https://api.example.com',
       changeOrigin: true,
       pathRewrite: { '^/api': '/v1' },
     },
   },
   pre: {
     '/api/': {
-      target: 'your pre url',
+      target: 'https://api.example.com',
       changeOrigin: true,
       pathRewrite: { '^/api': '/v1' },
     },

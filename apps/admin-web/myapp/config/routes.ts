@@ -75,13 +75,18 @@ export default [
         path: '/content/wechat',
         component: './content/wechat',
       },
-      // TODO: 后续添加
-      // {
-      //   name: 'categories',
-      //   icon: 'folder',
-      //   path: '/content/categories',
-      //   component: './content/categories',
-      // },
+      {
+        name: 'categories',
+        icon: 'folder',
+        path: '/content/categories',
+        component: './content/categories',
+      },
+      {
+        name: 'media',
+        icon: 'picture',
+        path: '/content/media',
+        component: './content/media',
+      },
     ],
   },
   {

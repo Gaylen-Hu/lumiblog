@@ -13,6 +13,31 @@ export interface Post {
   slug: string;
 }
 
+// 项目类型
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  techStack: string[];
+  imageUrl: string;
+  link: string;
+}
+
+// 微博/动态类型
+export interface MicroPost {
+  id: string;
+  content: string;
+  date: string;
+  image?: string;
+}
+
+// 技术栈类型
+export interface TechStack {
+  name: string;
+  level: number; // 0 to 100
+  icon?: string;
+}
+
 // 主题类型
 export type Theme = 'light' | 'dark';
 

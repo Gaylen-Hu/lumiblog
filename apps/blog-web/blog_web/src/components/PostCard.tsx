@@ -1,5 +1,7 @@
+'use client';
+
 import Link from 'next/link';
-import Image from 'next/image';
+import { useRef, useState } from 'react';
 import type { Post } from '@/types';
 
 interface PostCardProps {
@@ -7,63 +9,76 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current) return;
+    const rect = divRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
   return (
     <Link href={`/posts/${post.slug}`}>
-      <article className="group cursor-pointer flex flex-col bg-white dark:bg-slate-900 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border border-slate-100 dark:border-slate-800">
-        <div className="relative aspect-[16/9] overflow-hidden">
-          <Image
-            src={post.imageUrl}
-            alt={post.title}
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
-          <div className="absolute top-4 left-4">
-            <span className="px-3 py-1 text-xs font-semibold tracking-wider uppercase bg-white/80 dark:bg-black/50 backdrop-blur-md rounded-full text-slate-800 dark:text-slate-100">
-              {post.category}
-            </span>
-          </div>
+      <div
+        ref={divRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setOpacity(1)}
+        onMouseLeave={() => setOpacity(0)}
+        className="relative group bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 hover:border-transparent hover:shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full overflow-hidden cursor-pointer"
+      >
+        <div
+          className="pointer-events-none absolute -inset-px transition duration-300 rounded-3xl"
+          style={{
+            opacity,
+            background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(59, 130, 246, 0.08), transparent 40%)`,
+          }}
+        />
+
+        <div className="flex items-center gap-3 mb-6">
+          <span className="px-3 py-1 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-semibold rounded-full group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            {post.category}
+          </span>
+          <span className="text-xs text-gray-400 font-medium">{post.date}</span>
         </div>
 
-        <div className="p-8 flex flex-col flex-1">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-sm font-medium text-slate-400">{post.date}</span>
-            <svg
-              className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <h3 className="text-xl font-bold text-[#111111] dark:text-white mb-4 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          {post.title}
+        </h3>
+
+        <p className="text-[#555555] dark:text-gray-400 text-sm leading-relaxed mb-8 flex-grow">
+          {post.excerpt}
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {post.tags.map((tag) => (
+            <span
+              key={tag}
+              className="text-[10px] tracking-wider uppercase text-gray-400 font-bold"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 17L17 7M17 7H7M17 7V17"
-              />
-            </svg>
-          </div>
-
-          <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-            {post.title}
-          </h3>
-
-          <p className="text-slate-600 dark:text-slate-400 line-clamp-2 mb-6">
-            {post.excerpt}
-          </p>
-
-          <div className="mt-auto flex items-center justify-between pt-6 border-t border-slate-50 dark:border-slate-800">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600" />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {post.author}
-              </span>
-            </div>
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">
-              {post.readTime}
+              #{tag}
             </span>
-          </div>
+          ))}
         </div>
-      </article>
+
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#111111] dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mt-auto">
+          阅读文章
+          <svg
+            className="w-3 h-3 group-hover:translate-x-1 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 8l4 4m0 0l-4 4m4-4H3"
+            />
+          </svg>
+        </div>
+      </div>
     </Link>
   );
 }

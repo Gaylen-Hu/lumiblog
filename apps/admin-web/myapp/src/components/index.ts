@@ -9,4 +9,21 @@ import Footer from './Footer';
 import { Question, SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
 
-export { AvatarDropdown, AvatarName, Footer, Question, SelectLang };
+/**
+ * 业务组件
+ */
+import OssUploader from './OssUploader';
+import MediaPicker from './MediaPicker';
+import MarkdownEditor, { clearMarkdownDraft } from './MarkdownEditor';
+
+export {
+  AvatarDropdown,
+  AvatarName,
+  clearMarkdownDraft,
+  Footer,
+  MarkdownEditor,
+  MediaPicker,
+  OssUploader,
+  Question,
+  SelectLang,
+};
