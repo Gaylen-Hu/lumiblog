@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import HeroSection from '@/components/HeroSection';
+import StatsSection from '@/components/StatsSection';
 import PostCard from '@/components/PostCard';
 import ProjectCard from '@/components/ProjectCard';
 import { getAllPosts, MOCK_PROJECTS } from '@/lib/mock-data';
@@ -12,6 +13,7 @@ export default function Home() {
   return (
     <div className="animate-page-fade">
       <HeroSection />
+      <StatsSection />
 
       {/* Latest Articles Section */}
       <section className="py-24 px-6 md:px-12 lg:px-24 bg-white dark:bg-slate-950">

@@ -1,24 +1,58 @@
+'use client';
+
 import Link from 'next/link';
-import GridBeam from './GridBeam';
+import Beams from './ui/Beams';
+import SplitText from './ui/SplitText';
+import GradientText from './ui/GradientText';
 
 export default function HeroSection() {
   return (
     <div className="relative min-h-[90vh] flex items-center px-6 md:px-12 lg:px-24 pt-20 overflow-hidden bg-white dark:bg-slate-950">
-      <GridBeam />
+      {/* Animated Beams Background */}
+      <Beams beamCount={8} beamOpacity={0.12} />
+
+      {/* Grid pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #111111 1px, transparent 1px),
+            linear-gradient(to bottom, #111111 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px',
+        }}
+      />
+
+      {/* Gradient overlay */}
+      <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-50/50 dark:from-blue-950/20 to-transparent pointer-events-none" />
+
+      {/* Floating orbs */}
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-4xl relative z-10">
         <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold tracking-wide uppercase mb-6 animate-fade-in-up">
           探索技术与设计的前沿
         </div>
 
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-[#111111] dark:text-white leading-[1.1] mb-8 animate-fade-in-up delay-100">
-          用代码创造
-          <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-[#111111] dark:text-white leading-[1.1] mb-8">
+          <SplitText
+            text="用代码创造"
+            delay={40}
+            className="block"
+          />
+          <GradientText
+            colors={['#3b82f6', '#6366f1', '#8b5cf6', '#3b82f6']}
+            animationSpeed={6}
+            className="block"
+          >
             数字杰作
-          </span>
-          <br />
-          的艺术。
+          </GradientText>
+          <SplitText
+            text="的艺术。"
+            delay={40}
+            className="block"
+          />
         </h1>
 
         <p className="text-xl md:text-2xl text-[#555555] dark:text-gray-400 font-light leading-relaxed max-w-2xl mb-12 animate-fade-in-up delay-200">
