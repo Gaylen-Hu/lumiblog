@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { getSiteConfig } from '@/lib/api';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -14,24 +15,46 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
-  title: 'NOVA - 探索技术与设计的前沿',
-  description: '以极简主义的视角，探索技术、设计与人类潜能的前沿。',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await getSiteConfig();
 
-export default function RootLayout({
+  return {
+    title: config.seo.defaultTitle || config.siteName,
+    description: config.seo.defaultDescription || config.siteDescription,
+    keywords: config.seo.keywords || undefined,
+    alternates: {
+      types: {
+        'application/rss+xml': '/feed.xml',
+      },
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const config = await getSiteConfig();
+
   return (
     <html lang="zh-CN">
+      <head>
+        {config.analytics ? (
+          <script dangerouslySetInnerHTML={{ __html: config.analytics }} />
+        ) : null}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white`}
       >
-        <Header />
+        <Header siteName={config.siteName} />
         <main className="flex-1 pt-20">{children}</main>
-        <Footer />
+        <Footer
+          siteName={config.siteName}
+          siteDescription={config.siteDescription}
+          socialLinks={config.socialLinks}
+          filing={config.filing}
+        />
       </body>
     </html>
   );

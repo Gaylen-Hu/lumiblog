@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { SiteConfigService } from '../site-config/site-config.service';
 import {
   PublicArticleQueryDto,
   PublicArticleListItemDto,
@@ -20,6 +21,7 @@ import {
   SocialLinksDto,
   SiteOwnerDto,
   SiteSeoDto,
+  FilingInfoDto,
   SearchQueryDto,
   SearchResultDto,
   SearchResultItemDto,
@@ -87,7 +89,7 @@ export class PublicService {
   private tags: InternalTag[] = [];
   private idCounter = 1;
 
-  constructor() {
+  constructor(private readonly siteConfigService: SiteConfigService) {
     this.initMockData();
   }
 
@@ -199,27 +201,35 @@ export class PublicService {
    * 获取站点配置
    */
   async getSiteConfig(): Promise<SiteConfigDto> {
-    // TODO: 从数据库或配置文件读取
+    const config = await this.siteConfigService.getConfig();
+
     return new SiteConfigDto({
-      siteName: 'NOVA',
-      siteDescription: '探索技术与设计的前沿',
-      logo: null,
-      favicon: null,
+      siteName: config.title,
+      siteDescription: config.description ?? '',
+      logo: config.logo,
+      favicon: config.favicon,
       socialLinks: new SocialLinksDto({
         github: 'https://github.com/example',
         twitter: 'https://twitter.com/example',
       }),
       owner: new SiteOwnerDto({
-        name: 'John Doe',
+        name: 'Site Owner',
         avatar: null,
-        bio: '全栈开发者，热爱技术与设计',
-        email: 'hello@example.com',
+        bio: null,
+        email: null,
       }),
       seo: new SiteSeoDto({
-        defaultTitle: 'NOVA - 探索技术与设计的前沿',
-        defaultDescription: '一个关于技术、设计和创新的博客',
+        defaultTitle: config.title,
+        defaultDescription: config.description,
+        keywords: config.keywords,
         defaultOgImage: null,
       }),
+      filing: new FilingInfoDto({
+        icp: config.icp,
+        gongan: config.gongan,
+        copyright: config.copyright,
+      }),
+      analytics: config.analytics,
     });
   }
 

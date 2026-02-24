@@ -107,6 +107,23 @@ export default [
     ],
   },
   {
+    path: '/settings',
+    name: 'settings',
+    icon: 'setting',
+    routes: [
+      {
+        path: '/settings',
+        redirect: '/settings/site',
+      },
+      {
+        name: 'site',
+        icon: 'global',
+        path: '/settings/site',
+        component: './settings/site',
+      },
+    ],
+  },
+  {
     path: '/',
     redirect: '/dashboard',
   },

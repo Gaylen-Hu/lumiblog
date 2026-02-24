@@ -15,6 +15,7 @@ import { WechatModule } from './wechat/wechat.module';
 import { AiModule } from './ai/ai.module';
 import { OssModule } from './oss/oss.module';
 import { PublicModule } from './public/public.module';
+import { SiteConfigModule } from './site-config/site-config.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PublicModule } from './public/public.module';
     AiModule,
     OssModule,
     PublicModule,
+    SiteConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

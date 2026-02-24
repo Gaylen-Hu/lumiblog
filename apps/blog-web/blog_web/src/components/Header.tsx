@@ -11,7 +11,11 @@ const navItems = [
   { name: '关于', href: '/about' },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  siteName?: string;
+}
+
+export default function Header({ siteName = 'NOVA' }: HeaderProps) {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -37,7 +41,7 @@ export default function Header() {
             href="/"
             className="text-xl font-bold tracking-tight text-[#111111] dark:text-white"
           >
-            NOVA<span className="text-blue-500">.</span>
+            {siteName}<span className="text-blue-500">.</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">

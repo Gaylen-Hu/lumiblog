@@ -113,3 +113,20 @@ model Media {
 
   @@map("media")
 }
+
+model SiteConfig {
+  id          String   @id @default(uuid())
+  title       String   @default("My Blog")
+  description String?  @db.Text
+  keywords    String?
+  logo        String?
+  favicon     String?
+  icp         String?  // ICP 备案号
+  gongan      String?  // 公安备案号
+  copyright   String?
+  analytics   String?  @db.Text // 统计代码
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("site_config")
+}

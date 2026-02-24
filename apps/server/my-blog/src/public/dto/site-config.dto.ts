@@ -68,17 +68,46 @@ export class SiteSeoDto {
   @ApiPropertyOptional({ description: '默认描述' })
   readonly defaultDescription: string | null;
 
+  @ApiPropertyOptional({ description: '关键词' })
+  readonly keywords: string | null;
+
   @ApiPropertyOptional({ description: '默认 OG 图片' })
   readonly defaultOgImage: string | null;
 
   constructor(params: {
     defaultTitle: string | null;
     defaultDescription: string | null;
+    keywords?: string | null;
     defaultOgImage: string | null;
   }) {
     this.defaultTitle = params.defaultTitle;
     this.defaultDescription = params.defaultDescription;
+    this.keywords = params.keywords ?? null;
     this.defaultOgImage = params.defaultOgImage;
+  }
+}
+
+/**
+ * 备案信息 DTO
+ */
+export class FilingInfoDto {
+  @ApiPropertyOptional({ description: 'ICP 备案号' })
+  readonly icp: string | null;
+
+  @ApiPropertyOptional({ description: '公安备案号' })
+  readonly gongan: string | null;
+
+  @ApiPropertyOptional({ description: '版权信息' })
+  readonly copyright: string | null;
+
+  constructor(params: {
+    icp: string | null;
+    gongan: string | null;
+    copyright: string | null;
+  }) {
+    this.icp = params.icp;
+    this.gongan = params.gongan;
+    this.copyright = params.copyright;
   }
 }
 
@@ -107,6 +136,12 @@ export class SiteConfigDto {
   @ApiProperty({ description: 'SEO 配置', type: SiteSeoDto })
   readonly seo: SiteSeoDto;
 
+  @ApiProperty({ description: '备案信息', type: FilingInfoDto })
+  readonly filing: FilingInfoDto;
+
+  @ApiPropertyOptional({ description: '统计代码' })
+  readonly analytics: string | null;
+
   constructor(params: {
     siteName: string;
     siteDescription: string;
@@ -115,6 +150,8 @@ export class SiteConfigDto {
     socialLinks: SocialLinksDto;
     owner: SiteOwnerDto;
     seo: SiteSeoDto;
+    filing: FilingInfoDto;
+    analytics?: string | null;
   }) {
     this.siteName = params.siteName;
     this.siteDescription = params.siteDescription;
@@ -123,5 +160,7 @@ export class SiteConfigDto {
     this.socialLinks = params.socialLinks;
     this.owner = params.owner;
     this.seo = params.seo;
+    this.filing = params.filing;
+    this.analytics = params.analytics ?? null;
   }
 }

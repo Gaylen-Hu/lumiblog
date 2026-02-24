@@ -2107,3 +2107,174 @@ interface SearchResultItem {
   publishedAt: string;
 }
 ```
+
+
+---
+
+## 网站配置模块 (SiteConfig)
+
+### 获取网站配置 🔒
+
+```
+GET /site-config
+```
+
+**说明：** 获取网站基础配置信息（管理端）
+
+**响应：**
+```json
+{
+  "id": "1",
+  "title": "NOVA - 探索技术与设计的前沿",
+  "description": "以极简主义的视角，探索技术、设计与人类潜能的前沿。",
+  "keywords": "技术,设计,博客",
+  "logo": "https://example.com/logo.png",
+  "favicon": "https://example.com/favicon.ico",
+  "icp": "京ICP备12345678号",
+  "gongan": "京公网安备 11010102001234号",
+  "copyright": "© 2024 NOVA. All rights reserved.",
+  "analytics": "<script>...</script>",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z"
+}
+```
+
+### 更新网站配置 🔒
+
+```
+PUT /site-config
+```
+
+**请求体：**
+```json
+{
+  "title": "NOVA",
+  "description": "探索技术与设计的前沿",
+  "keywords": "技术,设计,博客",
+  "logo": "https://example.com/logo.png",
+  "favicon": "https://example.com/favicon.ico",
+  "icp": "京ICP备12345678号",
+  "gongan": "京公网安备 11010102001234号",
+  "copyright": "© 2024 NOVA. All rights reserved.",
+  "analytics": "<script>...</script>"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | ❌ | 网站标题（最长60字符） |
+| description | string | ❌ | 网站描述（最长200字符） |
+| keywords | string | ❌ | 关键词，逗号分隔 |
+| logo | string | ❌ | Logo URL |
+| favicon | string | ❌ | Favicon URL |
+| icp | string | ❌ | ICP 备案号 |
+| gongan | string | ❌ | 公安备案号 |
+| copyright | string | ❌ | 版权信息 |
+| analytics | string | ❌ | 统计代码 |
+
+**响应：** 返回更新后的完整配置对象
+
+### 获取网站配置（公开）
+
+```
+GET /v1/public/site-config
+```
+
+**说明：** 博客前端获取网站配置（无需认证）
+
+**响应：**
+```json
+{
+  "siteName": "NOVA",
+  "siteDescription": "探索技术与设计的前沿",
+  "logo": "https://example.com/logo.png",
+  "favicon": "https://example.com/favicon.ico",
+  "socialLinks": {
+    "github": "https://github.com/example",
+    "twitter": "https://twitter.com/example"
+  },
+  "owner": {
+    "name": "Site Owner",
+    "avatar": null,
+    "bio": null,
+    "email": null
+  },
+  "seo": {
+    "defaultTitle": "NOVA - 探索技术与设计的前沿",
+    "defaultDescription": "以极简主义的视角，探索技术、设计与人类潜能的前沿。",
+    "keywords": "技术,设计,博客",
+    "defaultOgImage": null
+  },
+  "filing": {
+    "icp": "京ICP备12345678号",
+    "gongan": "京公网安备 11010102001234号",
+    "copyright": "© 2024 NOVA. All rights reserved."
+  },
+  "analytics": "<script>...</script>"
+}
+```
+
+### TypeScript 类型定义
+
+```typescript
+// 网站配置
+interface SiteConfig {
+  id: string;
+  title: string;
+  description: string | null;
+  keywords: string | null;
+  logo: string | null;
+  favicon: string | null;
+  icp: string | null;
+  gongan: string | null;
+  copyright: string | null;
+  analytics: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 更新网站配置参数
+interface UpdateSiteConfigParams {
+  title?: string;
+  description?: string;
+  keywords?: string;
+  logo?: string;
+  favicon?: string;
+  icp?: string;
+  gongan?: string;
+  copyright?: string;
+  analytics?: string;
+}
+
+// 公开网站配置响应
+interface PublicSiteConfig {
+  siteName: string;
+  siteDescription: string;
+  logo: string | null;
+  favicon: string | null;
+  socialLinks: {
+    github?: string;
+    twitter?: string;
+    linkedin?: string;
+    weibo?: string;
+  };
+  owner: {
+    name: string;
+    avatar: string | null;
+    bio: string | null;
+    email: string | null;
+  };
+  seo: {
+    defaultTitle: string | null;
+    defaultDescription: string | null;
+    keywords: string | null;
+    defaultOgImage: string | null;
+  };
+  filing: {
+    icp: string | null;
+    gongan: string | null;
+    copyright: string | null;
+  };
+  analytics: string | null;
+}
+```

@@ -1,6 +1,33 @@
 // 博客系统类型定义
 
 declare namespace BlogAPI {
+  // 网站配置
+  interface SiteConfig {
+    id: string;
+    title: string;
+    description: string;
+    keywords: string;
+    logo: string | null;
+    favicon: string | null;
+    icp: string | null;
+    gongan: string | null;
+    copyright: string | null;
+    analytics: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface UpdateSiteConfigParams {
+    title?: string;
+    description?: string;
+    keywords?: string;
+    logo?: string;
+    favicon?: string;
+    icp?: string;
+    gongan?: string;
+    copyright?: string;
+    analytics?: string;
+  }
   // 分页响应
   interface PaginatedResponse<T> {
     data: T[];
