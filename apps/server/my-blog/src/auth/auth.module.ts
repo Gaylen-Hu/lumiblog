@@ -7,11 +7,13 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UserModule } from '../user/user.module';
+import { ApiKeyModule } from '../api-key/api-key.module';
 
 @Module({
   imports: [
     PassportModule,
     UserModule,
+    ApiKeyModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService): JwtModuleOptions => {

@@ -16,6 +16,8 @@ import { AiModule } from './ai/ai.module';
 import { OssModule } from './oss/oss.module';
 import { PublicModule } from './public/public.module';
 import { SiteConfigModule } from './site-config/site-config.module';
+import { ApiKeyModule } from './api-key/api-key.module';
+import { ProjectModule } from './project/project.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { SiteConfigModule } from './site-config/site-config.module';
     OssModule,
     PublicModule,
     SiteConfigModule,
+    ApiKeyModule,
+    ProjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -39,6 +39,7 @@ model User {
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  apiKeys   ApiKey[]
 
   @@map("users")
 }
@@ -56,43 +57,77 @@ model Category {
   sortOrder   Int        @default(0)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  articles    Article[]
 
   @@map("categories")
 }
 
 model Tag {
-  id           String   @id @default(uuid())
-  name         String   @unique
-  slug         String   @unique
+  id           String       @id @default(uuid())
+  name         String       @unique
+  slug         String       @unique
   description  String?
-  articleCount Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  articleCount Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  articles     ArticleTag[]
 
   @@map("tags")
 }
 
 model Article {
-  id                 String    @id @default(uuid())
+  id                 String       @id @default(uuid())
   title              String
-  slug               String    @unique
-  summary            String?   @db.Text
-  content            String?   @db.Text
+  slug               String       @unique
+  summary            String?      @db.Text
+  content            String?      @db.Text
   coverImage         String?
-  isPublished        Boolean   @default(false)
+  isPublished        Boolean      @default(false)
   publishedAt        DateTime?
   seoTitle           String?
-  seoDescription     String?   @db.Text
-  locale             String    @default("zh-CN") // 语言标识: zh-CN, en-US
-  translationGroupId String?   // 翻译组ID，同组文章互为翻译版本
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  seoDescription     String?      @db.Text
+  locale             String       @default("zh-CN") // 语言标识: zh-CN, en-US
+  translationGroupId String?      // 翻译组ID，同组文章互为翻译版本
+  categoryId         String?
+  category           Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags               ArticleTag[]
+  viewCount          Int          @default(0)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   @@map("articles")
   @@index([isPublished])
   @@index([slug])
   @@index([translationGroupId])
   @@index([locale])
+  @@index([categoryId])
+}
+
+model ArticleTag {
+  id        String  @id @default(uuid())
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, tagId])
+  @@map("article_tags")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @db.Text
+  techStack   String[] // PostgreSQL 数组类型
+  coverImage  String?
+  link        String?
+  githubUrl   String?
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("projects")
 }
 
 model Media {
@@ -114,19 +149,43 @@ model Media {
   @@map("media")
 }
 
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String    // Key 名称，方便用户识别
+  keyHash     String    @unique // 存储 hash 后的 key
+  keyPrefix   String    // 存储 key 前缀用于展示（如 "sk-xxxx"）
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt  DateTime?
+  isRevoked   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("api_keys")
+  @@index([userId])
+}
+
 model SiteConfig {
-  id          String   @id @default(uuid())
-  title       String   @default("My Blog")
-  description String?  @db.Text
-  keywords    String?
-  logo        String?
-  favicon     String?
-  icp         String?  // ICP 备案号
-  gongan      String?  // 公安备案号
-  copyright   String?
-  analytics   String?  @db.Text // 统计代码
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  title          String   @default("My Blog")
+  description    String?  @db.Text
+  keywords       String?
+  logo           String?
+  favicon        String?
+  icp            String?  // ICP 备案号
+  gongan         String?  // 公安备案号
+  copyright      String?
+  analytics      String?  @db.Text // 统计代码
+  ownerName      String?
+  ownerAvatar    String?
+  ownerBio       String?  @db.Text
+  ownerEmail     String?
+  socialGithub   String?
+  socialTwitter  String?
+  socialLinkedin String?
+  socialWeibo    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("site_config")
 }
