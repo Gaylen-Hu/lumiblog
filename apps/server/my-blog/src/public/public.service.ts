@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { SiteConfigService } from '../site-config/site-config.service';
 import {
   PublicArticleQueryDto,
@@ -30,68 +32,28 @@ import {
 /** 每分钟阅读字数（用于计算阅读时间） */
 const WORDS_PER_MINUTE = 200;
 
-/** 内部文章类型 */
-interface InternalArticle {
-  id: string;
-  slug: string;
-  title: string;
-  content: string | null;
-  excerpt: string | null;
-  coverImage: string | null;
-  isPublished: boolean;
-  publishedAt: Date | null;
-  updatedAt: Date;
-  seoTitle: string | null;
-  seoDescription: string | null;
-  author: { name: string; avatar: string | null; bio: string | null };
-  category: { id: string; name: string; slug: string } | null;
-  tags: { id: string; name: string; slug: string }[];
-}
+/** 默认作者信息（站点配置未设置时使用） */
+const DEFAULT_AUTHOR_NAME = 'Site Owner';
 
-/** 内部项目类型 */
-interface InternalProject {
-  id: string;
-  title: string;
-  description: string;
-  techStack: string[];
-  coverImage: string | null;
-  link: string | null;
-  githubUrl: string | null;
-  featured: boolean;
-  order: number;
-}
+/** 文章查询的 category/tags include 配置 */
+const ARTICLE_INCLUDE = {
+  category: { select: { id: true, name: true, slug: true } },
+  tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
+} as const;
 
-/** 内部分类类型 */
-interface InternalCategory {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  articleCount: number;
-}
-
-/** 内部标签类型 */
-interface InternalTag {
-  id: string;
-  name: string;
-  slug: string;
-  articleCount: number;
-}
+/** Prisma 文章查询结果类型（含关联） */
+type ArticleWithRelations = Prisma.ArticleGetPayload<{
+  include: typeof ARTICLE_INCLUDE;
+}>;
 
 @Injectable()
 export class PublicService {
   private readonly logger = new Logger(PublicService.name);
 
-  // TODO: 集成 Prisma 后替换为真实数据库操作
-  private articles: InternalArticle[] = [];
-  private projects: InternalProject[] = [];
-  private categories: InternalCategory[] = [];
-  private tags: InternalTag[] = [];
-  private idCounter = 1;
-
-  constructor(private readonly siteConfigService: SiteConfigService) {
-    this.initMockData();
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly siteConfigService: SiteConfigService,
+  ) {}
 
   /**
    * 获取公开文章列表
@@ -99,52 +61,56 @@ export class PublicService {
   async getArticles(query: PublicArticleQueryDto): Promise<PaginatedPublicArticleListDto> {
     const { page = 1, pageSize = 10, category, tag, search } = query;
 
-    let filtered = this.articles.filter((a) => a.isPublished);
+    const where: Prisma.ArticleWhereInput = { isPublished: true };
 
-    // 分类筛选
     if (category) {
-      filtered = filtered.filter((a) => a.category?.slug === category);
+      where.category = { slug: category };
     }
-
-    // 标签筛选
     if (tag) {
-      filtered = filtered.filter((a) => a.tags.some((t) => t.slug === tag));
+      where.tags = { some: { tag: { slug: tag } } };
     }
-
-    // 搜索筛选
     if (search) {
-      const keyword = search.toLowerCase();
-      filtered = filtered.filter(
-        (a) =>
-          a.title.toLowerCase().includes(keyword) ||
-          a.excerpt?.toLowerCase().includes(keyword),
-      );
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { summary: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
-    const total = filtered.length;
-    const start = (page - 1) * pageSize;
-    const items = filtered
-      .sort((a, b) => {
-        const dateA = a.publishedAt?.getTime() ?? 0;
-        const dateB = b.publishedAt?.getTime() ?? 0;
-        return dateB - dateA;
-      })
-      .slice(start, start + pageSize);
+    const [items, total] = await Promise.all([
+      this.prisma.article.findMany({
+        where,
+        orderBy: { publishedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: ARTICLE_INCLUDE,
+      }),
+      this.prisma.article.count({ where }),
+    ]);
 
     const data = items.map((article) => this.toArticleListItem(article));
-
     return new PaginatedPublicArticleListDto({ data, total, page, pageSize });
   }
-
 
   /**
    * 根据 slug 获取文章详情
    */
   async getArticleBySlug(slug: string): Promise<PublicArticleDetailDto> {
-    const article = this.articles.find((a) => a.slug === slug && a.isPublished);
+    const article = await this.prisma.article.findFirst({
+      where: { slug, isPublished: true },
+      include: ARTICLE_INCLUDE,
+    });
     if (!article) {
       throw new NotFoundException('文章不存在');
     }
+
+    // 异步递增阅读量，不阻塞响应
+    this.prisma.article
+      .update({
+        where: { id: article.id },
+        data: { viewCount: { increment: 1 } },
+      })
+      .catch((err) => this.logger.error(`阅读量更新失败: ${err.message}`));
+
     return this.toArticleDetail(article);
   }
 
@@ -152,48 +118,85 @@ export class PublicService {
    * 获取所有已发布文章的 slug 列表（用于 SSG）
    */
   async getArticleSlugs(): Promise<ArticleSlugsResponseDto> {
-    const slugs = this.articles
-      .filter((a) => a.isPublished)
-      .map((a) => a.slug);
-    return new ArticleSlugsResponseDto(slugs);
+    const articles = await this.prisma.article.findMany({
+      where: { isPublished: true },
+      select: { slug: true },
+    });
+    return new ArticleSlugsResponseDto(articles.map((a) => a.slug));
   }
 
   /**
-   * 获取项目列表
+   * 获取项目列表（支持分页和精选筛选）
    */
   async getProjects(query: PublicProjectQueryDto): Promise<PaginatedPublicProjectListDto> {
     const { page = 1, pageSize = 10, featured } = query;
+    const where: Prisma.ProjectWhereInput = {};
+    if (featured !== undefined) where.featured = featured;
 
-    let filtered = [...this.projects];
+    const [items, total] = await Promise.all([
+      this.prisma.project.findMany({
+        where,
+        orderBy: { order: 'asc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.project.count({ where }),
+    ]);
 
-    if (featured !== undefined) {
-      filtered = filtered.filter((p) => p.featured === featured);
-    }
-
-    const total = filtered.length;
-    const start = (page - 1) * pageSize;
-    const items = filtered
-      .sort((a, b) => a.order - b.order)
-      .slice(start, start + pageSize);
-
-    const data = items.map((project) => new PublicProjectDto(project));
-
+    const data = items.map((p) => new PublicProjectDto(p));
     return new PaginatedPublicProjectListDto({ data, total, page, pageSize });
   }
 
+
   /**
-   * 获取分类列表
+   * 获取分类列表（含已发布文章数量）
    */
   async getCategories(): Promise<PublicCategoryListDto> {
-    const data = this.categories.map((c) => new PublicCategoryDto(c));
+    const categories = await this.prisma.category.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        _count: { select: { articles: { where: { isPublished: true } } } },
+      },
+    });
+
+    const data = categories.map(
+      (c) =>
+        new PublicCategoryDto({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          description: c.description,
+          articleCount: c._count.articles,
+        }),
+    );
     return new PublicCategoryListDto(data);
   }
 
   /**
-   * 获取标签列表
+   * 获取标签列表（含文章数量）
    */
   async getTags(): Promise<PublicTagListDto> {
-    const data = this.tags.map((t) => new PublicTagDto(t));
+    const tags = await this.prisma.tag.findMany({
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        _count: { select: { articles: true } },
+      },
+    });
+
+    const data = tags.map(
+      (t) =>
+        new PublicTagDto({
+          id: t.id,
+          name: t.name,
+          slug: t.slug,
+          articleCount: t._count.articles,
+        }),
+    );
     return new PublicTagListDto(data);
   }
 
@@ -209,14 +212,16 @@ export class PublicService {
       logo: config.logo,
       favicon: config.favicon,
       socialLinks: new SocialLinksDto({
-        github: 'https://github.com/example',
-        twitter: 'https://twitter.com/example',
+        github: config.socialGithub ?? undefined,
+        twitter: config.socialTwitter ?? undefined,
+        linkedin: config.socialLinkedin ?? undefined,
+        weibo: config.socialWeibo ?? undefined,
       }),
       owner: new SiteOwnerDto({
-        name: 'Site Owner',
-        avatar: null,
-        bio: null,
-        email: null,
+        name: config.ownerName ?? DEFAULT_AUTHOR_NAME,
+        avatar: config.ownerAvatar ?? null,
+        bio: config.ownerBio ?? null,
+        email: config.ownerEmail ?? null,
       }),
       seo: new SiteSeoDto({
         defaultTitle: config.title,
@@ -238,28 +243,30 @@ export class PublicService {
    */
   async search(query: SearchQueryDto): Promise<SearchResultDto> {
     const { q, page = 1, pageSize = 10 } = query;
-    const keyword = q.toLowerCase();
 
-    const filtered = this.articles.filter(
-      (a) =>
-        a.isPublished &&
-        (a.title.toLowerCase().includes(keyword) ||
-          a.excerpt?.toLowerCase().includes(keyword) ||
-          a.content?.toLowerCase().includes(keyword)),
-    );
+    const where: Prisma.ArticleWhereInput = {
+      isPublished: true,
+      OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { summary: { contains: q, mode: 'insensitive' } },
+        { content: { contains: q, mode: 'insensitive' } },
+      ],
+    };
 
-    const total = filtered.length;
-    const start = (page - 1) * pageSize;
-    const items = filtered
-      .sort((a, b) => {
-        const dateA = a.publishedAt?.getTime() ?? 0;
-        const dateB = b.publishedAt?.getTime() ?? 0;
-        return dateB - dateA;
-      })
-      .slice(start, start + pageSize);
+    const [items, total] = await Promise.all([
+      this.prisma.article.findMany({
+        where,
+        orderBy: { publishedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          category: { select: { name: true } },
+        },
+      }),
+      this.prisma.article.count({ where }),
+    ]);
 
-    const data = items.map((article) => this.toSearchResultItem(article, keyword));
-
+    const data = items.map((article) => this.toSearchResultItem(article, q));
     return new SearchResultDto({ data, total, page, pageSize });
   }
 
@@ -277,58 +284,66 @@ export class PublicService {
    * 生成高亮文本
    */
   private generateHighlight(content: string | null, keyword: string): string | null {
-    if (!content) return null;
-    const index = content.toLowerCase().indexOf(keyword);
-    if (index === -1) return null;
+      if (!content) return null;
+      const lowerContent = content.toLowerCase();
+      const lowerKeyword = keyword.toLowerCase();
+      const index = lowerContent.indexOf(lowerKeyword);
+      if (index === -1) return null;
 
-    const start = Math.max(0, index - 50);
-    const end = Math.min(content.length, index + keyword.length + 50);
-    let highlight = content.slice(start, end);
+      const start = Math.max(0, index - 50);
+      const end = Math.min(content.length, index + keyword.length + 50);
+      let highlight = content.slice(start, end);
 
-    if (start > 0) highlight = '...' + highlight;
-    if (end < content.length) highlight = highlight + '...';
+      if (start > 0) highlight = '...' + highlight;
+      if (end < content.length) highlight = highlight + '...';
 
-    // 添加高亮标记
-    const regex = new RegExp(`(${keyword})`, 'gi');
-    return highlight.replace(regex, '<mark>$1</mark>');
-  }
+      // 转义正则特殊字符后添加高亮标记
+      const specialChars = /[.*+?^${}()|[\]\\]/g;
+      const escaped = keyword.replace(specialChars, String.raw`\$&`);
+      const regex = new RegExp('(' + escaped + ')', 'gi');
+      return highlight.replace(regex, '<mark>$1</mark>');
+    }
 
 
   /**
    * 转换为文章列表项 DTO
    */
-  private toArticleListItem(article: InternalArticle): PublicArticleListItemDto {
+  private toArticleListItem(article: ArticleWithRelations): PublicArticleListItemDto {
     return new PublicArticleListItemDto({
       id: article.id,
       slug: article.slug,
       title: article.title,
-      excerpt: article.excerpt,
-      author: new AuthorDto(article.author),
+      excerpt: article.summary,
+      author: new AuthorDto({ name: DEFAULT_AUTHOR_NAME, avatar: null }),
       publishedAt: article.publishedAt!,
       readTime: this.calculateReadTime(article.content),
-      category: article.category ? new CategoryBriefDto(article.category) : null,
+      category: article.category
+        ? new CategoryBriefDto(article.category)
+        : null,
       coverImage: article.coverImage,
-      tags: article.tags.map((t) => new TagBriefDto(t)),
+      tags: article.tags.map((at) => new TagBriefDto(at.tag)),
     });
   }
 
   /**
    * 转换为文章详情 DTO
    */
-  private toArticleDetail(article: InternalArticle): PublicArticleDetailDto {
+  private toArticleDetail(article: ArticleWithRelations): PublicArticleDetailDto {
     return new PublicArticleDetailDto({
       id: article.id,
       slug: article.slug,
       title: article.title,
-      excerpt: article.excerpt,
+      excerpt: article.summary,
       content: article.content ?? '',
-      author: new AuthorDto({ ...article.author, bio: article.author.bio }),
+      author: new AuthorDto({ name: DEFAULT_AUTHOR_NAME, avatar: null }),
       publishedAt: article.publishedAt!,
       updatedAt: article.updatedAt,
       readTime: this.calculateReadTime(article.content),
-      category: article.category ? new CategoryBriefDto(article.category) : null,
+      category: article.category
+        ? new CategoryBriefDto(article.category)
+        : null,
       coverImage: article.coverImage,
-      tags: article.tags.map((t) => new TagBriefDto(t)),
+      tags: article.tags.map((at) => new TagBriefDto(at.tag)),
       seo: new SeoInfoDto({
         metaTitle: article.seoTitle,
         metaDescription: article.seoDescription,
@@ -340,117 +355,20 @@ export class PublicService {
   /**
    * 转换为搜索结果项 DTO
    */
-  private toSearchResultItem(article: InternalArticle, keyword: string): SearchResultItemDto {
+  private toSearchResultItem(
+    article: Prisma.ArticleGetPayload<{
+      include: { category: { select: { name: true } } };
+    }>,
+    keyword: string,
+  ): SearchResultItemDto {
     return new SearchResultItemDto({
       id: article.id,
       slug: article.slug,
       title: article.title,
-      excerpt: article.excerpt,
+      excerpt: article.summary,
       highlight: this.generateHighlight(article.content, keyword),
       category: article.category?.name ?? null,
       publishedAt: article.publishedAt!,
     });
-  }
-
-  /**
-   * 初始化 Mock 数据
-   */
-  private initMockData(): void {
-    // 初始化分类
-    this.categories = [
-      { id: '1', name: '技术', slug: 'tech', description: '技术相关文章', articleCount: 2 },
-      { id: '2', name: '设计', slug: 'design', description: '设计相关文章', articleCount: 1 },
-    ];
-
-    // 初始化标签
-    this.tags = [
-      { id: '1', name: 'TypeScript', slug: 'typescript', articleCount: 2 },
-      { id: '2', name: 'React', slug: 'react', articleCount: 1 },
-      { id: '3', name: 'NestJS', slug: 'nestjs', articleCount: 1 },
-    ];
-
-    // 初始化文章
-    const now = new Date();
-    this.articles = [
-      {
-        id: '1',
-        slug: 'future-of-neural-interfaces',
-        title: '神经接口的未来',
-        content: '# 神经接口的未来\n\n这是一篇关于神经接口技术发展的文章...',
-        excerpt: '探索神经接口技术的最新进展和未来可能性',
-        coverImage: 'https://picsum.photos/800/400?random=1',
-        isPublished: true,
-        publishedAt: new Date(now.getTime() - 86400000),
-        updatedAt: now,
-        seoTitle: '神经接口的未来 - 技术前沿',
-        seoDescription: '深入探讨神经接口技术的发展趋势',
-        author: { name: 'John Doe', avatar: null, bio: '全栈开发者' },
-        category: { id: '1', name: '技术', slug: 'tech' },
-        tags: [{ id: '1', name: 'TypeScript', slug: 'typescript' }],
-      },
-      {
-        id: '2',
-        slug: 'minimalism-in-spatial-computing',
-        title: '空间计算中的极简主义',
-        content: '# 空间计算中的极简主义\n\n设计原则在空间计算中的应用...',
-        excerpt: '探讨极简主义设计在空间计算领域的应用',
-        coverImage: 'https://picsum.photos/800/400?random=2',
-        isPublished: true,
-        publishedAt: new Date(now.getTime() - 172800000),
-        updatedAt: now,
-        seoTitle: '空间计算中的极简主义',
-        seoDescription: '极简主义设计在空间计算中的实践',
-        author: { name: 'John Doe', avatar: null, bio: '全栈开发者' },
-        category: { id: '2', name: '设计', slug: 'design' },
-        tags: [{ id: '2', name: 'React', slug: 'react' }],
-      },
-      {
-        id: '3',
-        slug: 'building-restful-api-with-nestjs',
-        title: '使用 NestJS 构建 RESTful API',
-        content: '# 使用 NestJS 构建 RESTful API\n\n本文介绍如何使用 NestJS 框架...',
-        excerpt: '学习如何使用 NestJS 构建高质量的 RESTful API',
-        coverImage: 'https://picsum.photos/800/400?random=3',
-        isPublished: true,
-        publishedAt: new Date(now.getTime() - 259200000),
-        updatedAt: now,
-        seoTitle: 'NestJS RESTful API 开发指南',
-        seoDescription: '详细介绍 NestJS 框架的使用方法',
-        author: { name: 'John Doe', avatar: null, bio: '全栈开发者' },
-        category: { id: '1', name: '技术', slug: 'tech' },
-        tags: [
-          { id: '1', name: 'TypeScript', slug: 'typescript' },
-          { id: '3', name: 'NestJS', slug: 'nestjs' },
-        ],
-      },
-    ];
-
-    // 初始化项目
-    this.projects = [
-      {
-        id: '1',
-        title: 'My Blog',
-        description: '一个现代化的博客系统，支持多语言和 SEO 优化',
-        techStack: ['Next.js', 'NestJS', 'TypeScript', 'Tailwind CSS'],
-        coverImage: 'https://picsum.photos/800/400?random=4',
-        link: 'https://example.com',
-        githubUrl: 'https://github.com/example/my-blog',
-        featured: true,
-        order: 1,
-      },
-      {
-        id: '2',
-        title: 'Task Manager',
-        description: '一个简洁高效的任务管理应用',
-        techStack: ['React', 'Node.js', 'MongoDB'],
-        coverImage: 'https://picsum.photos/800/400?random=5',
-        link: null,
-        githubUrl: 'https://github.com/example/task-manager',
-        featured: true,
-        order: 2,
-      },
-    ];
-
-    this.logger.log('Mock 数据初始化完成');
   }
 }

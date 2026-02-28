@@ -52,6 +52,48 @@ export class UpdateSiteConfigDto {
   @IsOptional()
   @IsString()
   analytics?: string;
+
+  @ApiPropertyOptional({ description: '站长名称' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  ownerName?: string;
+
+  @ApiPropertyOptional({ description: '站长头像 URL' })
+  @IsOptional()
+  @IsString()
+  ownerAvatar?: string;
+
+  @ApiPropertyOptional({ description: '站长简介' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  ownerBio?: string;
+
+  @ApiPropertyOptional({ description: '站长邮箱' })
+  @IsOptional()
+  @IsString()
+  ownerEmail?: string;
+
+  @ApiPropertyOptional({ description: 'GitHub 链接' })
+  @IsOptional()
+  @IsString()
+  socialGithub?: string;
+
+  @ApiPropertyOptional({ description: 'Twitter 链接' })
+  @IsOptional()
+  @IsString()
+  socialTwitter?: string;
+
+  @ApiPropertyOptional({ description: 'LinkedIn 链接' })
+  @IsOptional()
+  @IsString()
+  socialLinkedin?: string;
+
+  @ApiPropertyOptional({ description: '微博链接' })
+  @IsOptional()
+  @IsString()
+  socialWeibo?: string;
 }
 
 export class SiteConfigResponseDto {
@@ -84,6 +126,30 @@ export class SiteConfigResponseDto {
 
   @ApiPropertyOptional({ description: '统计代码' })
   analytics: string | null;
+
+  @ApiPropertyOptional({ description: '站长名称' })
+  ownerName: string | null;
+
+  @ApiPropertyOptional({ description: '站长头像 URL' })
+  ownerAvatar: string | null;
+
+  @ApiPropertyOptional({ description: '站长简介' })
+  ownerBio: string | null;
+
+  @ApiPropertyOptional({ description: '站长邮箱' })
+  ownerEmail: string | null;
+
+  @ApiPropertyOptional({ description: 'GitHub 链接' })
+  socialGithub: string | null;
+
+  @ApiPropertyOptional({ description: 'Twitter 链接' })
+  socialTwitter: string | null;
+
+  @ApiPropertyOptional({ description: 'LinkedIn 链接' })
+  socialLinkedin: string | null;
+
+  @ApiPropertyOptional({ description: '微博链接' })
+  socialWeibo: string | null;
 
   @ApiProperty({ description: '创建时间' })
   createdAt: Date;
