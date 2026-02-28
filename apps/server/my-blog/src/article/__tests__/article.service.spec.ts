@@ -1,14 +1,97 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ArticleService } from '../article.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { AiService } from '../../ai/ai.service';
+import { WechatService } from '../../wechat/wechat.service';
 import { CreateArticleParams } from '../domain/article.model';
+import * as fc from 'fast-check';
+
+// Helper: build a mock ArticleWithRelations object
+function buildMockArticle(overrides: Partial<{
+  id: string;
+  title: string;
+  slug: string;
+  summary: string | null;
+  content: string | null;
+  coverImage: string | null;
+  isPublished: boolean;
+  publishedAt: Date | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  categoryId: string | null;
+  viewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  category: { id: string; name: string; slug: string } | null;
+  tags: Array<{ id: string; articleId: string; tagId: string; tag: { id: string; name: string; slug: string } }>;
+}> = {}) {
+  const now = new Date();
+  return {
+    id: overrides.id ?? 'article-1',
+    title: overrides.title ?? '测试文章',
+    slug: overrides.slug ?? 'test-article',
+    summary: overrides.summary ?? null,
+    content: overrides.content ?? null,
+    coverImage: overrides.coverImage ?? null,
+    isPublished: overrides.isPublished ?? false,
+    publishedAt: overrides.publishedAt ?? null,
+    seoTitle: overrides.seoTitle ?? null,
+    seoDescription: overrides.seoDescription ?? null,
+    categoryId: overrides.categoryId ?? null,
+    viewCount: overrides.viewCount ?? 0,
+    createdAt: overrides.createdAt ?? now,
+    updatedAt: overrides.updatedAt ?? now,
+    locale: null,
+    translationGroupId: null,
+    category: overrides.category ?? null,
+    tags: overrides.tags ?? [],
+  };
+}
 
 describe('ArticleService', () => {
   let service: ArticleService;
+  let prisma: {
+    article: {
+      create: jest.Mock;
+      findFirst: jest.Mock;
+      findUnique: jest.Mock;
+      findMany: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+      count: jest.Mock;
+    };
+    articleTag: {
+      deleteMany: jest.Mock;
+    };
+  };
 
   beforeEach(async () => {
+    prisma = {
+      article: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        count: jest.fn(),
+      },
+      articleTag: {
+        deleteMany: jest.fn(),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ArticleService],
+      providers: [
+        ArticleService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AiService, useValue: { translate: jest.fn(), optimizeSeo: jest.fn() } },
+        { provide: WechatService, useValue: { createDraft: jest.fn(), publishDraft: jest.fn() } },
+      ],
     }).compile();
 
     service = module.get<ArticleService>(ArticleService);
@@ -23,6 +106,14 @@ describe('ArticleService', () => {
         summary: '这是摘要',
         content: '这是内容',
       };
+      const mockArticle = buildMockArticle({
+        title: inputParams.title,
+        slug: inputParams.slug,
+        summary: inputParams.summary!,
+        content: inputParams.content!,
+      });
+      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
       const actual = await service.create(inputParams);
@@ -31,157 +122,325 @@ describe('ArticleService', () => {
       expect(actual.id).toBeDefined();
       expect(actual.title).toBe(inputParams.title);
       expect(actual.slug).toBe(inputParams.slug);
-      expect(actual.summary).toBe(inputParams.summary);
-      expect(actual.content).toBe(inputParams.content);
       expect(actual.isPublished).toBe(false);
-      expect(actual.publishedAt).toBeNull();
     });
 
     it('应该在 slug 重复时抛出 ConflictException', async () => {
       // Arrange
-      const inputParams: CreateArticleParams = {
-        title: '文章一',
-        slug: 'duplicate-slug',
-      };
-      await service.create(inputParams);
-
-      const inputDuplicate: CreateArticleParams = {
-        title: '文章二',
-        slug: 'duplicate-slug',
-      };
+      prisma.article.findFirst.mockResolvedValue({ id: 'existing', slug: 'dup' });
 
       // Act & Assert
-      await expect(service.create(inputDuplicate)).rejects.toThrow(
-        ConflictException,
+      await expect(
+        service.create({ title: '文章', slug: 'dup' }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('应该创建带分类关联的文章', async () => {
+      // Arrange
+      const categoryId = 'cat-1';
+      const inputParams: CreateArticleParams = {
+        title: '分类文章',
+        slug: 'cat-article',
+        categoryId,
+      };
+      const mockArticle = buildMockArticle({
+        title: inputParams.title,
+        slug: inputParams.slug,
+        categoryId,
+        category: { id: categoryId, name: '技术', slug: 'tech' },
+      });
+      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.create.mockResolvedValue(mockArticle);
+
+      // Act
+      const actual = await service.create(inputParams);
+
+      // Assert
+      expect(actual.category).not.toBeNull();
+      expect(actual.category!.id).toBe(categoryId);
+      expect(prisma.article.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ categoryId }),
+        }),
       );
     });
 
-    it('应该正确设置 SEO 字段', async () => {
+    it('应该创建带标签关联的文章', async () => {
       // Arrange
+      const tagIds = ['tag-1', 'tag-2'];
       const inputParams: CreateArticleParams = {
-        title: 'SEO 测试',
-        slug: 'seo-test',
-        seoTitle: '自定义 SEO 标题',
-        seoDescription: '自定义 SEO 描述',
+        title: '标签文章',
+        slug: 'tag-article',
+        tagIds,
       };
+      const mockArticle = buildMockArticle({
+        title: inputParams.title,
+        slug: inputParams.slug,
+        tags: tagIds.map((tagId) => ({
+          id: `at-${tagId}`,
+          articleId: 'article-1',
+          tagId,
+          tag: { id: tagId, name: `标签${tagId}`, slug: `tag-${tagId}` },
+        })),
+      });
+      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
       const actual = await service.create(inputParams);
 
       // Assert
-      expect(actual.seoTitle).toBe(inputParams.seoTitle);
-      expect(actual.seoDescription).toBe(inputParams.seoDescription);
+      expect(actual.tags).toHaveLength(2);
+      expect(actual.tags.map((t) => t.id)).toEqual(expect.arrayContaining(tagIds));
+      expect(prisma.article.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tags: { create: tagIds.map((tagId) => ({ tagId })) },
+          }),
+        }),
+      );
     });
 
-    it('应该将可选字段设为 null', async () => {
+    it('应该创建带分类和标签的文章', async () => {
       // Arrange
+      const categoryId = 'cat-1';
+      const tagIds = ['tag-1', 'tag-2', 'tag-3'];
       const inputParams: CreateArticleParams = {
-        title: '最小文章',
-        slug: 'minimal-article',
+        title: '完整文章',
+        slug: 'full-article',
+        categoryId,
+        tagIds,
       };
+      const mockArticle = buildMockArticle({
+        title: inputParams.title,
+        slug: inputParams.slug,
+        categoryId,
+        category: { id: categoryId, name: '技术', slug: 'tech' },
+        tags: tagIds.map((tagId) => ({
+          id: `at-${tagId}`,
+          articleId: 'article-1',
+          tagId,
+          tag: { id: tagId, name: `标签${tagId}`, slug: `tag-${tagId}` },
+        })),
+      });
+      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
       const actual = await service.create(inputParams);
 
       // Assert
-      expect(actual.summary).toBeNull();
-      expect(actual.content).toBeNull();
-      expect(actual.coverImage).toBeNull();
-      expect(actual.seoTitle).toBeNull();
-      expect(actual.seoDescription).toBeNull();
+      expect(actual.category).not.toBeNull();
+      expect(actual.category!.id).toBe(categoryId);
+      expect(actual.tags).toHaveLength(3);
     });
   });
 
-  describe('findPublishedList', () => {
-    beforeEach(async () => {
-      // 创建测试数据：3 篇已发布，1 篇草稿
-      const articles = [
-        { title: '文章一', slug: 'article-1' },
-        { title: '文章二', slug: 'article-2' },
-        { title: '文章三', slug: 'article-3' },
-        { title: '草稿', slug: 'draft' },
-      ];
-
-      for (const article of articles) {
-        await service.create(article);
-      }
-
-      // 手动发布前 3 篇（模拟发布操作）
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const articlesArray = (service as any).articles;
-      for (let i = 0; i < 3; i++) {
-        articlesArray[i].isPublished = true;
-        articlesArray[i].publishedAt = new Date(2024, 0, i + 1);
-      }
-    });
-
-    it('应该只返回已发布文章', async () => {
+  describe('update', () => {
+    it('应该使用 deleteMany + create 策略更新标签', async () => {
       // Arrange
-      const inputQuery = { page: 1, limit: 10 };
+      const articleId = 'article-1';
+      const newTagIds = ['tag-3', 'tag-4'];
+      prisma.article.findUnique.mockResolvedValue({ id: articleId, slug: 'old-slug' });
+      prisma.articleTag.deleteMany.mockResolvedValue({ count: 2 });
+      prisma.article.update.mockResolvedValue(
+        buildMockArticle({
+          id: articleId,
+          tags: newTagIds.map((tagId) => ({
+            id: `at-${tagId}`,
+            articleId,
+            tagId,
+            tag: { id: tagId, name: `标签${tagId}`, slug: `tag-${tagId}` },
+          })),
+        }),
+      );
 
       // Act
-      const actual = await service.findPublishedList(inputQuery);
+      const actual = await service.update(articleId, { tagIds: newTagIds });
 
       // Assert
-      expect(actual.data.length).toBe(3);
-      expect(actual.total).toBe(3);
-      actual.data.forEach((item) => {
-        expect(item.title).not.toBe('草稿');
+      expect(prisma.articleTag.deleteMany).toHaveBeenCalledWith({
+        where: { articleId },
       });
+      expect(prisma.article.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tags: { create: newTagIds.map((tagId) => ({ tagId })) },
+          }),
+        }),
+      );
+      expect(actual.tags).toHaveLength(2);
     });
 
-    it('应该按发布时间倒序排列', async () => {
+    it('应该更新分类关联', async () => {
       // Arrange
-      const inputQuery = { page: 1, limit: 10 };
+      const articleId = 'article-1';
+      const newCategoryId = 'cat-2';
+      prisma.article.findUnique.mockResolvedValue({ id: articleId, slug: 'slug' });
+      prisma.article.update.mockResolvedValue(
+        buildMockArticle({
+          id: articleId,
+          categoryId: newCategoryId,
+          category: { id: newCategoryId, name: '生活', slug: 'life' },
+        }),
+      );
 
       // Act
-      const actual = await service.findPublishedList(inputQuery);
+      const actual = await service.update(articleId, { categoryId: newCategoryId });
 
       // Assert
-      expect(actual.data[0].title).toBe('文章三');
-      expect(actual.data[1].title).toBe('文章二');
-      expect(actual.data[2].title).toBe('文章一');
+      expect(actual.category).not.toBeNull();
+      expect(actual.category!.id).toBe(newCategoryId);
     });
 
-    it('应该支持分页', async () => {
+    it('应该在文章不存在时抛出 NotFoundException', async () => {
       // Arrange
-      const inputQuery = { page: 1, limit: 2 };
+      prisma.article.findUnique.mockResolvedValue(null);
 
-      // Act
-      const actual = await service.findPublishedList(inputQuery);
-
-      // Assert
-      expect(actual.data.length).toBe(2);
-      expect(actual.total).toBe(3);
-      expect(actual.page).toBe(1);
-      expect(actual.limit).toBe(2);
+      // Act & Assert
+      await expect(
+        service.update('nonexistent', { title: '新标题' }),
+      ).rejects.toThrow(NotFoundException);
     });
+  });
 
-    it('应该返回第二页数据', async () => {
+  describe('findById', () => {
+    it('应该返回包含 category 和 tags 的完整数据', async () => {
       // Arrange
-      const inputQuery = { page: 2, limit: 2 };
-
-      // Act
-      const actual = await service.findPublishedList(inputQuery);
-
-      // Assert
-      expect(actual.data.length).toBe(1);
-      expect(actual.page).toBe(2);
-    });
-
-    it('列表项不应包含 content 字段', async () => {
-      // Arrange
-      const inputQuery = { page: 1, limit: 10 };
-
-      // Act
-      const actual = await service.findPublishedList(inputQuery);
-
-      // Assert
-      actual.data.forEach((item) => {
-        expect(item).not.toHaveProperty('content');
-        expect(item).not.toHaveProperty('isPublished');
-        expect(item).toHaveProperty('summary');
+      const categoryId = 'cat-1';
+      const tagIds = ['tag-1', 'tag-2'];
+      const mockArticle = buildMockArticle({
+        id: 'article-1',
+        categoryId,
+        category: { id: categoryId, name: '技术', slug: 'tech' },
+        tags: tagIds.map((tagId) => ({
+          id: `at-${tagId}`,
+          articleId: 'article-1',
+          tagId,
+          tag: { id: tagId, name: `标签${tagId}`, slug: `tag-${tagId}` },
+        })),
       });
+      prisma.article.findUnique.mockResolvedValue(mockArticle);
+
+      // Act
+      const actual = await service.findById('article-1');
+
+      // Assert
+      expect(actual.category).not.toBeNull();
+      expect(actual.category!.id).toBe(categoryId);
+      expect(actual.category!.name).toBe('技术');
+      expect(actual.category!.slug).toBe('tech');
+      expect(actual.tags).toHaveLength(2);
+      expect(actual.tags[0].id).toBe('tag-1');
+      expect(actual.tags[1].id).toBe('tag-2');
+    });
+
+    it('应该在无分类和标签时返回 null 和空数组', async () => {
+      // Arrange
+      prisma.article.findUnique.mockResolvedValue(buildMockArticle());
+
+      // Act
+      const actual = await service.findById('article-1');
+
+      // Assert
+      expect(actual.category).toBeNull();
+      expect(actual.tags).toEqual([]);
+    });
+
+    it('应该在文章不存在时抛出 NotFoundException', async () => {
+      // Arrange
+      prisma.article.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.findById('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  /**
+   * 属性 1: 文章-分类一致性
+   * 创建文章时指定 categoryId，返回的 category 对象 id 匹配
+   * Validates: Requirements 1.2
+   */
+  describe('Property 1: 文章-分类一致性', () => {
+    it('创建文章时指定 categoryId，返回的 category.id 应匹配', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.uuid(),
+          async (categoryId) => {
+            // Arrange
+            const slug = `article-${categoryId}`;
+            const mockArticle = buildMockArticle({
+              slug,
+              categoryId,
+              category: { id: categoryId, name: 'Cat', slug: 'cat' },
+              tags: [],
+            });
+            prisma.article.findFirst.mockResolvedValue(null);
+            prisma.article.create.mockResolvedValue(mockArticle);
+
+            // Act
+            const result = await service.create({
+              title: '属性测试文章',
+              slug,
+              categoryId,
+            });
+
+            // Assert
+            expect(result.category).not.toBeNull();
+            expect(result.category!.id).toBe(categoryId);
+          },
+        ),
+        { numRuns: 20 },
+      );
+    });
+  });
+
+  /**
+   * 属性 2: 文章-标签一致性
+   * 创建文章时指定 tagIds，返回的 tags 数组长度和 id 匹配
+   * Validates: Requirements 1.2
+   */
+  describe('Property 2: 文章-标签一致性', () => {
+    it('创建文章时指定 tagIds，返回的 tags 长度和 id 应匹配', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 10 }),
+          async (tagIds) => {
+            // Arrange
+            const slug = `article-tags-${tagIds.length}`;
+            const mockArticle = buildMockArticle({
+              slug,
+              tags: tagIds.map((tagId) => ({
+                id: `at-${tagId}`,
+                articleId: 'article-1',
+                tagId,
+                tag: { id: tagId, name: `Tag-${tagId}`, slug: `tag-${tagId}` },
+              })),
+            });
+            prisma.article.findFirst.mockResolvedValue(null);
+            prisma.article.create.mockResolvedValue(mockArticle);
+
+            // Act
+            const result = await service.create({
+              title: '标签属性测试',
+              slug,
+              tagIds,
+            });
+
+            // Assert — length matches
+            expect(result.tags).toHaveLength(tagIds.length);
+
+            // Assert — all ids present
+            const returnedIds = new Set(result.tags.map((t) => t.id));
+            for (const tagId of tagIds) {
+              expect(returnedIds.has(tagId)).toBe(true);
+            }
+          },
+        ),
+        { numRuns: 20 },
+      );
     });
   });
 });

@@ -1,20 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { AuthService, SafeUser } from './auth.service';
+import * as bcrypt from 'bcrypt';
+import { AuthService } from './auth.service';
+import { UserService } from '../user/user.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let jwtService: JwtService;
+  let userService: { findByEmail: jest.Mock; excludePassword: jest.Mock };
 
   const mockJwtService = {
     sign: jest.fn().mockReturnValue('mock-jwt-token'),
   };
 
   beforeEach(async () => {
+    userService = {
+      findByEmail: jest.fn(),
+      excludePassword: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: JwtService, useValue: mockJwtService },
+        { provide: UserService, useValue: userService },
       ],
     }).compile();
 
@@ -28,11 +37,26 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('应该在凭证有效时返回用户（不含密码）', async () => {
-      const result = await service.validateUser(
-        'admin@example.com',
-        'password123',
-      );
+      // Arrange
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      const mockUser = {
+        id: '1',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        name: 'Admin',
+        role: 'ADMIN',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const safeUser = { id: '1', email: 'admin@example.com', name: 'Admin', role: 'ADMIN', avatar: null, createdAt: mockUser.createdAt, updatedAt: mockUser.updatedAt };
+      userService.findByEmail.mockResolvedValue(mockUser);
+      userService.excludePassword.mockReturnValue(safeUser);
 
+      // Act
+      const result = await service.validateUser('admin@example.com', 'password123');
+
+      // Assert
       expect(result).toBeDefined();
       expect(result?.email).toBe('admin@example.com');
       expect(result?.name).toBe('Admin');
@@ -40,34 +64,51 @@ describe('AuthService', () => {
     });
 
     it('应该在密码错误时返回 null', async () => {
-      const result = await service.validateUser(
-        'admin@example.com',
-        'wrongpassword',
-      );
+      // Arrange
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      userService.findByEmail.mockResolvedValue({
+        id: '1',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        name: 'Admin',
+      });
 
+      // Act
+      const result = await service.validateUser('admin@example.com', 'wrongpassword');
+
+      // Assert
       expect(result).toBeNull();
     });
 
     it('应该在用户不存在时返回 null', async () => {
-      const result = await service.validateUser(
-        'nonexistent@example.com',
-        'password123',
-      );
+      // Arrange
+      userService.findByEmail.mockResolvedValue(null);
 
+      // Act
+      const result = await service.validateUser('nonexistent@example.com', 'password123');
+
+      // Assert
       expect(result).toBeNull();
     });
   });
 
   describe('login', () => {
     it('应该返回 access_token 和用户信息', async () => {
-      const user: SafeUser = {
+      // Arrange
+      const user = {
         id: '1',
         email: 'admin@example.com',
         name: 'Admin',
+        role: 'ADMIN',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
-      const result = await service.login(user);
+      // Act
+      const result = await service.login(user as any);
 
+      // Assert
       expect(result).toEqual({
         access_token: 'mock-jwt-token',
         user: {
