@@ -1,39 +1,40 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getAllPosts } from '@/lib/mock-data';
+import { getArticleBySlug, getArticleSlugs } from '@/lib/api';
 import type { Metadata } from 'next';
 import ReadingProgress from '@/components/ReadingProgress';
+import Comments from '@/components/Comments';
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  const posts = getAllPosts();
-  return posts.map((post) => ({ slug: post.slug }));
+  const slugs = await getArticleSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getArticleBySlug(slug);
 
   if (!post) {
     return { title: '文章未找到' };
   }
 
   return {
-    title: `${post.title} - NOVA`,
-    description: post.excerpt,
+    title: post.seo.metaTitle || `${post.title} - NOVA`,
+    description: post.seo.metaDescription || post.excerpt || '',
+    openGraph: post.seo.ogImage ? { images: [post.seo.ogImage] } : undefined,
   };
 }
 
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
-  // TODO: 后端需要实现文章详情接口
-  const post = getPostBySlug(slug);
+  const post = await getArticleBySlug(slug);
 
   if (!post) {
     notFound();
@@ -65,9 +66,11 @@ export default async function PostPage({ params }: PostPageProps) {
         </Link>
 
         <div className="flex items-center gap-4 mb-6">
-          <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold tracking-widest uppercase rounded-full">
-            {post.category}
-          </span>
+          {post.category && (
+            <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold tracking-widest uppercase rounded-full">
+              {post.category.name}
+            </span>
+          )}
           <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
             <svg
               className="w-3.5 h-3.5"
@@ -92,10 +95,26 @@ export default async function PostPage({ params }: PostPageProps) {
 
         <div className="flex items-center justify-between border-y border-gray-100 py-6 mb-16">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 overflow-hidden" />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 overflow-hidden">
+              {post.author.avatar && (
+                <Image
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
             <div>
-              <p className="text-sm font-bold text-[#111111]">{post.author}</p>
-              <p className="text-xs text-gray-400">{post.date}</p>
+              <p className="text-sm font-bold text-[#111111]">{post.author.name}</p>
+              <p className="text-xs text-gray-400">
+                {new Date(post.publishedAt).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -134,20 +153,24 @@ export default async function PostPage({ params }: PostPageProps) {
 
         {/* Article Body Content */}
         <div className="prose prose-lg max-w-none text-[#333333] leading-relaxed">
-          <p className="text-xl font-light text-[#555555] mb-8 leading-relaxed italic border-l-4 border-blue-100 pl-6">
-            {post.excerpt}
-          </p>
+          {post.excerpt && (
+            <p className="text-xl font-light text-[#555555] mb-8 leading-relaxed italic border-l-4 border-blue-100 pl-6">
+              {post.excerpt}
+            </p>
+          )}
 
-          <div className="my-12 rounded-[32px] overflow-hidden shadow-xl border border-gray-100">
-            <Image
-              src={post.imageUrl}
-              alt={post.title}
-              width={1200}
-              height={800}
-              className="w-full"
-              priority
-            />
-          </div>
+          {post.coverImage && (
+            <div className="my-12 rounded-[32px] overflow-hidden shadow-xl border border-gray-100">
+              <Image
+                src={post.coverImage}
+                alt={post.title}
+                width={1200}
+                height={800}
+                className="w-full"
+                priority
+              />
+            </div>
+          )}
 
           {post.content.split('\n\n').map((para, i) => {
             if (para.startsWith('### ')) {
@@ -169,18 +192,23 @@ export default async function PostPage({ params }: PostPageProps) {
         </div>
 
         {/* Tags */}
-        <div className="mt-16 pt-8 border-t border-gray-100">
-          <div className="flex flex-wrap gap-2">
-            {post.tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm font-medium text-gray-600"
-              >
-                #{tag}
-              </span>
-            ))}
+        {post.tags.length > 0 && (
+          <div className="mt-16 pt-8 border-t border-gray-100">
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm font-medium text-gray-600"
+                >
+                  #{tag.name}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Comments */}
+        <Comments slug={slug} />
       </div>
     </article>
   );

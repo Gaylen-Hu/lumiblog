@@ -3,12 +3,16 @@ import HeroSection from '@/components/HeroSection';
 import StatsSection from '@/components/StatsSection';
 import PostCard from '@/components/PostCard';
 import ProjectCard from '@/components/ProjectCard';
-import { getAllPosts, MOCK_PROJECTS } from '@/lib/mock-data';
+import { getArticles, getProjects } from '@/lib/api';
 
-export default function Home() {
-  // TODO: 后端需要实现文章列表接口
-  const posts = getAllPosts();
-  const projects = MOCK_PROJECTS.slice(0, 3);
+export default async function Home() {
+  const [articlesRes, projectsRes] = await Promise.all([
+    getArticles({ page: 1, pageSize: 6 }),
+    getProjects({ featured: true, pageSize: 3 }),
+  ]);
+
+  const posts = articlesRes.data;
+  const projects = projectsRes.data;
 
   return (
     <div className="animate-page-fade">

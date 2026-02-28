@@ -10,6 +10,15 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
+  const categoryName = post.category?.name ?? '未分类';
+  const displayDate = post.publishedAt
+    ? new Date(post.publishedAt).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : '';
+
   return (
     <Link href={`/posts/${post.slug}`}>
       <TiltCard maxTilt={6} scale={1.02}>
@@ -19,9 +28,9 @@ export default function PostCard({ post }: PostCardProps) {
         >
           <div className="flex items-center gap-3 mb-6">
             <span className="px-3 py-1 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-semibold rounded-full group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              {post.category}
+              {categoryName}
             </span>
-            <span className="text-xs text-gray-400 font-medium">{post.date}</span>
+            <span className="text-xs text-gray-400 font-medium">{displayDate}</span>
           </div>
 
           <h3 className="text-xl font-bold text-[#111111] dark:text-white mb-4 leading-snug hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
@@ -35,10 +44,10 @@ export default function PostCard({ post }: PostCardProps) {
           <div className="flex flex-wrap gap-2 mb-6">
             {post.tags.map((tag) => (
               <span
-                key={tag}
+                key={tag.id}
                 className="text-[10px] tracking-wider uppercase text-gray-400 font-bold"
               >
-                #{tag}
+                #{tag.name}
               </span>
             ))}
           </div>
