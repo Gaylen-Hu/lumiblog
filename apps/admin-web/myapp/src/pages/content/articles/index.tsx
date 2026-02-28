@@ -156,6 +156,13 @@ const ArticleList: React.FC = () => {
         ),
     },
     {
+      title: '阅读量',
+      dataIndex: 'viewCount',
+      search: false,
+      width: 80,
+      sorter: true,
+    },
+    {
       title: '状态',
       dataIndex: 'isPublished',
       width: 100,

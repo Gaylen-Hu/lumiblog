@@ -11,6 +11,7 @@ const SiteConfigPage: React.FC = () => {
   const [config, setConfig] = useState<BlogAPI.SiteConfig | null>(null);
   const [logoPickerOpen, setLogoPickerOpen] = useState(false);
   const [faviconPickerOpen, setFaviconPickerOpen] = useState(false);
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [formRef] = ProForm.useForm();
 
   useEffect(() => {
@@ -35,8 +36,9 @@ const SiteConfigPage: React.FC = () => {
       setSubmitting(true);
       await updateSiteConfig({
         ...values,
-        logo: config?.logo,
-        favicon: config?.favicon,
+        logo: config?.logo ?? undefined,
+        favicon: config?.favicon ?? undefined,
+        ownerAvatar: config?.ownerAvatar ?? undefined,
       });
       message.success('保存成功');
     } catch {
@@ -134,6 +136,72 @@ const SiteConfigPage: React.FC = () => {
             </Space>
           </ProForm.Item>
 
+          <Divider orientation="left">站长信息</Divider>
+
+          <ProFormText
+            name="ownerName"
+            label="站长名称"
+            placeholder="请输入站长名称"
+            rules={[{ max: 50, message: '名称不能超过50个字符' }]}
+          />
+
+          <ProFormText
+            name="ownerEmail"
+            label="站长邮箱"
+            placeholder="请输入站长邮箱"
+          />
+
+          <ProFormTextArea
+            name="ownerBio"
+            label="站长简介"
+            placeholder="请输入站长简介"
+            rules={[{ max: 500, message: '简介不能超过500个字符' }]}
+            fieldProps={{ showCount: true, maxLength: 500, rows: 3 }}
+          />
+
+          <ProForm.Item label="站长头像">
+            <Space direction="vertical">
+              {config?.ownerAvatar ? (
+                <Image
+                  src={config.ownerAvatar}
+                  alt="Avatar"
+                  width={80}
+                  height={80}
+                  style={{ borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ color: '#999' }}>暂未设置</div>
+              )}
+              <Button onClick={() => setAvatarPickerOpen(true)}>选择图片</Button>
+            </Space>
+          </ProForm.Item>
+
+          <Divider orientation="left">社交链接</Divider>
+
+          <ProFormText
+            name="socialGithub"
+            label="GitHub"
+            placeholder="请输入 GitHub 主页链接"
+          />
+
+          <ProFormText
+            name="socialTwitter"
+            label="Twitter"
+            placeholder="请输入 Twitter 主页链接"
+          />
+
+          <ProFormText
+            name="socialLinkedin"
+            label="LinkedIn"
+            placeholder="请输入 LinkedIn 主页链接"
+          />
+
+          <ProFormText
+            name="socialWeibo"
+            label="微博"
+            placeholder="请输入微博主页链接"
+          />
+
           <Divider orientation="left">备案信息</Divider>
 
           <ProFormText
@@ -182,6 +250,16 @@ const SiteConfigPage: React.FC = () => {
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, favicon: media.url } : null));
           setFaviconPickerOpen(false);
+        }}
+        accept="image/*"
+      />
+
+      <MediaPicker
+        open={avatarPickerOpen}
+        onCancel={() => setAvatarPickerOpen(false)}
+        onSelect={(media) => {
+          setConfig((prev) => (prev ? { ...prev, ownerAvatar: media.url } : null));
+          setAvatarPickerOpen(false);
         }}
         accept="image/*"
       />

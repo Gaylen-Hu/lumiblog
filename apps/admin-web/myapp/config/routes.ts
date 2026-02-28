@@ -87,6 +87,12 @@ export default [
         path: '/content/media',
         component: './content/media',
       },
+      {
+        name: 'projects',
+        icon: 'project',
+        path: '/content/projects',
+        component: './content/projects',
+      },
     ],
   },
   {
@@ -120,6 +126,12 @@ export default [
         icon: 'global',
         path: '/settings/site',
         component: './settings/site',
+      },
+      {
+        name: 'api-keys',
+        icon: 'key',
+        path: '/settings/api-keys',
+        component: './settings/api-keys',
       },
     ],
   },

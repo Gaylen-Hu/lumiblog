@@ -53,4 +53,7 @@ export default {
   'menu.editor.flow': '流程编辑器',
   'menu.editor.mind': '脑图编辑器',
   'menu.editor.koni': '拓扑编辑器',
+  'menu.settings': '系统设置',
+  'menu.settings.site': '站点配置',
+  'menu.settings.api-keys': 'API Key 管理',
 };

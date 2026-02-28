@@ -49,4 +49,7 @@ export default {
   'menu.editor.flow': 'Flow Editor',
   'menu.editor.mind': 'Mind Editor',
   'menu.editor.koni': 'Koni Editor',
+  'menu.settings': 'Settings',
+  'menu.settings.site': 'Site Config',
+  'menu.settings.api-keys': 'API Keys',
 };

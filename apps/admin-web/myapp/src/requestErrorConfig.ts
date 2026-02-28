@@ -1,5 +1,6 @@
 ﻿import type { RequestOptions } from '@@/plugin-request/request';
 import type { RequestConfig } from '@umijs/max';
+import { history } from '@umijs/max';
 import { message, notification } from 'antd';
 
 // 错误处理方案： 错误类型
@@ -63,7 +64,14 @@ export const errorConfig: RequestConfig = {
               });
               break;
             case ErrorShowType.REDIRECT:
-              // TODO: redirect
+              // 根据错误码重定向
+              if (error.response?.status === 401) {
+                history.push('/user/login');
+              } else if (error.response?.status === 403) {
+                history.push('/403');
+              } else {
+                history.push('/exception/500');
+              }
               break;
             default:
               message.error(errorMessage);

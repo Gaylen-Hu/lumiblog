@@ -13,6 +13,14 @@ declare namespace BlogAPI {
     gongan: string | null;
     copyright: string | null;
     analytics: string | null;
+    ownerName: string | null;
+    ownerAvatar: string | null;
+    ownerBio: string | null;
+    ownerEmail: string | null;
+    socialGithub: string | null;
+    socialTwitter: string | null;
+    socialLinkedin: string | null;
+    socialWeibo: string | null;
     createdAt: string;
     updatedAt: string;
   }
@@ -27,6 +35,14 @@ declare namespace BlogAPI {
     gongan?: string;
     copyright?: string;
     analytics?: string;
+    ownerName?: string;
+    ownerAvatar?: string;
+    ownerBio?: string;
+    ownerEmail?: string;
+    socialGithub?: string;
+    socialTwitter?: string;
+    socialLinkedin?: string;
+    socialWeibo?: string;
   }
   // 分页响应
   interface PaginatedResponse<T> {
@@ -139,6 +155,7 @@ declare namespace BlogAPI {
     publishedAt: string | null;
     seoTitle: string | null;
     seoDescription: string | null;
+    viewCount: number;
     createdAt: string;
     updatedAt: string;
   }
@@ -209,6 +226,62 @@ declare namespace BlogAPI {
     mediaId: string;
     publishId?: string;
     status: 'draft' | 'publishing' | 'published';
+  }
+
+  // 项目
+  interface Project {
+    id: string;
+    title: string;
+    description: string;
+    techStack: string[];
+    coverImage: string | null;
+    link: string | null;
+    githubUrl: string | null;
+    featured: boolean;
+    order: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface CreateProjectParams {
+    title: string;
+    description: string;
+    techStack?: string[];
+    coverImage?: string;
+    link?: string;
+    githubUrl?: string;
+    featured?: boolean;
+    order?: number;
+  }
+
+  interface UpdateProjectParams {
+    title?: string;
+    description?: string;
+    techStack?: string[];
+    coverImage?: string;
+    link?: string;
+    githubUrl?: string;
+    featured?: boolean;
+    order?: number;
+  }
+
+  // API Key
+  interface ApiKey {
+    id: string;
+    name: string;
+    keyPrefix: string;
+    userId: string;
+    lastUsedAt: string | null;
+    isRevoked: boolean;
+    createdAt: string;
+  }
+
+  interface CreateApiKeyParams {
+    name: string;
+  }
+
+  interface CreateApiKeyResponse extends ApiKey {
+    key: string;
   }
 }
 
