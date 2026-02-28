@@ -3,6 +3,7 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  IsArray,
   MaxLength,
   Matches,
   IsIn,
@@ -104,4 +105,22 @@ export class CreateArticleDto {
   @IsOptional()
   @IsUUID('4', { message: '翻译组ID必须是有效的UUID' })
   translationGroupId?: string;
+
+  @ApiPropertyOptional({
+    description: '分类 ID',
+    example: 'a1971975-1cbf-492a-9943-59b9263035d1',
+  })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @ApiPropertyOptional({
+    description: '标签 ID 列表',
+    example: ['tag-id-1', 'tag-id-2'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagIds?: string[];
 }

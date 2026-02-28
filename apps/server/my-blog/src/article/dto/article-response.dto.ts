@@ -1,6 +1,46 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
+ * 分类简要信息 DTO
+ */
+export class CategoryBriefDto {
+  @ApiProperty({ description: '分类 ID' })
+  readonly id: string;
+
+  @ApiProperty({ description: '分类名称' })
+  readonly name: string;
+
+  @ApiProperty({ description: '分类 slug' })
+  readonly slug: string;
+
+  constructor(params: { id: string; name: string; slug: string }) {
+    this.id = params.id;
+    this.name = params.name;
+    this.slug = params.slug;
+  }
+}
+
+/**
+ * 标签简要信息 DTO
+ */
+export class TagBriefDto {
+  @ApiProperty({ description: '标签 ID' })
+  readonly id: string;
+
+  @ApiProperty({ description: '标签名称' })
+  readonly name: string;
+
+  @ApiProperty({ description: '标签 slug' })
+  readonly slug: string;
+
+  constructor(params: { id: string; name: string; slug: string }) {
+    this.id = params.id;
+    this.name = params.name;
+    this.slug = params.slug;
+  }
+}
+
+/**
  * 文章响应 DTO（完整信息）
  * 用于管理端和文章详情
  */
@@ -35,6 +75,15 @@ export class ArticleResponseDto {
   @ApiPropertyOptional({ description: 'SEO 描述', example: '详细介绍如何使用 NestJS...' })
   readonly seoDescription: string | null;
 
+  @ApiPropertyOptional({ description: '所属分类', type: CategoryBriefDto })
+  readonly category: CategoryBriefDto | null;
+
+  @ApiProperty({ description: '标签列表', type: [TagBriefDto] })
+  readonly tags: TagBriefDto[];
+
+  @ApiProperty({ description: '阅读量', example: 0 })
+  readonly viewCount: number;
+
   @ApiProperty({ description: '创建时间', example: '2024-01-01T00:00:00.000Z' })
   readonly createdAt: Date;
 
@@ -52,6 +101,9 @@ export class ArticleResponseDto {
     publishedAt: Date | null;
     seoTitle: string | null;
     seoDescription: string | null;
+    category: CategoryBriefDto | null;
+    tags: TagBriefDto[];
+    viewCount: number;
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -65,6 +117,9 @@ export class ArticleResponseDto {
     this.publishedAt = params.publishedAt;
     this.seoTitle = params.seoTitle;
     this.seoDescription = params.seoDescription;
+    this.category = params.category;
+    this.tags = params.tags;
+    this.viewCount = params.viewCount;
     this.createdAt = params.createdAt;
     this.updatedAt = params.updatedAt;
   }
@@ -99,6 +154,12 @@ export class ArticleListItemDto {
   @ApiPropertyOptional({ description: 'SEO 描述', example: '详细介绍如何使用 NestJS...' })
   readonly seoDescription: string | null;
 
+  @ApiPropertyOptional({ description: '所属分类', type: CategoryBriefDto })
+  readonly category: CategoryBriefDto | null;
+
+  @ApiProperty({ description: '标签列表', type: [TagBriefDto] })
+  readonly tags: TagBriefDto[];
+
   constructor(params: {
     id: string;
     title: string;
@@ -108,6 +169,8 @@ export class ArticleListItemDto {
     publishedAt: Date | null;
     seoTitle: string | null;
     seoDescription: string | null;
+    category: CategoryBriefDto | null;
+    tags: TagBriefDto[];
   }) {
     this.id = params.id;
     this.title = params.title;
@@ -117,6 +180,8 @@ export class ArticleListItemDto {
     this.publishedAt = params.publishedAt;
     this.seoTitle = params.seoTitle;
     this.seoDescription = params.seoDescription;
+    this.category = params.category;
+    this.tags = params.tags;
   }
 }
 

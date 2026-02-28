@@ -17,6 +17,8 @@ import {
   ArticleListItemDto,
   PaginatedArticleListDto,
   PaginatedAdminArticleListDto,
+  CategoryBriefDto,
+  TagBriefDto,
   TranslateArticleDto,
   TranslateArticleResponseDto,
   SeoOptimizeArticleResponseDto,
@@ -25,7 +27,19 @@ import {
 } from './dto';
 import { AiService } from '../ai/ai.service';
 import { WechatService } from '../wechat/wechat.service';
-import { Article } from '@prisma/client';
+import { Article, Category, Tag, ArticleTag } from '@prisma/client';
+
+/** Article with category and tags relations included */
+type ArticleWithRelations = Article & {
+  category: Category | null;
+  tags: (ArticleTag & { tag: Tag })[];
+};
+
+/** Prisma include clause for article relations */
+const ARTICLE_INCLUDE = {
+  category: true,
+  tags: { include: { tag: true } },
+} as const;
 
 @Injectable()
 export class ArticleService {
@@ -52,8 +66,13 @@ export class ArticleService {
         coverImage: params.coverImage ?? null,
         seoTitle: params.seoTitle ?? null,
         seoDescription: params.seoDescription ?? null,
+        categoryId: params.categoryId ?? null,
         isPublished: false,
+        tags: params.tagIds?.length
+          ? { create: params.tagIds.map((tagId) => ({ tagId })) }
+          : undefined,
       },
+      include: ARTICLE_INCLUDE,
     });
 
     this.logger.log(`文章创建成功: ${article.id}`);
@@ -81,6 +100,7 @@ export class ArticleService {
         orderBy: { createdAt: 'desc' },
         skip: (params.page - 1) * params.limit,
         take: params.limit,
+        include: ARTICLE_INCLUDE,
       }),
       this.prisma.article.count({ where }),
     ]);
@@ -97,7 +117,10 @@ export class ArticleService {
    * 根据 ID 获取文章（管理端）
    */
   async findById(id: string): Promise<ArticleResponseDto> {
-    const article = await this.prisma.article.findUnique({ where: { id } });
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      include: ARTICLE_INCLUDE,
+    });
     if (!article) {
       throw new NotFoundException('文章不存在');
     }
@@ -120,6 +143,11 @@ export class ArticleService {
       await this.validateSlugUnique(params.slug, id);
     }
 
+    // 如果传入了 tagIds，先删除旧关联再创建新关联
+    if (params.tagIds !== undefined) {
+      await this.prisma.articleTag.deleteMany({ where: { articleId: id } });
+    }
+
     const article = await this.prisma.article.update({
       where: { id },
       data: {
@@ -130,7 +158,12 @@ export class ArticleService {
         coverImage: params.coverImage,
         seoTitle: params.seoTitle,
         seoDescription: params.seoDescription,
+        categoryId: params.categoryId,
+        tags: params.tagIds?.length
+          ? { create: params.tagIds.map((tagId) => ({ tagId })) }
+          : undefined,
       },
+      include: ARTICLE_INCLUDE,
     });
 
     this.logger.log(`文章更新成功: ${id}`);
@@ -165,6 +198,7 @@ export class ArticleService {
         isPublished: true,
         publishedAt: existing.publishedAt ?? new Date(),
       },
+      include: ARTICLE_INCLUDE,
     });
 
     this.logger.log(`文章发布成功: ${id}`);
@@ -183,6 +217,7 @@ export class ArticleService {
     const article = await this.prisma.article.update({
       where: { id },
       data: { isPublished: false },
+      include: ARTICLE_INCLUDE,
     });
 
     this.logger.log(`文章取消发布成功: ${id}`);
@@ -332,6 +367,7 @@ export class ArticleService {
         orderBy: { publishedAt: 'desc' },
         skip: (params.page - 1) * params.limit,
         take: params.limit,
+        include: ARTICLE_INCLUDE,
       }),
       this.prisma.article.count({ where: { isPublished: true } }),
     ]);
@@ -362,7 +398,7 @@ export class ArticleService {
     }
   }
 
-  private toResponseDto(article: Article): ArticleResponseDto {
+  private toResponseDto(article: ArticleWithRelations): ArticleResponseDto {
     return new ArticleResponseDto({
       id: article.id,
       title: article.title,
@@ -374,12 +410,28 @@ export class ArticleService {
       publishedAt: article.publishedAt,
       seoTitle: article.seoTitle,
       seoDescription: article.seoDescription,
+      category: article.category
+        ? new CategoryBriefDto({
+            id: article.category.id,
+            name: article.category.name,
+            slug: article.category.slug,
+          })
+        : null,
+      tags: article.tags.map(
+        (at) =>
+          new TagBriefDto({
+            id: at.tag.id,
+            name: at.tag.name,
+            slug: at.tag.slug,
+          }),
+      ),
+      viewCount: article.viewCount,
       createdAt: article.createdAt,
       updatedAt: article.updatedAt,
     });
   }
 
-  private toListItemDto(article: Article): ArticleListItemDto {
+  private toListItemDto(article: ArticleWithRelations): ArticleListItemDto {
     return new ArticleListItemDto({
       id: article.id,
       title: article.title,
@@ -389,6 +441,21 @@ export class ArticleService {
       publishedAt: article.publishedAt,
       seoTitle: article.seoTitle,
       seoDescription: article.seoDescription,
+      category: article.category
+        ? new CategoryBriefDto({
+            id: article.category.id,
+            name: article.category.name,
+            slug: article.category.slug,
+          })
+        : null,
+      tags: article.tags.map(
+        (at) =>
+          new TagBriefDto({
+            id: at.tag.id,
+            name: at.tag.name,
+            slug: at.tag.slug,
+          }),
+      ),
     });
   }
 }

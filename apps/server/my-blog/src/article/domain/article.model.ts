@@ -28,6 +28,8 @@ export interface CreateArticleParams {
   coverImage?: string;
   seoTitle?: string;
   seoDescription?: string;
+  categoryId?: string;
+  tagIds?: string[];
 }
 
 /**
@@ -41,6 +43,8 @@ export interface UpdateArticleParams {
   coverImage?: string;
   seoTitle?: string;
   seoDescription?: string;
+  categoryId?: string;
+  tagIds?: string[];
 }
 
 /**
