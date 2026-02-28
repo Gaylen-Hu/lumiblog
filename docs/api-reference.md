@@ -200,7 +200,9 @@ POST /admin/articles
   "content": "# NestJS 入门\n\nNestJS 是一个...",
   "coverImage": "https://example.com/cover.jpg",
   "seoTitle": "NestJS 入门教程 - 2024最新版",
-  "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用"
+  "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用",
+  "categoryId": "a1971975-1cbf-492a-9943-59b9263035d1",
+  "tagIds": ["tag-id-1", "tag-id-2"]
 }
 ```
 
@@ -213,6 +215,10 @@ POST /admin/articles
 | coverImage | string | ❌ | 封面图 URL |
 | seoTitle | string | ❌ | SEO 标题（最长100字符） |
 | seoDescription | string | ❌ | SEO 描述（最长300字符） |
+| locale | string | ❌ | 语言标识：zh-CN / en-US，默认 zh-CN |
+| translationGroupId | string | ❌ | 翻译组 ID（UUID），同组文章互为翻译版本 |
+| categoryId | string | ❌ | 分类 ID，关联已有分类 |
+| tagIds | string[] | ❌ | 标签 ID 列表，关联已有标签 |
 
 **响应：**
 ```json
@@ -227,6 +233,16 @@ POST /admin/articles
   "publishedAt": null,
   "seoTitle": "NestJS 入门教程 - 2024最新版",
   "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用",
+  "category": {
+    "id": "a1971975-1cbf-492a-9943-59b9263035d1",
+    "name": "技术",
+    "slug": "tech"
+  },
+  "tags": [
+    { "id": "tag-id-1", "name": "TypeScript", "slug": "typescript" },
+    { "id": "tag-id-2", "name": "NestJS", "slug": "nestjs" }
+  ],
+  "viewCount": 0,
   "createdAt": "2024-01-15T10:00:00.000Z",
   "updatedAt": "2024-01-15T10:00:00.000Z"
 }
@@ -260,6 +276,15 @@ GET /admin/articles?page=1&limit=10&keyword=NestJS&isPublished=true
       "publishedAt": "2024-01-15T12:00:00.000Z",
       "seoTitle": "NestJS 入门教程 - 2024最新版",
       "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用",
+      "category": {
+        "id": "a1971975-1cbf-492a-9943-59b9263035d1",
+        "name": "技术",
+        "slug": "tech"
+      },
+      "tags": [
+        { "id": "tag-id-1", "name": "TypeScript", "slug": "typescript" }
+      ],
+      "viewCount": 42,
       "createdAt": "2024-01-15T10:00:00.000Z",
       "updatedAt": "2024-01-15T10:00:00.000Z"
     }
@@ -276,7 +301,7 @@ GET /admin/articles?page=1&limit=10&keyword=NestJS&isPublished=true
 GET /admin/articles/:id
 ```
 
-**响应：** 同创建文章响应
+**响应：** 同创建文章响应（包含 category、tags、viewCount 字段）
 
 **错误响应：**
 - `404 Not Found` - 文章不存在
@@ -292,9 +317,13 @@ PATCH /admin/articles/:id
 {
   "title": "NestJS 入门指南（更新版）",
   "summary": "更新后的摘要",
-  "content": "更新后的内容"
+  "content": "更新后的内容",
+  "categoryId": "new-category-id",
+  "tagIds": ["tag-id-1", "tag-id-3"]
 }
 ```
+
+> 更新 `tagIds` 时采用全量替换策略：先删除所有旧标签关联，再创建新关联。
 
 **响应：** 同创建文章响应
 
@@ -349,7 +378,15 @@ GET /articles?page=1&limit=10
       "coverImage": "https://example.com/cover.jpg",
       "publishedAt": "2024-01-15T12:00:00.000Z",
       "seoTitle": "NestJS 入门教程 - 2024最新版",
-      "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用"
+      "seoDescription": "详细介绍 NestJS 框架的安装、配置和基础使用",
+      "category": {
+        "id": "a1971975-1cbf-492a-9943-59b9263035d1",
+        "name": "技术",
+        "slug": "tech"
+      },
+      "tags": [
+        { "id": "tag-id-1", "name": "TypeScript", "slug": "typescript" }
+      ]
     }
   ],
   "total": 1,
@@ -771,6 +808,159 @@ GET /sitemap.xml
 
 ---
 
+## 项目模块 (Project) 🔒
+
+项目/作品集管理，所有接口需要 JWT 认证。
+
+### 创建项目 🔒
+
+```
+POST /v1/projects
+```
+
+**请求体：**
+```json
+{
+  "title": "My Blog Platform",
+  "description": "一个基于 NestJS + Next.js 的博客平台",
+  "techStack": ["NestJS", "Next.js", "PostgreSQL"],
+  "coverImage": "https://example.com/project-cover.jpg",
+  "link": "https://my-blog.com",
+  "githubUrl": "https://github.com/user/repo",
+  "featured": true,
+  "order": 1
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| title | string | ✅ | 项目名称（最长200字符） |
+| description | string | ✅ | 项目描述 |
+| techStack | string[] | ❌ | 技术栈列表 |
+| coverImage | string | ❌ | 封面图片 URL（最长500字符） |
+| link | string | ❌ | 项目链接（有效 URL） |
+| githubUrl | string | ❌ | GitHub 仓库地址（有效 URL） |
+| featured | boolean | ❌ | 是否精选，默认 false |
+| order | number | ❌ | 排序权重（越小越靠前），默认 0 |
+
+**响应：**
+```json
+{
+  "id": "uuid",
+  "title": "My Blog Platform",
+  "description": "一个基于 NestJS + Next.js 的博客平台",
+  "techStack": ["NestJS", "Next.js", "PostgreSQL"],
+  "coverImage": "https://example.com/project-cover.jpg",
+  "link": "https://my-blog.com",
+  "githubUrl": "https://github.com/user/repo",
+  "featured": true,
+  "order": 1,
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z"
+}
+```
+
+### 获取项目列表 🔒
+
+```
+GET /v1/projects?page=1&limit=10&featured=true
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | number | ❌ | 页码，默认 1 |
+| limit | number | ❌ | 每页数量，默认 10，最大 100 |
+| featured | boolean | ❌ | 是否精选筛选 |
+
+**响应：**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "title": "My Blog Platform",
+      "description": "一个基于 NestJS + Next.js 的博客平台",
+      "techStack": ["NestJS", "Next.js", "PostgreSQL"],
+      "coverImage": "https://example.com/project-cover.jpg",
+      "link": "https://my-blog.com",
+      "githubUrl": "https://github.com/user/repo",
+      "featured": true,
+      "order": 1,
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "limit": 10
+}
+```
+
+### 获取项目详情 🔒
+
+```
+GET /v1/projects/:id
+```
+
+**响应：** 同创建项目响应
+
+**错误响应：**
+- `404 Not Found` - 项目不存在
+
+### 更新项目 🔒
+
+```
+PATCH /v1/projects/:id
+```
+
+**请求体：** 同创建项目请求体，所有字段均为可选
+
+**响应：** 同创建项目响应
+
+### 删除项目 🔒
+
+```
+DELETE /v1/projects/:id
+```
+
+**响应：** `204 No Content`
+
+### TypeScript 类型定义
+
+```typescript
+// 项目
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  techStack: string[];
+  coverImage: string | null;
+  link: string | null;
+  githubUrl: string | null;
+  featured: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 创建项目参数
+interface CreateProjectParams {
+  title: string;
+  description: string;
+  techStack?: string[];
+  coverImage?: string;
+  link?: string;
+  githubUrl?: string;
+  featured?: boolean;
+  order?: number;
+}
+
+// 更新项目参数
+type UpdateProjectParams = Partial<CreateProjectParams>;
+```
+
+---
+
 ## 错误响应格式
 
 所有错误返回统一格式：
@@ -820,6 +1010,20 @@ interface User {
   updatedAt: string;
 }
 
+// 分类简要信息
+interface CategoryBrief {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// 标签简要信息
+interface TagBrief {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 // 文章
 interface Article {
   id: string;
@@ -832,6 +1036,9 @@ interface Article {
   publishedAt: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  category: CategoryBrief | null;
+  tags: TagBrief[];
+  viewCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -846,6 +1053,8 @@ interface ArticleListItem {
   publishedAt: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  category: CategoryBrief | null;
+  tags: TagBrief[];
 }
 
 // 分类
@@ -2134,6 +2343,14 @@ GET /site-config
   "gongan": "京公网安备 11010102001234号",
   "copyright": "© 2024 NOVA. All rights reserved.",
   "analytics": "<script>...</script>",
+  "ownerName": "John Doe",
+  "ownerAvatar": "https://example.com/avatar.jpg",
+  "ownerBio": "全栈开发者，热爱技术与设计",
+  "ownerEmail": "hello@example.com",
+  "socialGithub": "https://github.com/example",
+  "socialTwitter": "https://twitter.com/example",
+  "socialLinkedin": "https://linkedin.com/in/example",
+  "socialWeibo": "https://weibo.com/example",
   "createdAt": "2024-01-01T00:00:00.000Z",
   "updatedAt": "2024-01-15T10:00:00.000Z"
 }
@@ -2156,7 +2373,15 @@ PUT /site-config
   "icp": "京ICP备12345678号",
   "gongan": "京公网安备 11010102001234号",
   "copyright": "© 2024 NOVA. All rights reserved.",
-  "analytics": "<script>...</script>"
+  "analytics": "<script>...</script>",
+  "ownerName": "John Doe",
+  "ownerAvatar": "https://example.com/avatar.jpg",
+  "ownerBio": "全栈开发者，热爱技术与设计",
+  "ownerEmail": "hello@example.com",
+  "socialGithub": "https://github.com/example",
+  "socialTwitter": "https://twitter.com/example",
+  "socialLinkedin": "https://linkedin.com/in/example",
+  "socialWeibo": "https://weibo.com/example"
 }
 ```
 
@@ -2171,6 +2396,14 @@ PUT /site-config
 | gongan | string | ❌ | 公安备案号 |
 | copyright | string | ❌ | 版权信息 |
 | analytics | string | ❌ | 统计代码 |
+| ownerName | string | ❌ | 站长名称（最长50字符） |
+| ownerAvatar | string | ❌ | 站长头像 URL |
+| ownerBio | string | ❌ | 站长简介（最长500字符） |
+| ownerEmail | string | ❌ | 站长邮箱 |
+| socialGithub | string | ❌ | GitHub 链接 |
+| socialTwitter | string | ❌ | Twitter 链接 |
+| socialLinkedin | string | ❌ | LinkedIn 链接 |
+| socialWeibo | string | ❌ | 微博链接 |
 
 **响应：** 返回更新后的完整配置对象
 
@@ -2229,6 +2462,14 @@ interface SiteConfig {
   gongan: string | null;
   copyright: string | null;
   analytics: string | null;
+  ownerName: string | null;
+  ownerAvatar: string | null;
+  ownerBio: string | null;
+  ownerEmail: string | null;
+  socialGithub: string | null;
+  socialTwitter: string | null;
+  socialLinkedin: string | null;
+  socialWeibo: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -2244,6 +2485,14 @@ interface UpdateSiteConfigParams {
   gongan?: string;
   copyright?: string;
   analytics?: string;
+  ownerName?: string;
+  ownerAvatar?: string;
+  ownerBio?: string;
+  ownerEmail?: string;
+  socialGithub?: string;
+  socialTwitter?: string;
+  socialLinkedin?: string;
+  socialWeibo?: string;
 }
 
 // 公开网站配置响应
@@ -2276,5 +2525,109 @@ interface PublicSiteConfig {
     copyright: string | null;
   };
   analytics: string | null;
+}
+```
+
+
+---
+
+## API Key 模块 🔒
+
+API Key 提供永久有效的认证方式，功能等同于 JWT Token。所有需要 JWT 认证的接口均可使用 API Key 替代。
+
+### 认证方式
+
+在请求头中使用 API Key：
+```
+Authorization: Bearer sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+> API Key 以 `sk-` 前缀开头，系统会自动识别并走 API Key 验证流程。
+
+### 生成 API Key 🔒
+
+```
+POST /api-keys
+```
+
+**请求体：**
+```json
+{
+  "name": "My Integration"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| name | string | ✅ | Key 名称（最长100字符） |
+
+**响应：**
+```json
+{
+  "id": "uuid",
+  "name": "My Integration",
+  "keyPrefix": "sk-abc1****",
+  "userId": "user-uuid",
+  "lastUsedAt": null,
+  "isRevoked": false,
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "key": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+}
+```
+
+> ⚠️ 完整的 `key` 仅在创建时返回一次，请妥善保存。
+
+### 获取 API Key 列表 🔒
+
+```
+GET /api-keys
+```
+
+**响应：**
+```json
+[
+  {
+    "id": "uuid",
+    "name": "My Integration",
+    "keyPrefix": "sk-abc1****",
+    "userId": "user-uuid",
+    "lastUsedAt": "2024-01-16T08:00:00.000Z",
+    "isRevoked": false,
+    "createdAt": "2024-01-15T10:00:00.000Z"
+  }
+]
+```
+
+### 撤销 API Key 🔒
+
+```
+PATCH /api-keys/:id/revoke
+```
+
+**响应：** 同列表项结构（`isRevoked` 变为 `true`）
+
+### 删除 API Key 🔒
+
+```
+DELETE /api-keys/:id
+```
+
+**响应：** `204 No Content`
+
+### TypeScript 类型定义
+
+```typescript
+interface ApiKey {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  userId: string;
+  lastUsedAt: string | null;
+  isRevoked: boolean;
+  createdAt: string;
+}
+
+interface CreateApiKeyResponse extends ApiKey {
+  key: string; // 完整 key，仅创建时返回
 }
 ```
