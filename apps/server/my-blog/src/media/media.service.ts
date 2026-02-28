@@ -5,7 +5,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { OssService } from '../oss/oss.service';
 import {
   StorageType,
   MediaType,
@@ -27,6 +30,7 @@ export class MediaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly ossService: OssService,
   ) {}
 
   /**
@@ -97,9 +101,31 @@ export class MediaService {
    */
   async remove(id: string): Promise<void> {
     const media = await this.findById(id);
-    // TODO: 实际删除存储文件
+
+    // 根据存储类型删除实际文件
+    try {
+      switch (media.storageType) {
+        case 'oss':
+          await this.ossService.deleteObject(media.storagePath);
+          break;
+        case 'local':
+          await this.deleteLocalFile(media.storagePath);
+          break;
+        case 's3':
+          // S3 deletion not yet implemented
+          this.logger.warn(`S3 文件删除暂未实现: ${media.storagePath}`);
+          break;
+      }
+    } catch (err) {
+      this.logger.error(
+        `存储文件删除失败: ${media.storagePath}`,
+        err instanceof Error ? err.stack : String(err),
+      );
+      // 即使文件删除失败，仍然删除数据库记录（避免孤立记录）
+    }
+
     await this.prisma.media.delete({ where: { id } });
-    this.logger.log(`媒体删除成功: ${id}, 路径: ${media.storagePath}`);
+    this.logger.log(`媒体删除成功: ${id}`);
   }
 
   /**
@@ -115,6 +141,12 @@ export class MediaService {
       throw new NotFoundException('媒体不存在');
     }
     return media;
+  }
+
+  private async deleteLocalFile(storagePath: string): Promise<void> {
+    const uploadDir = this.configService.get<string>('UPLOAD_DIR', './uploads');
+    const fullPath = path.join(uploadDir, storagePath);
+    await fs.unlink(fullPath);
   }
 
   private validateFileSize(size: number): void {

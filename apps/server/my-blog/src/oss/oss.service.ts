@@ -120,6 +120,44 @@ export class OssService {
   }
 
   /**
+   * 删除 OSS 对象
+   */
+  async deleteObject(objectKey: string): Promise<void> {
+    this.validateConfig();
+
+    const bucket = this.configService.get<string>('OSS_BUCKET')!;
+    const region = this.configService.get<string>('OSS_REGION')!;
+    const accessKeyId = this.configService.get<string>('OSS_ACCESS_KEY_ID')!;
+    const accessKeySecret = this.configService.get<string>('OSS_ACCESS_KEY_SECRET')!;
+    const endpoint = this.configService.get<string>(
+      'OSS_ENDPOINT',
+      `https://${bucket}.${region}.aliyuncs.com`,
+    );
+
+    const date = new Date().toUTCString();
+    const canonicalResource = `/${bucket}/${objectKey}`;
+    const stringToSign = `DELETE\n\n\n${date}\n${canonicalResource}`;
+    const signature = this.sign(stringToSign, accessKeySecret);
+
+    const url = `${endpoint}/${objectKey}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Date: date,
+        Authorization: `OSS ${accessKeyId}:${signature}`,
+      },
+    });
+
+    if (!response.ok && response.status !== 404) {
+      throw new Error(
+        `OSS 对象删除失败: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    this.logger.log(`OSS 对象删除成功: ${objectKey}`);
+  }
+
+  /**
    * 验证 OSS 配置
    */
   private validateConfig(): void {
