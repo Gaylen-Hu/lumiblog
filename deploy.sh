@@ -70,7 +70,7 @@ if pm2 list | grep -q "my-blog-api"; then
     pm2 restart my-blog-api
 else
     log_info "启动后端服务 (my-blog-api)..."
-    pm2 start dist/main.js --name my-blog-api
+    pm2 start dist/src/main.js --name my-blog-api
 fi
 
 # ========================================
@@ -89,13 +89,33 @@ if ! command -v serve &> /dev/null; then
     npm install -g serve
 fi
 
+# 创建 serve 启动脚本（解决 ESM 兼容性问题）
+cat > "$PROJECT_ROOT/apps/admin-web/myapp/dist/serve.cjs" << 'EOF'
+const { spawn } = require('child_process');
+const path = require('path');
+
+const servePath = path.join(__dirname, '../node_modules/.bin/serve');
+const distPath = path.join(__dirname);
+
+const child = spawn(servePath, [distPath, '-l', '8002'], {
+  stdio: 'inherit',
+  shell: true
+});
+
+child.on('error', (err) => {
+  console.error('Failed to start serve:', err);
+  process.exit(1);
+});
+
+EOF
+
 # 检查服务是否已存在
 if pm2 list | grep -q "admin-web"; then
     log_info "重启管理后台服务 (admin-web)..."
     pm2 restart admin-web
 else
     log_info "启动管理后台服务 (admin-web), 端口: 8002..."
-    pm2 start "npx serve dist -l 8002" --name admin-web
+    pm2 start dist/serve.cjs --name admin-web --cwd "$PROJECT_ROOT/apps/admin-web/myapp"
 fi
 
 # ========================================
@@ -113,8 +133,8 @@ if pm2 list | grep -q "blog-web"; then
     log_info "重启前端服务 (blog-web)..."
     pm2 restart blog-web
 else
-    log_info "启动前端服务 (blog-web)..."
-    NODE_ENV=production pm2 start npm --name blog-web -- start
+    log_info "启动前端服务 (blog-web), 端口: 3001..."
+    PORT=3001 NODE_ENV=production pm2 start npm --name blog-web -- start
 fi
 
 # ========================================
