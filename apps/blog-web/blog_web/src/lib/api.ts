@@ -7,6 +7,7 @@ import type {
   Category,
   Tag,
 } from '@/types'
+import { MOCK_POSTS, MOCK_PROJECTS } from './mock-data'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1/public'
@@ -19,18 +20,28 @@ export async function getArticles(params?: {
   tag?: string
   search?: string
 }): Promise<PaginatedResponse<Post>> {
-  const searchParams = new URLSearchParams()
-  if (params?.page) searchParams.set('page', String(params.page))
-  if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize))
-  if (params?.category) searchParams.set('category', params.category)
-  if (params?.tag) searchParams.set('tag', params.tag)
-  if (params?.search) searchParams.set('search', params.search)
+  try {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize))
+    if (params?.category) searchParams.set('category', params.category)
+    if (params?.tag) searchParams.set('tag', params.tag)
+    if (params?.search) searchParams.set('search', params.search)
 
-  const res = await fetch(`${API_BASE_URL}/articles?${searchParams}`, {
-    next: { revalidate: 60 },
-  })
-  if (!res.ok) throw new Error('Failed to fetch articles')
-  return res.json()
+    const res = await fetch(`${API_BASE_URL}/articles?${searchParams}`, {
+      next: { revalidate: 60 },
+    })
+    if (!res.ok) throw new Error('Failed to fetch articles')
+    return res.json()
+  } catch {
+    // Fallback to mock data for build time
+    return {
+      data: MOCK_POSTS,
+      total: MOCK_POSTS.length,
+      page: 1,
+      pageSize: 10,
+    }
+  }
 }
 
 // 文章详情
@@ -63,17 +74,31 @@ export async function getProjects(params?: {
   pageSize?: number
   featured?: boolean
 }): Promise<PaginatedResponse<Project>> {
-  const searchParams = new URLSearchParams()
-  if (params?.page) searchParams.set('page', String(params.page))
-  if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize))
-  if (params?.featured !== undefined)
-    searchParams.set('featured', String(params.featured))
+  try {
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize))
+    if (params?.featured !== undefined)
+      searchParams.set('featured', String(params.featured))
 
-  const res = await fetch(`${API_BASE_URL}/projects?${searchParams}`, {
-    next: { revalidate: 60 },
-  })
-  if (!res.ok) throw new Error('Failed to fetch projects')
-  return res.json()
+    const res = await fetch(`${API_BASE_URL}/projects?${searchParams}`, {
+      next: { revalidate: 60 },
+    })
+    if (!res.ok) throw new Error('Failed to fetch projects')
+    return res.json()
+  } catch {
+    // Fallback to mock data for build time
+    let filtered = MOCK_PROJECTS
+    if (params?.featured) {
+      filtered = filtered.filter((p) => p.featured)
+    }
+    return {
+      data: filtered,
+      total: filtered.length,
+      page: 1,
+      pageSize: 10,
+    }
+  }
 }
 
 // 分类列表

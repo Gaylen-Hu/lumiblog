@@ -9,6 +9,8 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
+  if (!project.link) return null;
+
   return (
     <a
       href={project.link}
@@ -23,7 +25,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
         >
           <div className="aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-slate-800 mb-6 transition-transform duration-500">
             <img
-              src={project.imageUrl}
+              src={project.coverImage || '/placeholder-project.png'}
               alt={project.title}
               className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
             />

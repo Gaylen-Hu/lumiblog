@@ -2,7 +2,7 @@ import { PageContainer, ProForm, ProFormText, ProFormTextArea } from '@ant-desig
 import { App, Card, Divider, Space, Image, Button, Spin } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { getSiteConfig, updateSiteConfig } from '@/services/blog/siteConfig';
-import { MediaPicker } from '@/components/MediaPicker';
+import MediaPicker from '@/components/MediaPicker';
 
 const SiteConfigPage: React.FC = () => {
   const { message } = App.useApp();

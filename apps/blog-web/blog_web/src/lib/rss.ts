@@ -17,7 +17,8 @@ const DEFAULT_CONFIG: RSSConfig = {
   author: 'NOVA',
 }
 
-function escapeXml(text: string): string {
+function escapeXml(text: string | null): string {
+  if (!text) return ''
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -27,32 +28,26 @@ function escapeXml(text: string): string {
 }
 
 function formatRFC822Date(dateStr: string): string {
-  // 简单处理中文日期格式，如 "2024年10月12日"
-  const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/)
-  if (match) {
-    const [, year, month, day] = match
-    const date = new Date(Number(year), Number(month) - 1, Number(day))
-    return date.toUTCString()
-  }
-  // 尝试直接解析
   const date = new Date(dateStr)
   return isNaN(date.getTime()) ? new Date().toUTCString() : date.toUTCString()
 }
 
 export function generateRSSFeed(posts: Post[], config: RSSConfig = DEFAULT_CONFIG): string {
-  const { title, description, siteUrl, language, author, email } = config
+  const { title, description, siteUrl, language, email } = config
 
   const items = posts
     .map((post) => {
       const postUrl = `${siteUrl}/posts/${post.slug}`
+      const authorName = post.author?.name || 'Anonymous'
+      const categoryName = post.category?.name || 'Uncategorized'
       return `    <item>
       <title>${escapeXml(post.title)}</title>
       <link>${postUrl}</link>
       <guid isPermaLink="true">${postUrl}</guid>
       <description>${escapeXml(post.excerpt)}</description>
-      <pubDate>${formatRFC822Date(post.date)}</pubDate>
-      <author>${email ? `${email} (${post.author})` : post.author}</author>
-      <category>${escapeXml(post.category)}</category>
+      <pubDate>${formatRFC822Date(post.publishedAt)}</pubDate>
+      <author>${email ? `${email} (${authorName})` : authorName}</author>
+      <category>${escapeXml(categoryName)}</category>
     </item>`
     })
     .join('\n')
