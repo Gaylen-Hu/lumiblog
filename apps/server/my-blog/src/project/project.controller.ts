@@ -33,7 +33,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
  */
 @ApiTags('项目管理')
 @ApiBearerAuth('JWT-auth')
-@Controller({ path: 'projects', version: '1' })
+@Controller({ path: 'admin/projects', version: '1' })
 @UseGuards(JwtAuthGuard)
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
