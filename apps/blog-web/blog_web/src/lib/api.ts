@@ -152,6 +152,7 @@ interface SiteConfig {
     avatar: string | null
     bio: string | null
     email: string | null
+    techStack: string[]
   }
   seo: {
     defaultTitle: string | null
@@ -165,6 +166,13 @@ interface SiteConfig {
     copyright: string | null
   }
   analytics: string | null
+}
+
+interface SiteStats {
+  articleCount: number
+  yearsOfExperience: number
+  openSourceCount: number
+  talkCount: number
 }
 
 // 默认配置（API 不可用时使用）
@@ -182,6 +190,7 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
     avatar: null,
     bio: null,
     email: null,
+    techStack: [],
   },
   seo: {
     defaultTitle: 'NOVA - 探索技术与设计的前沿',
@@ -197,17 +206,22 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
   analytics: null,
 }
 
+const DEFAULT_STATS: SiteStats = {
+  articleCount: 0,
+  yearsOfExperience: 0,
+  openSourceCount: 0,
+  talkCount: 0,
+}
+
 export async function getSiteConfig(): Promise<SiteConfig> {
   try {
     const res = await fetch(`${API_BASE_URL}/site-config`, {
-      next: { revalidate: 3600 }, // 1 小时缓存
+      next: { revalidate: 3600 },
     })
-
     if (!res.ok) {
       console.warn('Failed to fetch site config, using defaults')
       return DEFAULT_SITE_CONFIG
     }
-
     return res.json()
   } catch {
     console.warn('API unavailable, using default site config')
@@ -215,4 +229,16 @@ export async function getSiteConfig(): Promise<SiteConfig> {
   }
 }
 
-export type { SiteConfig }
+export async function getSiteStats(): Promise<SiteStats> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/stats`, {
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) return DEFAULT_STATS
+    return res.json()
+  } catch {
+    return DEFAULT_STATS
+  }
+}
+
+export type { SiteConfig, SiteStats }

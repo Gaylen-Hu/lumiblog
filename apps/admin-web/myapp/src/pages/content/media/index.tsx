@@ -156,7 +156,7 @@ const MediaList: React.FC = () => {
   };
 
   /** 上传成功回调 */
-  const handleUploadSuccess = () => {
+  const handleUploadSuccess = (_media: BlogAPI.Media) => {
     message.success('上传成功');
     setUploadModalOpen(false);
     // 刷新列表，跳转到第一页

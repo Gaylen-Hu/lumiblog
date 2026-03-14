@@ -2189,6 +2189,24 @@ GET /public/search?q=NestJS&page=1&pageSize=10
 }
 ```
 
+### 获取站点统计
+
+```
+GET /v1/public/stats
+```
+
+**说明：** 获取站点统计数据，用于首页展示。`articleCount` 实时统计已发布文章数，其余字段来自站点配置。
+
+**响应：**
+```json
+{
+  "articleCount": 50,
+  "yearsOfExperience": 8,
+  "openSourceCount": 200,
+  "talkCount": 30
+}
+```
+
 ### TypeScript 类型定义
 
 ```typescript
@@ -2297,6 +2315,7 @@ interface SiteConfig {
     avatar: string | null;
     bio: string | null;
     email: string | null;
+    techStack: string[];
   };
   seo: {
     defaultTitle: string | null;
@@ -2347,6 +2366,10 @@ GET /site-config
   "ownerAvatar": "https://example.com/avatar.jpg",
   "ownerBio": "全栈开发者，热爱技术与设计",
   "ownerEmail": "hello@example.com",
+  "ownerTechStack": ["React", "TypeScript", "Next.js", "NestJS"],
+  "yearsOfExperience": 8,
+  "openSourceCount": 200,
+  "talkCount": 30,
   "socialGithub": "https://github.com/example",
   "socialTwitter": "https://twitter.com/example",
   "socialLinkedin": "https://linkedin.com/in/example",
@@ -2378,6 +2401,10 @@ PUT /site-config
   "ownerAvatar": "https://example.com/avatar.jpg",
   "ownerBio": "全栈开发者，热爱技术与设计",
   "ownerEmail": "hello@example.com",
+  "ownerTechStack": ["React", "TypeScript", "Next.js"],
+  "yearsOfExperience": 8,
+  "openSourceCount": 200,
+  "talkCount": 30,
   "socialGithub": "https://github.com/example",
   "socialTwitter": "https://twitter.com/example",
   "socialLinkedin": "https://linkedin.com/in/example",
@@ -2400,6 +2427,10 @@ PUT /site-config
 | ownerAvatar | string | ❌ | 站长头像 URL |
 | ownerBio | string | ❌ | 站长简介（最长500字符） |
 | ownerEmail | string | ❌ | 站长邮箱 |
+| ownerTechStack | string[] | ❌ | 技术栈列表，用于 about 页面 |
+| yearsOfExperience | number | ❌ | 项目经验年数 |
+| openSourceCount | number | ❌ | 开源贡献数 |
+| talkCount | number | ❌ | 技术分享数 |
 | socialGithub | string | ❌ | GitHub 链接 |
 | socialTwitter | string | ❌ | Twitter 链接 |
 | socialLinkedin | string | ❌ | LinkedIn 链接 |
@@ -2430,7 +2461,8 @@ GET /v1/public/site-config
     "name": "Site Owner",
     "avatar": null,
     "bio": null,
-    "email": null
+    "email": null,
+    "techStack": ["React", "TypeScript", "Next.js"]
   },
   "seo": {
     "defaultTitle": "NOVA - 探索技术与设计的前沿",
@@ -2466,6 +2498,10 @@ interface SiteConfig {
   ownerAvatar: string | null;
   ownerBio: string | null;
   ownerEmail: string | null;
+  ownerTechStack: string[];
+  yearsOfExperience: number | null;
+  openSourceCount: number | null;
+  talkCount: number | null;
   socialGithub: string | null;
   socialTwitter: string | null;
   socialLinkedin: string | null;
@@ -2489,6 +2525,10 @@ interface UpdateSiteConfigParams {
   ownerAvatar?: string;
   ownerBio?: string;
   ownerEmail?: string;
+  ownerTechStack?: string[];
+  yearsOfExperience?: number;
+  openSourceCount?: number;
+  talkCount?: number;
   socialGithub?: string;
   socialTwitter?: string;
   socialLinkedin?: string;

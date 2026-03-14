@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MaxLength, IsInt, Min, IsArray } from 'class-validator';
 
 export class UpdateSiteConfigDto {
   @ApiPropertyOptional({ description: '网站标题', maxLength: 60 })
@@ -75,6 +75,29 @@ export class UpdateSiteConfigDto {
   @IsString()
   ownerEmail?: string;
 
+  @ApiPropertyOptional({ description: '技术栈列表', type: [String] })
+  @IsOptional()
+  @IsString({ each: true })
+  ownerTechStack?: string[];
+
+  @ApiPropertyOptional({ description: '项目经验年数' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  yearsOfExperience?: number;
+
+  @ApiPropertyOptional({ description: '开源贡献数' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  openSourceCount?: number;
+
+  @ApiPropertyOptional({ description: '技术分享数' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  talkCount?: number;
+
   @ApiPropertyOptional({ description: 'GitHub 链接' })
   @IsOptional()
   @IsString()
@@ -138,6 +161,18 @@ export class SiteConfigResponseDto {
 
   @ApiPropertyOptional({ description: '站长邮箱' })
   ownerEmail: string | null;
+
+  @ApiPropertyOptional({ description: '技术栈列表', type: [String] })
+  ownerTechStack: string[];
+
+  @ApiPropertyOptional({ description: '项目经验年数' })
+  yearsOfExperience: number | null;
+
+  @ApiPropertyOptional({ description: '开源贡献数' })
+  openSourceCount: number | null;
+
+  @ApiPropertyOptional({ description: '技术分享数' })
+  talkCount: number | null;
 
   @ApiPropertyOptional({ description: 'GitHub 链接' })
   socialGithub: string | null;

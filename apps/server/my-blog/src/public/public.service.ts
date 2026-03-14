@@ -27,6 +27,7 @@ import {
   SearchQueryDto,
   SearchResultDto,
   SearchResultItemDto,
+  SiteStatsDto,
 } from './dto';
 
 /** 每分钟阅读字数（用于计算阅读时间） */
@@ -222,6 +223,7 @@ export class PublicService {
         avatar: config.ownerAvatar ?? null,
         bio: config.ownerBio ?? null,
         email: config.ownerEmail ?? null,
+        techStack: config.ownerTechStack,
       }),
       seo: new SiteSeoDto({
         defaultTitle: config.title,
@@ -235,6 +237,23 @@ export class PublicService {
         copyright: config.copyright,
       }),
       analytics: config.analytics,
+    });
+  }
+
+  /**
+   * 获取站点统计数据
+   */
+  async getStats(): Promise<SiteStatsDto> {
+    const [articleCount, config] = await Promise.all([
+      this.prisma.article.count({ where: { isPublished: true } }),
+      this.siteConfigService.getConfig(),
+    ]);
+
+    return new SiteStatsDto({
+      articleCount,
+      yearsOfExperience: config.yearsOfExperience ?? 0,
+      openSourceCount: config.openSourceCount ?? 0,
+      talkCount: config.talkCount ?? 0,
     });
   }
 

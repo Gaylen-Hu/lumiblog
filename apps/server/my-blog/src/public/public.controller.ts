@@ -13,6 +13,7 @@ import {
   SiteConfigDto,
   SearchQueryDto,
   SearchResultDto,
+  SiteStatsDto,
 } from './dto';
 
 /**
@@ -91,5 +92,14 @@ export class PublicController {
   @Get('search')
   async search(@Query() query: SearchQueryDto): Promise<SearchResultDto> {
     return this.publicService.search(query);
+  }
+
+  // ==================== 统计接口 ====================
+
+  @ApiOperation({ summary: '获取站点统计', description: '获取文章数、经验年数等统计数据' })
+  @ApiResponse({ status: 200, description: '获取成功', type: SiteStatsDto })
+  @Get('stats')
+  async getStats(): Promise<SiteStatsDto> {
+    return this.publicService.getStats();
   }
 }

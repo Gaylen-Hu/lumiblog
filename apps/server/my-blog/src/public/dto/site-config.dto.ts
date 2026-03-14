@@ -45,16 +45,21 @@ export class SiteOwnerDto {
   @ApiPropertyOptional({ description: '邮箱' })
   readonly email: string | null;
 
+  @ApiProperty({ description: '技术栈列表', type: [String] })
+  readonly techStack: string[];
+
   constructor(params: {
     name: string;
     avatar: string | null;
     bio: string | null;
     email: string | null;
+    techStack: string[];
   }) {
     this.name = params.name;
     this.avatar = params.avatar;
     this.bio = params.bio;
     this.email = params.email;
+    this.techStack = params.techStack;
   }
 }
 
@@ -152,8 +157,7 @@ export class SiteConfigDto {
     seo: SiteSeoDto;
     filing: FilingInfoDto;
     analytics?: string | null;
-  }) {
-    this.siteName = params.siteName;
+  }) {    this.siteName = params.siteName;
     this.siteDescription = params.siteDescription;
     this.logo = params.logo;
     this.favicon = params.favicon;

@@ -1,15 +1,27 @@
-'use client';
+'use client'
 
-import AnimatedCounter from './ui/AnimatedCounter';
+import AnimatedCounter from './ui/AnimatedCounter'
 
-const stats = [
-  { label: '文章数量', value: 50, suffix: '+' },
-  { label: '项目经验', value: 8, suffix: ' 年' },
-  { label: '开源贡献', value: 200, suffix: '+' },
-  { label: '技术分享', value: 30, suffix: '+' },
-];
+interface StatsSectionProps {
+  articleCount: number
+  yearsOfExperience: number
+  openSourceCount: number
+  talkCount: number
+}
 
-export default function StatsSection() {
+export default function StatsSection({
+  articleCount,
+  yearsOfExperience,
+  openSourceCount,
+  talkCount,
+}: StatsSectionProps) {
+  const stats = [
+    { label: '文章数量', value: articleCount, suffix: '+' },
+    { label: '项目经验', value: yearsOfExperience, suffix: ' 年' },
+    { label: '开源贡献', value: openSourceCount, suffix: '+' },
+    { label: '技术分享', value: talkCount, suffix: '+' },
+  ]
+
   return (
     <section className="py-20 px-6 md:px-12 lg:px-24 bg-[#111111] dark:bg-slate-900">
       <div className="max-w-7xl mx-auto">
@@ -28,5 +40,5 @@ export default function StatsSection() {
         </div>
       </div>
     </section>
-  );
+  )
 }

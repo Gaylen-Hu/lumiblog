@@ -3,12 +3,13 @@ import HeroSection from '@/components/HeroSection';
 import StatsSection from '@/components/StatsSection';
 import PostCard from '@/components/PostCard';
 import ProjectCard from '@/components/ProjectCard';
-import { getArticles, getProjects } from '@/lib/api';
+import { getArticles, getProjects, getSiteStats } from '@/lib/api';
 
 export default async function Home() {
-  const [articlesRes, projectsRes] = await Promise.all([
+  const [articlesRes, projectsRes, stats] = await Promise.all([
     getArticles({ page: 1, pageSize: 6 }),
     getProjects({ featured: true, pageSize: 3 }),
+    getSiteStats(),
   ]);
 
   const posts = articlesRes.data;
@@ -17,7 +18,12 @@ export default async function Home() {
   return (
     <div className="animate-page-fade">
       <HeroSection />
-      <StatsSection />
+      <StatsSection
+        articleCount={stats.articleCount}
+        yearsOfExperience={stats.yearsOfExperience}
+        openSourceCount={stats.openSourceCount}
+        talkCount={stats.talkCount}
+      />
 
       {/* Latest Articles Section */}
       <section className="py-24 px-6 md:px-12 lg:px-24 bg-white dark:bg-slate-950">

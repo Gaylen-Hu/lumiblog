@@ -1,9 +1,20 @@
-export const metadata = {
-  title: '关于 - NOVA',
-  description: '了解更多关于我的信息。',
-};
+import { getSiteConfig } from '@/lib/api';
 
-export default function AboutPage() {
+export async function generateMetadata() {
+  const config = await getSiteConfig();
+  return {
+    title: `关于 - ${config.siteName}`,
+    description: config.owner.bio || `了解更多关于 ${config.owner.name} 的信息。`,
+  };
+}
+
+const FALLBACK_TECH_STACK = ['React', 'TypeScript', 'Next.js', 'Node.js', 'Tailwind CSS', 'NestJS'];
+
+export default async function AboutPage() {
+  const config = await getSiteConfig();
+  const { owner } = config;
+  const techStack = owner.techStack.length > 0 ? owner.techStack : FALLBACK_TECH_STACK;
+
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] min-h-screen animate-page-fade">
       <div className="max-w-7xl mx-auto">
@@ -15,17 +26,25 @@ export default function AboutPage() {
               以<span className="text-blue-600">精准</span>为导向。
             </h2>
             <div className="space-y-6 text-[#555555] leading-relaxed text-lg font-light">
-              <p>
-                我是一名数字工匠，拥有超过 6
-                年的产品构建经验，专注于弥合人类情感与机器逻辑之间的鸿沟。
-              </p>
-              <p>
-                目前，我正在探索 AI
-                驱动界面与程序化几何的交叉领域。我的目标是让网络感觉更加物理化、更具响应性、更加生动。
-              </p>
-              <p>
-                当我不在代码编辑器前时，你会发现我在探索山间小径、拍摄粗野主义建筑，或者冲泡一杯完美的手冲咖啡。
-              </p>
+              {owner.bio ? (
+                owner.bio.split('\n').map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))
+              ) : (
+                <>
+                  <p>
+                    我是一名数字工匠，拥有超过 6
+                    年的产品构建经验，专注于弥合人类情感与机器逻辑之间的鸿沟。
+                  </p>
+                  <p>
+                    目前，我正在探索 AI
+                    驱动界面与程序化几何的交叉领域。我的目标是让网络感觉更加物理化、更具响应性、更加生动。
+                  </p>
+                  <p>
+                    当我不在代码编辑器前时，你会发现我在探索山间小径、拍摄粗野主义建筑，或者冲泡一杯完美的手冲咖啡。
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="mt-12">
@@ -33,14 +52,7 @@ export default function AboutPage() {
                 技术栈
               </h4>
               <div className="flex flex-wrap gap-3">
-                {[
-                  'React',
-                  'TypeScript',
-                  'Next.js',
-                  'Node.js',
-                  'Tailwind CSS',
-                  'NestJS',
-                ].map((tech) => (
+              {techStack.map((tech) => (
                   <span
                     key={tech}
                     className="px-4 py-2 bg-white border border-gray-100 rounded-full text-sm font-medium text-gray-600"

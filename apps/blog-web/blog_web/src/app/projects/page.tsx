@@ -1,14 +1,14 @@
 import ProjectCard from '@/components/ProjectCard';
-import { MOCK_PROJECTS } from '@/lib/mock-data';
+import { getProjects } from '@/lib/api';
 
 export const metadata = {
   title: '项目 - NOVA',
   description: '软件产品、技术实验和架构系统的精选作品集。',
 };
 
-export default function ProjectsPage() {
-  // TODO: 后端需要实现项目列表接口
-  const projects = MOCK_PROJECTS;
+export default async function ProjectsPage() {
+  const projectsRes = await getProjects();
+  const projects = projectsRes.data;
 
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade">

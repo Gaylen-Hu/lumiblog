@@ -95,23 +95,7 @@ export default [
       },
     ],
   },
-  {
-    path: '/account',
-    name: 'account',
-    icon: 'user',
-    routes: [
-      {
-        path: '/account',
-        redirect: '/account/settings',
-      },
-      {
-        name: 'settings',
-        icon: 'setting',
-        path: '/account/settings',
-        component: './account/settings',
-      },
-    ],
-  },
+
   {
     path: '/settings',
     name: 'settings',

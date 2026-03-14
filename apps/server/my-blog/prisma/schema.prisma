@@ -176,16 +176,20 @@ model SiteConfig {
   gongan         String?  // 公安备案号
   copyright      String?
   analytics      String?  @db.Text // 统计代码
-  ownerName      String?
-  ownerAvatar    String?
-  ownerBio       String?  @db.Text
-  ownerEmail     String?
-  socialGithub   String?
-  socialTwitter  String?
-  socialLinkedin String?
-  socialWeibo    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  ownerName          String?
+  ownerAvatar        String?
+  ownerBio           String?  @db.Text
+  ownerEmail         String?
+  ownerTechStack     String[] @default([])
+  yearsOfExperience  Int?
+  openSourceCount    Int?
+  talkCount          Int?
+  socialGithub       String?
+  socialTwitter      String?
+  socialLinkedin     String?
+  socialWeibo        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@map("site_config")
 }
