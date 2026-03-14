@@ -12,19 +12,19 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Nginx (443/80)                        │
-│  www.example.com                                         │
-├──────────────┬──────────────────┬───────────────────────────┤
-│ /api         │ /badmin          │ /                         │
-│ ↓            │ ↓                │ ↓                         │
-└──────────────┼──────────────────┼───────────────────────────┘
-               │                  │
-     ┌─────────┴──────────────────┴─────────────┐
-     │              PM2                         │
-     ├─────────────┬──────────────┬─────────────┤
-     │ my-blog-api │ admin-web    │ blog-web    │
-     │ :3000       │ :8002        │ :3001       │
-     │ (NestJS)    │ (Umi/AntD)   │ (Next.js)   │
-     └─────────────┴──────────────┴─────────────┘
+│  www.example.com          badmin.example.com         │
+├──────────────┬───────────────┬──────────────────────────────┤
+│ /api         │ /             │ /api        │ /              │
+│ ↓            │ ↓             │ ↓           │ ↓              │
+└──────────────┴───────────────┴─────────────┴────────────────┘
+               │                              │
+     ┌─────────┴──────────────────────────────┴─────────────┐
+     │              PM2                                      │
+     ├─────────────┬──────────────┬─────────────────────────┤
+     │ my-blog-api │ admin-web    │ blog-web                │
+     │ :3000       │ :8002        │ :3001                   │
+     │ (NestJS)    │ (Umi/AntD)   │ (Next.js)               │
+     └─────────────┴──────────────┴─────────────────────────┘
                      │
      ┌───────────────┼─────────────────┐
      │               │                 │
@@ -37,8 +37,9 @@
 | 环境 | 服务 | URL |
 |------|------|-----|
 | 生产 | 前端页面 | https://www.example.com |
-| 生产 | 管理后台 | https://www.example.com/badmin |
-| 生产 | API | https://www.example.com/api |
+| 生产 | 管理后台 | https://badmin.example.com |
+| 生产 | API（主站） | https://www.example.com/api |
+| 生产 | API（管理后台） | https://badmin.example.com/api |
 | 本地 | 前端页面 | http://localhost:3001 |
 | 本地 | 管理后台 | http://localhost:8002 |
 | 本地 | API | http://localhost:3000 |
@@ -111,33 +112,36 @@ NEXT_PUBLIC_API_URL=https://www.example.com/api/v1/public
 NEXT_PUBLIC_SITE_URL=https://www.example.com
 ```
 
-### 管理后台 `apps/admin-web/myapp/.env`
+### 管理后台 `apps/admin-web/myapp/.env.production`
 
 ```bash
 # 生产环境
-REACT_APP_ENV=prod
+REACT_APP_ENV=pre
 
-# API 基础地址（通过 Nginx /api 路径代理）
-API_BASE_URL=https://www.example.com/api
+# API 基础地址（通过 badmin 域名下的 /api 路径代理）
+API_BASE_URL=https://badmin.example.com/api
 ```
 
 ---
 
 ## SEO 屏蔽说明
 
-`/badmin` 和 `/api` 路径不应被搜索引擎索引。
+`/api` 路径不应被搜索引擎索引。`badmin.example.com` 整站也不应被索引。
 
 前端博客已在 `src/app/robots.ts` 中配置：
 
 ```
 User-agent: *
 Allow: /
-Disallow: /badmin
 Disallow: /api
 Sitemap: https://www.example.com/sitemap.xml
 ```
 
-访问 `https://www.example.com/robots.txt` 可验证是否生效。
+`badmin.example.com` 通过 Nginx 响应头屏蔽，在 badmin 站点配置中加入：
+
+```nginx
+add_header X-Robots-Tag "noindex, nofollow" always;
+```
 
 ---
 
@@ -291,19 +295,6 @@ server {
         proxy_read_timeout 300s;
     }
 
-    # 管理后台
-    location /badmin {
-        proxy_pass http://localhost:8002/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
     # 前端博客
     location / {
         proxy_pass http://localhost:3001;
@@ -332,22 +323,66 @@ server {
 }
 ```
 
+配置文件位置: `/etc/nginx/sites-available/badmin.example.com`
+
+```nginx
+server {
+    server_name badmin.example.com;
+
+    # 后端 API（剥去 /api 前缀后转发，与主站共享同一后端）
+    location /api/ {
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # 管理后台 SPA
+    location / {
+        proxy_pass http://localhost:8002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/badmin.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/badmin.example.com/privkey.pem;
+    include /etc/nginx/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}
+
+server {
+    listen 80;
+    server_name badmin.example.com;
+    return 301 https://badmin.example.com$request_uri;
+}
+```
+
 应用 Nginx 配置：
 
 ```bash
-# 删除旧配置
+# 删除旧配置（如有）
 sudo rm -f /etc/nginx/sites-enabled/badmin.example.com
 
-# 创建新配置
+# 申请 badmin 子域名证书（需先确保 DNS 已解析）
+sudo certbot --nginx -d badmin.example.com
+
+# 启用两个配置
 sudo ln -s /etc/nginx/sites-available/www.example.com /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-申请 SSL 证书：
-
-```bash
-sudo certbot --nginx -d www.example.com -d example.com
+sudo ln -s /etc/nginx/sites-available/badmin.example.com /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ---

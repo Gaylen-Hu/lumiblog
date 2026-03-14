@@ -183,7 +183,7 @@ export default defineConfig({
     // 生产环境 API 地址
     API_BASE_URL:
       process.env.NODE_ENV === 'production'
-        ? 'https://api.example.com/v1'
+        ? 'https://badmin.example.com/api/v1'
         : '',
   },
 });

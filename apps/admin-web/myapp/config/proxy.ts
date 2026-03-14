@@ -27,18 +27,17 @@ export default {
    * @doc https://github.com/chimurai/http-proxy-middleware
    */
   test: {
-    // localhost:8000/api/** -> https://preview.pro.ant.design/v1/**
     '/api/': {
-      target: 'https://api.example.com',
+      target: 'https://badmin.example.com',
       changeOrigin: true,
-      pathRewrite: { '^/api': '/v1' },
+      pathRewrite: { '^/api': '/api/v1' },
     },
   },
   pre: {
     '/api/': {
-      target: 'https://api.example.com',
+      target: 'https://badmin.example.com',
       changeOrigin: true,
-      pathRewrite: { '^/api': '/v1' },
+      pathRewrite: { '^/api': '/api/v1' },
     },
   },
 };
