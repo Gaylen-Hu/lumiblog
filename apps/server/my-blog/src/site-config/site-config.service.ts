@@ -24,7 +24,7 @@ export class SiteConfigService {
       });
     }
 
-    return config;
+    return this.mapToDto(config);
   }
 
   /**
@@ -39,6 +39,37 @@ export class SiteConfigService {
     });
 
     this.logger.log(`Site config updated: ${updated.id}`);
-    return updated;
+    return this.mapToDto(updated);
+  }
+
+  private mapToDto(config: any): SiteConfigResponseDto {
+    return {
+      id: config.id,
+      title: config.title,
+      description: config.description,
+      keywords: config.keywords,
+      logo: config.logo,
+      favicon: config.favicon,
+      icp: config.icp,
+      gongan: config.gongan,
+      copyright: config.copyright,
+      analytics: config.analytics,
+      analyticsGoogle: config.analyticsGoogle,
+      analyticsBaidu: config.analyticsBaidu,
+      ownerName: config.ownerName,
+      ownerAvatar: config.ownerAvatar,
+      ownerBio: config.ownerBio,
+      ownerEmail: config.ownerEmail,
+      ownerTechStack: config.ownerTechStack || [],
+      yearsOfExperience: config.yearsOfExperience,
+      openSourceCount: config.openSourceCount,
+      talkCount: config.talkCount,
+      socialGithub: config.socialGithub,
+      socialTwitter: config.socialTwitter,
+      socialLinkedin: config.socialLinkedin,
+      socialWeibo: config.socialWeibo,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    };
   }
 }
