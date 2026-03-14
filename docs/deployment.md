@@ -277,6 +277,20 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
+    # MCP Server（AI 工具调用入口）
+    location /mcp {
+        proxy_pass http://localhost:4000/mcp;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # SSE / Streamable HTTP 需要关闭缓冲
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 300s;
+    }
+
     # 管理后台
     location /badmin {
         proxy_pass http://localhost:8002/;

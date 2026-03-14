@@ -138,9 +138,29 @@ else
 fi
 
 # ========================================
-# 5. 保存并显示状态
+# 5. MCP Server 部署
 # ========================================
-log_step "步骤 5/5: 保存配置并显示状态"
+log_step "步骤 5/6: 部署 MCP Server"
+cd "$PROJECT_ROOT/mcp-server"
+log_info "安装 MCP Server 依赖..."
+$INSTALL_CMD install
+log_info "构建 MCP Server..."
+$INSTALL_CMD run build
+
+if pm2 list | grep -q "blog-mcp-server"; then
+    log_info "重启 MCP Server..."
+    pm2 restart blog-mcp-server
+else
+    log_info "启动 MCP Server, 端口: 4000..."
+    TRANSPORT=http PORT=4000 BLOG_API_URL=http://localhost:3000 \
+    pm2 start dist/index.js --name blog-mcp-server \
+        --env production
+fi
+
+# ========================================
+# 6. 保存并显示状态
+# ========================================
+log_step "步骤 6/6: 保存配置并显示状态"
 log_info "保存pm2配置..."
 pm2 save
 
@@ -161,5 +181,8 @@ log_info "                 → www.example.com"
 log_info ""
 log_info "  管理后台:      http://localhost:8002"
 log_info "                 → badmin.example.com/"
+log_info ""
+log_info "  MCP Server:    http://localhost:4000"
+log_info "                 → www.example.com/mcp"
 log_warn "  注意: 管理后台需要配置nginx"
 log_info "========================================"

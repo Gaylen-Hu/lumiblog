@@ -1,0 +1,24 @@
+{
+  "name": "blog-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for managing my blog via Claude",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "blog-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/express": "^4.17.0"
+  }
+}
