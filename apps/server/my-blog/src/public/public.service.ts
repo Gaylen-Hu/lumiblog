@@ -236,7 +236,8 @@ export class PublicService {
         gongan: config.gongan,
         copyright: config.copyright,
       }),
-      analytics: config.analytics,
+      analyticsGoogle: config.analyticsGoogle ?? null,
+      analyticsBaidu: config.analyticsBaidu ?? null,
     });
   }
 

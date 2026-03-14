@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "home": "首页",
+    "posts": "文章",
+    "projects": "项目",
+    "about": "关于"
+  },
+  "search": {
+    "placeholder": "搜索..."
+  },
+  "home": {
+    "latestPosts": "最新文章",
+    "allPosts": "全部文章",
+    "featuredProjects": "精选项目",
+    "allProjects": "全部项目",
+    "noPosts": "暂无文章"
+  },
+  "about": {
+    "title": "关于",
+    "tagline1": "由好奇心驱动，",
+    "tagline2": "以",
+    "tagline3": "精准",
+    "tagline4": "为导向。",
+    "techStack": "技术栈",
+    "interest": "兴趣",
+    "architecture": "建筑",
+    "daily": "日常",
+    "morningCoffee": "晨间咖啡"
+  },
+  "footer": {
+    "builtWith": "用 ❤️ 构建",
+    "about": "关于",
+    "rss": "RSS"
+  },
+  "theme": {
+    "toggle": "切换主题",
+    "light": "浅色",
+    "dark": "深色"
+  },
+  "lang": {
+    "toggle": "EN"
+  },
+  "posts": {
+    "title": "全部文章",
+    "readMore": "阅读更多",
+    "backToList": "返回列表",
+    "publishedAt": "发布于",
+    "readingTime": "分钟阅读"
+  },
+  "projects": {
+    "title": "全部项目",
+    "viewProject": "查看项目"
+  }
+}

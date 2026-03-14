@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "home": "Home",
+    "posts": "Posts",
+    "projects": "Projects",
+    "about": "About"
+  },
+  "search": {
+    "placeholder": "Search..."
+  },
+  "home": {
+    "latestPosts": "Latest Posts",
+    "allPosts": "All Posts",
+    "featuredProjects": "Featured Projects",
+    "allProjects": "All Projects",
+    "noPosts": "No posts yet"
+  },
+  "about": {
+    "title": "About",
+    "tagline1": "Driven by curiosity,",
+    "tagline2": "guided by",
+    "tagline3": "precision",
+    "tagline4": ".",
+    "techStack": "Tech Stack",
+    "interest": "Interest",
+    "architecture": "Architecture",
+    "daily": "Daily",
+    "morningCoffee": "Morning Coffee"
+  },
+  "footer": {
+    "builtWith": "Built with ❤️",
+    "about": "About",
+    "rss": "RSS"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "lang": {
+    "toggle": "中文"
+  },
+  "posts": {
+    "title": "All Posts",
+    "readMore": "Read more",
+    "backToList": "Back to list",
+    "publishedAt": "Published on",
+    "readingTime": "min read"
+  },
+  "projects": {
+    "title": "All Projects",
+    "viewProject": "View Project"
+  }
+}

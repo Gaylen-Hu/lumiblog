@@ -175,7 +175,9 @@ model SiteConfig {
   icp            String?  // ICP 备案号
   gongan         String?  // 公安备案号
   copyright      String?
-  analytics      String?  @db.Text // 统计代码
+  analytics         String?  @db.Text // 统计代码（旧字段，保留兼容）
+  analyticsGoogle   String?  // Google Analytics Measurement ID，如 G-XXXXXXXXXX
+  analyticsBaidu    String?  // 百度统计 site key，如 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   ownerName          String?
   ownerAvatar        String?
   ownerBio           String?  @db.Text

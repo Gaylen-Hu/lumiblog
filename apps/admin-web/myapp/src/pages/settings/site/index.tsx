@@ -1,5 +1,5 @@
-import { PageContainer, ProForm, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
-import { App, Card, Divider, Space, Image, Button, Spin } from 'antd';
+import { PageContainer, ProForm, ProFormText, ProFormTextArea, ProFormDigit } from '@ant-design/pro-components';
+import { App, Card, Divider, Space, Image, Button, Spin, Select, Form } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { getSiteConfig, updateSiteConfig } from '@/services/blog/siteConfig';
 import MediaPicker from '@/components/MediaPicker';
@@ -176,6 +176,45 @@ const SiteConfigPage: React.FC = () => {
             </Space>
           </ProForm.Item>
 
+          <Divider orientation="left">技术栈 & 统计数据</Divider>
+
+          <Form.Item
+            name="ownerTechStack"
+            label="技术栈"
+            tooltip="显示在 About 页面，按回车添加"
+          >
+            <Select
+              mode="tags"
+              placeholder="输入技术名称后按回车添加，如 React、TypeScript"
+              tokenSeparators={[',']}
+            />
+          </Form.Item>
+
+          <ProFormDigit
+            name="yearsOfExperience"
+            label="项目经验年数"
+            placeholder="请输入"
+            min={0}
+            max={99}
+            fieldProps={{ precision: 0 }}
+          />
+
+          <ProFormDigit
+            name="openSourceCount"
+            label="开源贡献数"
+            placeholder="请输入"
+            min={0}
+            fieldProps={{ precision: 0 }}
+          />
+
+          <ProFormDigit
+            name="talkCount"
+            label="技术分享数"
+            placeholder="请输入"
+            min={0}
+            fieldProps={{ precision: 0 }}
+          />
+
           <Divider orientation="left">社交链接</Divider>
 
           <ProFormText
@@ -224,12 +263,18 @@ const SiteConfigPage: React.FC = () => {
 
           <Divider orientation="left">统计代码</Divider>
 
-          <ProFormTextArea
-            name="analytics"
-            label="统计代码"
-            placeholder="请输入第三方统计代码（如百度统计、Google Analytics）"
-            fieldProps={{ rows: 4 }}
-            tooltip="将在页面底部插入，支持 HTML/JavaScript"
+          <ProFormText
+            name="analyticsGoogle"
+            label="Google Analytics"
+            placeholder="请输入 Measurement ID，如 G-XXXXXXXXXX"
+            tooltip="填写 Google Analytics 4 的 Measurement ID，格式为 G-XXXXXXXXXX"
+          />
+
+          <ProFormText
+            name="analyticsBaidu"
+            label="百度统计"
+            placeholder="请输入百度统计 site key（32位字符串）"
+            tooltip="在百度统计后台「代码获取」中找到 hm.js?后面的字符串"
           />
         </ProForm>
       </Card>

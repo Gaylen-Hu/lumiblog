@@ -1,9 +1,8 @@
-import { getAllPosts } from '@/lib/mock-data'
+import { MOCK_POSTS } from '@/lib/mock-data'
 import { generateRSSFeed } from '@/lib/rss'
 
 export async function GET() {
-  const posts = getAllPosts()
-  const feed = generateRSSFeed(posts)
+  const feed = generateRSSFeed(MOCK_POSTS)
 
   return new Response(feed, {
     headers: {

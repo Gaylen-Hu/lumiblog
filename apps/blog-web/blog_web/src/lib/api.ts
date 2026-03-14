@@ -165,7 +165,8 @@ interface SiteConfig {
     gongan: string | null
     copyright: string | null
   }
-  analytics: string | null
+  analyticsGoogle: string | null
+  analyticsBaidu: string | null
 }
 
 interface SiteStats {
@@ -203,7 +204,8 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
     gongan: null,
     copyright: '© 2024 NOVA. All rights reserved.',
   },
-  analytics: null,
+  analyticsGoogle: null,
+  analyticsBaidu: null,
 }
 
 const DEFAULT_STATS: SiteStats = {

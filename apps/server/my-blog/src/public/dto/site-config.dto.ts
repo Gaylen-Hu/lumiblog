@@ -144,8 +144,11 @@ export class SiteConfigDto {
   @ApiProperty({ description: '备案信息', type: FilingInfoDto })
   readonly filing: FilingInfoDto;
 
-  @ApiPropertyOptional({ description: '统计代码' })
-  readonly analytics: string | null;
+  @ApiPropertyOptional({ description: 'Google Analytics Measurement ID，如 G-XXXXXXXXXX' })
+  readonly analyticsGoogle: string | null;
+
+  @ApiPropertyOptional({ description: '百度统计 site key' })
+  readonly analyticsBaidu: string | null;
 
   constructor(params: {
     siteName: string;
@@ -156,8 +159,10 @@ export class SiteConfigDto {
     owner: SiteOwnerDto;
     seo: SiteSeoDto;
     filing: FilingInfoDto;
-    analytics?: string | null;
-  }) {    this.siteName = params.siteName;
+    analyticsGoogle?: string | null;
+    analyticsBaidu?: string | null;
+  }) {
+    this.siteName = params.siteName;
     this.siteDescription = params.siteDescription;
     this.logo = params.logo;
     this.favicon = params.favicon;
@@ -165,6 +170,7 @@ export class SiteConfigDto {
     this.owner = params.owner;
     this.seo = params.seo;
     this.filing = params.filing;
-    this.analytics = params.analytics ?? null;
+    this.analyticsGoogle = params.analyticsGoogle ?? null;
+    this.analyticsBaidu = params.analyticsBaidu ?? null;
   }
 }

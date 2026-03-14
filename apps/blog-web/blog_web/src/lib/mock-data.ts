@@ -1,6 +1,6 @@
-import type { Post, Project, MicroPost, TechStack } from '@/types';
+import type { Post, Project } from '@/types';
 
-// TODO: 后端需要实现文章列表接口，目前使用 mock 数据
+// Fallback data used by api.ts when the backend is unavailable (build time / dev)
 export const MOCK_POSTS: Post[] = [
   {
     id: '1',
@@ -84,12 +84,3 @@ export const MOCK_PROJECTS: Project[] = [
     featured: true,
   },
 ];
-
-
-export function getPostBySlug(slug: string): Post | undefined {
-  return MOCK_POSTS.find((post) => post.slug === slug);
-}
-
-export function getAllPosts(): Post[] {
-  return MOCK_POSTS;
-}

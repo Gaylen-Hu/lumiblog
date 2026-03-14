@@ -48,10 +48,22 @@ export class UpdateSiteConfigDto {
   @MaxLength(200)
   copyright?: string;
 
-  @ApiPropertyOptional({ description: '统计代码' })
+  @ApiPropertyOptional({ description: '统计代码（旧字段）' })
   @IsOptional()
   @IsString()
   analytics?: string;
+
+  @ApiPropertyOptional({ description: 'Google Analytics Measurement ID，如 G-XXXXXXXXXX' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  analyticsGoogle?: string;
+
+  @ApiPropertyOptional({ description: '百度统计 site key' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  analyticsBaidu?: string;
 
   @ApiPropertyOptional({ description: '站长名称' })
   @IsOptional()
@@ -147,8 +159,14 @@ export class SiteConfigResponseDto {
   @ApiPropertyOptional({ description: '版权信息' })
   copyright: string | null;
 
-  @ApiPropertyOptional({ description: '统计代码' })
+  @ApiPropertyOptional({ description: '统计代码（旧字段）' })
   analytics: string | null;
+
+  @ApiPropertyOptional({ description: 'Google Analytics Measurement ID' })
+  analyticsGoogle: string | null;
+
+  @ApiPropertyOptional({ description: '百度统计 site key' })
+  analyticsBaidu: string | null;
 
   @ApiPropertyOptional({ description: '站长名称' })
   ownerName: string | null;
