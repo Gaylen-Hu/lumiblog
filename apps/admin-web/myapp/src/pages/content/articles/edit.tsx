@@ -7,7 +7,18 @@ import {
   ProFormTreeSelect,
 } from '@ant-design/pro-components';
 import { App, Card, Spin } from 'antd';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+
+// 纯函数提到组件外，避免每次渲染重新创建
+function convertToTreeSelectData(
+  nodes: BlogAPI.CategoryTreeNode[],
+): { title: string; value: string; children?: { title: string; value: string }[] }[] {
+  return nodes.map((node) => ({
+    title: node.name,
+    value: node.id,
+    children: node.children?.length ? convertToTreeSelectData(node.children) : undefined,
+  }));
+}
 import { history, useParams } from '@umijs/max';
 import { getArticle, createArticle, updateArticle } from '@/services/blog/article';
 import { getCategoryTree } from '@/services/blog/category';
@@ -23,30 +34,28 @@ const ArticleEdit: React.FC = () => {
   const [categoryTreeData, setCategoryTreeData] = useState<BlogAPI.CategoryTreeNode[]>([]);
   const [tagsData, setTagsData] = useState<BlogAPI.Tag[]>([]);
 
-  // Fetch category tree on mount
+  // 并行获取分类树和标签数据
   useEffect(() => {
-    getCategoryTree()
-      .then((data) => setCategoryTreeData(data))
-      .catch(() => message.error('获取分类列表失败'));
+    Promise.all([
+      getCategoryTree().catch(() => {
+        message.error('获取分类列表失败');
+        return [];
+      }),
+      getTags().catch(() => {
+        message.error('获取标签列表失败');
+        return [];
+      }),
+    ]).then(([categoryData, tagData]) => {
+      setCategoryTreeData(categoryData);
+      setTagsData(tagData);
+    });
   }, [message]);
 
-  // Fetch tags on mount
-  useEffect(() => {
-    getTags()
-      .then((data) => setTagsData(data))
-      .catch(() => message.error('获取标签列表失败'));
-  }, [message]);
-
-  // Convert category tree to TreeSelect format
-  const convertToTreeSelectData = (
-    nodes: BlogAPI.CategoryTreeNode[],
-  ): { title: string; value: string; children?: { title: string; value: string }[] }[] => {
-    return nodes.map((node) => ({
-      title: node.name,
-      value: node.id,
-      children: node.children?.length ? convertToTreeSelectData(node.children) : undefined,
-    }));
-  };
+  // 缓存转换结果，categoryTreeData 不变时不重新计算
+  const treeSelectData = useMemo(
+    () => convertToTreeSelectData(categoryTreeData),
+    [categoryTreeData],
+  );
 
   useEffect(() => {
     if (isEdit && id) {
@@ -119,7 +128,7 @@ const ArticleEdit: React.FC = () => {
             label="分类"
             placeholder="请选择分类（可选）"
             fieldProps={{
-              treeData: convertToTreeSelectData(categoryTreeData),
+              treeData: treeSelectData,
               showSearch: true,
               treeNodeFilterProp: 'title',
               allowClear: true,

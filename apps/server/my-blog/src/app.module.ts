@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CoreModule } from './core';
@@ -25,6 +26,23 @@ import { ProjectModule } from './project/project.module';
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 10000,
+        limit: 10,
+      },
+      {
+        name: 'medium',
+        ttl: 60000,
+        limit: 30,
+      },
+      {
+        name: 'long',
+        ttl: 3600000,
+        limit: 100,
+      },
+    ]),
     PrismaModule,
     CoreModule,
     SeoModule,

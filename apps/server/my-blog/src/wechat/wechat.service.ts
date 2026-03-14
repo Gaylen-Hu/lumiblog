@@ -42,6 +42,7 @@ interface CachedToken {
 export class WechatService {
   private readonly logger = new Logger(WechatService.name);
   private cachedToken: CachedToken | null = null;
+  private tokenRefreshPromise: Promise<string> | null = null;
 
   constructor(private configService: ConfigService) {}
 
@@ -49,7 +50,16 @@ export class WechatService {
     if (this.cachedToken && Date.now() < this.cachedToken.expiresAt) {
       return this.cachedToken.token;
     }
+    // 防止并发重复刷新 token
+    if (!this.tokenRefreshPromise) {
+      this.tokenRefreshPromise = this.fetchAccessToken().finally(() => {
+        this.tokenRefreshPromise = null;
+      });
+    }
+    return this.tokenRefreshPromise;
+  }
 
+  private async fetchAccessToken(): Promise<string> {
     const appId = this.configService.get<string>('WX_APP_ID');
     const appSecret = this.configService.get<string>('WX_APP_SECRET');
 
@@ -87,6 +97,11 @@ export class WechatService {
   private validateDateRange(beginDate: string, endDate: string): void {
     const begin = new Date(beginDate);
     const end = new Date(endDate);
+
+    if (isNaN(begin.getTime()) || isNaN(end.getTime())) {
+      throw new BadRequestException('日期格式无效，请使用 YYYY-MM-DD 格式');
+    }
+
     const diffDays = (end.getTime() - begin.getTime()) / (1000 * 60 * 60 * 24);
 
     if (diffDays < 0) {

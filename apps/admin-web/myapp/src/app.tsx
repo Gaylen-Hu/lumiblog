@@ -160,7 +160,8 @@ declare const API_BASE_URL: string;
 
 export const request: RequestConfig = {
   ...errorConfig,
-  baseURL: API_BASE_URL || undefined,
+  // 使用 typeof 保护，确保 API_BASE_URL 是字符串类型
+  baseURL: typeof API_BASE_URL === 'string' ? API_BASE_URL : undefined,
   requestInterceptors: [
     (config: any) => {
       // 生产环境下移除 /api 前缀（已通过 baseURL 处理）

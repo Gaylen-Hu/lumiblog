@@ -166,20 +166,20 @@ export class MediaService {
   }
 
   private buildUrl(storageType: StorageType, storagePath: string): string {
-    switch (storageType) {
-      case StorageType.LOCAL:
-        const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:3000');
-        return `${baseUrl}/uploads/${storagePath}`;
-      case StorageType.OSS:
-        const ossEndpoint = this.configService.get<string>('OSS_ENDPOINT', '');
-        return `${ossEndpoint}/${storagePath}`;
-      case StorageType.S3:
-        const s3Bucket = this.configService.get<string>('S3_BUCKET', '');
-        const s3Region = this.configService.get<string>('S3_REGION', '');
-        return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${storagePath}`;
-      default:
-        return storagePath;
+    if (storageType === StorageType.LOCAL) {
+      const baseUrl = this.configService.get<string>('BASE_URL', 'http://localhost:3000');
+      return `${baseUrl}/uploads/${storagePath}`;
     }
+    if (storageType === StorageType.OSS) {
+      const ossEndpoint = this.configService.get<string>('OSS_ENDPOINT', '');
+      return `${ossEndpoint}/${storagePath}`;
+    }
+    if (storageType === StorageType.S3) {
+      const s3Bucket = this.configService.get<string>('S3_BUCKET', '');
+      const s3Region = this.configService.get<string>('S3_REGION', '');
+      return `https://${s3Bucket}.s3.${s3Region}.amazonaws.com/${storagePath}`;
+    }
+    return storagePath;
   }
 
   private toPrismaStorageType(type: StorageType): PrismaStorageType {

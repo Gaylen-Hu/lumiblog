@@ -2,8 +2,11 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UserRole } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -12,27 +15,48 @@ import { User as PrismaUser, UserRole as PrismaUserRole } from '@prisma/client';
 
 type SafeUser = Omit<PrismaUser, 'password'>;
 
+/** 用户更新数据类型（排除不可直接更新的字段） */
+type UserUpdateInput = {
+  name?: string;
+  email?: string;
+  password?: string;
+  avatar?: string;
+  role?: PrismaUserRole;
+};
+
 @Injectable()
-export class UserService {
-  constructor(private prisma: PrismaService) {}
+export class UserService implements OnModuleInit {
+  private readonly logger = new Logger(UserService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   async onModuleInit() {
-    // 自动创建默认管理员账号
+    const adminEmail = this.configService.get<string>('ADMIN_DEFAULT_EMAIL', 'admin@example.com');
+    const adminPassword = this.configService.get<string>('ADMIN_DEFAULT_PASSWORD');
+
+    if (!adminPassword) {
+      this.logger.warn('ADMIN_DEFAULT_PASSWORD 未配置，跳过默认管理员创建');
+      return;
+    }
+
     const existingAdmin = await this.prisma.user.findUnique({
-      where: { email: 'admin@example.com' },
+      where: { email: adminEmail },
     });
 
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
       await this.prisma.user.create({
         data: {
-          email: 'admin@example.com',
+          email: adminEmail,
           password: hashedPassword,
           name: '管理员',
           role: PrismaUserRole.ADMIN,
         },
       });
-      console.log('✓ 默认管理员账号已创建 (数据库)');
+      this.logger.log(`默认管理员账号已创建: ${adminEmail}`);
     }
   }
 
@@ -134,7 +158,12 @@ export class UserService {
       }
     }
 
-    const updateData: any = { ...updateUserDto };
+    const updateData: UserUpdateInput = {};
+
+    if (updateUserDto.name !== undefined) updateData.name = updateUserDto.name;
+    if (updateUserDto.email !== undefined) updateData.email = updateUserDto.email;
+    if (updateUserDto.avatar !== undefined) updateData.avatar = updateUserDto.avatar;
+    if (updateUserDto.role !== undefined) updateData.role = updateUserDto.role as unknown as PrismaUserRole;
 
     if (updateUserDto.password) {
       updateData.password = await bcrypt.hash(updateUserDto.password, 10);
@@ -149,9 +178,11 @@ export class UserService {
   }
 
   async remove(id: string): Promise<void> {
-    await this.prisma.user.delete({
-      where: { id },
-    });
+    const existing = await this.prisma.user.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('用户不存在');
+    }
+    await this.prisma.user.delete({ where: { id } });
   }
 
   excludePassword(user: PrismaUser): SafeUser {

@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -31,6 +32,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: '邮箱或密码错误' })
   @UseGuards(LocalAuthGuard)
   @Post('login')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async login(@Request() req, @Body() _loginDto: LoginDto): Promise<LoginResponseDto> {

@@ -11,7 +11,7 @@ import {
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import { App, Button, Popconfirm, Space, Tag, Image, Dropdown } from 'antd';
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { history } from '@umijs/max';
 import {
   getArticles,
@@ -75,26 +75,30 @@ const ArticleList: React.FC = () => {
     }
   };
 
-  const getMoreMenuItems = (record: BlogAPI.ArticleWithRelations) => [
-    {
-      key: 'translate',
-      icon: <TranslationOutlined />,
-      label: 'AI 翻译',
-      onClick: () => handleTranslate(record.id),
-    },
-    {
-      key: 'seo',
-      icon: <SearchOutlined />,
-      label: 'AI 生成 SEO',
-      onClick: () => handleSeoOptimize(record.id),
-    },
-    {
-      key: 'wechat',
-      icon: <WechatOutlined style={{ color: '#07c160' }} />,
-      label: '发布到微信',
-      onClick: () => history.push(`/content/articles/${record.id}`),
-    },
-  ];
+  // 使用 useCallback 优化，避免每次渲染都创建新的函数引用
+  const getMoreMenuItems = useCallback(
+    (record: BlogAPI.ArticleWithRelations) => [
+      {
+        key: 'translate',
+        icon: <TranslationOutlined />,
+        label: 'AI 翻译',
+        onClick: () => handleTranslate(record.id),
+      },
+      {
+        key: 'seo',
+        icon: <SearchOutlined />,
+        label: 'AI 生成 SEO',
+        onClick: () => handleSeoOptimize(record.id),
+      },
+      {
+        key: 'wechat',
+        icon: <WechatOutlined style={{ color: '#07c160' }} />,
+        label: '发布到微信',
+        onClick: () => history.push(`/content/articles/${record.id}`),
+      },
+    ],
+    [],
+  );
 
   const columns: ProColumns<BlogAPI.ArticleWithRelations>[] = [
     {
@@ -240,6 +244,8 @@ const ArticleList: React.FC = () => {
         ]}
         request={async (params) => {
           const { current, pageSize, title, isPublished } = params;
+          // 注意：isPublished 来自 ProTable 搜索表单，类型为字符串
+          // 需要转换为布尔值：'true' -> true, 'false' -> false, undefined -> undefined
           const res = await getArticles({
             page: current,
             limit: pageSize,

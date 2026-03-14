@@ -143,27 +143,29 @@ export class ArticleService {
       await this.validateSlugUnique(params.slug, id);
     }
 
-    // 如果传入了 tagIds，先删除旧关联再创建新关联
-    if (params.tagIds !== undefined) {
-      await this.prisma.articleTag.deleteMany({ where: { articleId: id } });
-    }
+    const article = await this.prisma.$transaction(async (tx) => {
+      // 如果传入了 tagIds，先删除旧关联再创建新关联
+      if (params.tagIds !== undefined) {
+        await tx.articleTag.deleteMany({ where: { articleId: id } });
+      }
 
-    const article = await this.prisma.article.update({
-      where: { id },
-      data: {
-        title: params.title,
-        slug: params.slug,
-        summary: params.summary,
-        content: params.content,
-        coverImage: params.coverImage,
-        seoTitle: params.seoTitle,
-        seoDescription: params.seoDescription,
-        categoryId: params.categoryId,
-        tags: params.tagIds?.length
-          ? { create: params.tagIds.map((tagId) => ({ tagId })) }
-          : undefined,
-      },
-      include: ARTICLE_INCLUDE,
+      return tx.article.update({
+        where: { id },
+        data: {
+          title: params.title,
+          slug: params.slug,
+          summary: params.summary,
+          content: params.content,
+          coverImage: params.coverImage,
+          seoTitle: params.seoTitle,
+          seoDescription: params.seoDescription,
+          categoryId: params.categoryId,
+          tags: params.tagIds?.length
+            ? { create: params.tagIds.map((tagId) => ({ tagId })) }
+            : undefined,
+        },
+        include: ARTICLE_INCLUDE,
+      });
     });
 
     this.logger.log(`文章更新成功: ${id}`);

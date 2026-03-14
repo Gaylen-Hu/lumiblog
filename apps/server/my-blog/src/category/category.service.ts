@@ -118,9 +118,9 @@ export class CategoryService {
       },
     });
 
-    // 更新子分类路径
+    // 更新子分类路径（用旧 path 作为前缀匹配，批量替换）
     if (params.slug && params.slug !== existing.slug) {
-      await this.updateChildrenPaths(id, newPath);
+      await this.updateChildrenPaths(existing.path, newPath);
     }
 
     this.logger.log(`分类更新成功: ${id}`);
@@ -192,19 +192,22 @@ export class CategoryService {
     return `${parentPath}/${newSlug}`;
   }
 
-  private async updateChildrenPaths(parentId: string, parentPath: string): Promise<void> {
+  private async updateChildrenPaths(oldPath: string, newPath: string): Promise<void> {
     const children = await this.prisma.category.findMany({
-      where: { parentId },
+      where: { path: { startsWith: `${oldPath}/` } },
+      select: { id: true, path: true },
     });
 
-    for (const child of children) {
-      const newPath = `${parentPath}/${child.slug}`;
-      await this.prisma.category.update({
-        where: { id: child.id },
-        data: { path: newPath },
-      });
-      await this.updateChildrenPaths(child.id, newPath);
-    }
+    if (children.length === 0) return;
+
+    await Promise.all(
+      children.map((child) =>
+        this.prisma.category.update({
+          where: { id: child.id },
+          data: { path: child.path.replace(oldPath, newPath) },
+        }),
+      ),
+    );
   }
 
   private toResponseDto(category: Category): CategoryResponseDto {

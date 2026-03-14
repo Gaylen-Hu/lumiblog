@@ -6,13 +6,18 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 启用 CORS
+  // 启用 CORS，从环境变量读取允许的域名（必须显式配置）
+  const corsOriginsEnv = process.env.CORS_ORIGINS;
+  if (!corsOriginsEnv) {
+    throw new Error('CORS_ORIGINS 环境变量未配置，必须显式设置允许的域名列表（逗号分隔）');
+  }
+  const corsOrigins = corsOriginsEnv
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: [
-      'http://localhost:8002',
-      'https://badmin.example.com',
-      'https://admin.example.com',
-    ],
+    origin: corsOrigins,
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

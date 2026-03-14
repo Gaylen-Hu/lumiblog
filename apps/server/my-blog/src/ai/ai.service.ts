@@ -121,17 +121,29 @@ ${params.content}`;
   }
 
   /**
-   * 调用豆包 Responses API
+   * 构建豆包 API 请求 input
    */
-  async callDoubao(
-    userPrompt: string,
+  private buildInput(
+    userContent: Array<{ type: string; text?: string; image_url?: string }>,
     systemPrompt?: string,
+  ): Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: string }> }> {
+    const input: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: string }> }> = [];
+    if (systemPrompt) {
+      input.push({ role: 'system', content: systemPrompt });
+    }
+    input.push({ role: 'user', content: userContent });
+    return input;
+  }
+
+  /**
+   * 执行豆包 API 请求（含重试）
+   */
+  private async executeDoubaoRequest(
+    input: Array<{ role: string; content: string | Array<{ type: string; text?: string; image_url?: string }> }>,
+    logLabel: string,
   ): Promise<string> {
     const apiKey = this.configService.get<string>('DOUBAO_API_KEY');
-    const model = this.configService.get<string>(
-      'DOUBAO_MODEL',
-      DOUBAO_DEFAULT_MODEL,
-    );
+    const model = this.configService.get<string>('DOUBAO_MODEL', DOUBAO_DEFAULT_MODEL);
 
     if (!apiKey) {
       throw new ServiceUnavailableException('豆包 API Key 未配置');
@@ -143,21 +155,6 @@ ${params.content}`;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-        // 构建 input 消息
-        const input: Array<{
-          role: string;
-          content: string | Array<{ type: string; text?: string; image_url?: string }>;
-        }> = [];
-
-        if (systemPrompt) {
-          input.push({ role: 'system', content: systemPrompt });
-        }
-
-        input.push({
-          role: 'user',
-          content: [{ type: 'input_text', text: userPrompt }],
-        });
 
         const response = await fetch(`${DOUBAO_API_BASE_URL}/responses`, {
           method: 'POST',
@@ -177,8 +174,6 @@ ${params.content}`;
         }
 
         const data = (await response.json()) as DoubaoResponsesApiResponse;
-
-        // 从 output 中提取文本内容
         const textContent = data.output
           ?.find((item) => item.type === 'message')
           ?.content?.find((c) => c.type === 'output_text')?.text;
@@ -187,22 +182,30 @@ ${params.content}`;
           throw new Error('豆包返回内容为空');
         }
 
-        this.logger.log(`豆包调用成功，尝试次数: ${attempt}`);
+        this.logger.log(`${logLabel} 调用成功，尝试次数: ${attempt}`);
         return textContent;
       } catch (error) {
         lastError = error as Error;
-        this.logger.warn(
-          `豆包调用失败，尝试 ${attempt}/${MAX_RETRIES}: ${lastError.message}`,
-        );
-
+        this.logger.warn(`${logLabel} 调用失败，尝试 ${attempt}/${MAX_RETRIES}: ${lastError.message}`);
         if (attempt < MAX_RETRIES) {
           await this.delay(1000 * attempt);
         }
       }
     }
 
-    this.logger.error('豆包调用最终失败', lastError);
+    this.logger.error(`${logLabel} 调用最终失败`, lastError);
     throw new ServiceUnavailableException('豆包 AI 服务暂时不可用，请稍后重试');
+  }
+
+  /**
+   * 调用豆包 Responses API
+   */
+  async callDoubao(userPrompt: string, systemPrompt?: string): Promise<string> {
+    const input = this.buildInput(
+      [{ type: 'input_text', text: userPrompt }],
+      systemPrompt,
+    );
+    return this.executeDoubaoRequest(input, '豆包');
   }
 
   /**
@@ -213,82 +216,13 @@ ${params.content}`;
     imageUrl: string,
     systemPrompt?: string,
   ): Promise<string> {
-    const apiKey = this.configService.get<string>('DOUBAO_API_KEY');
-    const model = this.configService.get<string>(
-      'DOUBAO_MODEL',
-      DOUBAO_DEFAULT_MODEL,
+    const input = this.buildInput(
+      [
+        { type: 'input_image', image_url: imageUrl },
+        { type: 'input_text', text: textPrompt },
+      ],
+      systemPrompt,
     );
-
-    if (!apiKey) {
-      throw new ServiceUnavailableException('豆包 API Key 未配置');
-    }
-
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-        const input: Array<{
-          role: string;
-          content: string | Array<{ type: string; text?: string; image_url?: string }>;
-        }> = [];
-
-        if (systemPrompt) {
-          input.push({ role: 'system', content: systemPrompt });
-        }
-
-        input.push({
-          role: 'user',
-          content: [
-            { type: 'input_image', image_url: imageUrl },
-            { type: 'input_text', text: textPrompt },
-          ],
-        });
-
-        const response = await fetch(`${DOUBAO_API_BASE_URL}/responses`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({ model, input }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`豆包 API 错误: ${response.status} - ${errorText}`);
-        }
-
-        const data = (await response.json()) as DoubaoResponsesApiResponse;
-
-        const textContent = data.output
-          ?.find((item) => item.type === 'message')
-          ?.content?.find((c) => c.type === 'output_text')?.text;
-
-        if (!textContent) {
-          throw new Error('豆包返回内容为空');
-        }
-
-        this.logger.log(`豆包多模态调用成功，尝试次数: ${attempt}`);
-        return textContent;
-      } catch (error) {
-        lastError = error as Error;
-        this.logger.warn(
-          `豆包多模态调用失败，尝试 ${attempt}/${MAX_RETRIES}: ${lastError.message}`,
-        );
-
-        if (attempt < MAX_RETRIES) {
-          await this.delay(1000 * attempt);
-        }
-      }
-    }
-
-    this.logger.error('豆包多模态调用最终失败', lastError);
-    throw new ServiceUnavailableException('豆包 AI 服务暂时不可用，请稍后重试');
+    return this.executeDoubaoRequest(input, '豆包多模态');
   }
 }
