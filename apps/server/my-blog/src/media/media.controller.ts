@@ -24,7 +24,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MediaService } from './media.service';
-import { UploadMediaDto, QueryMediaDto, MediaResponseDto, PaginatedMediaListDto } from './dto';
+import { UploadMediaDto, QueryMediaDto, MediaResponseDto, PaginatedMediaListDto, OssRecordDto } from './dto';
 import { StorageType } from './domain/media.model';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -95,8 +95,22 @@ export class MediaController {
     });
   }
 
-  @ApiOperation({ summary: '获取媒体列表', description: '分页获取媒体文件列表' })
-  @ApiResponse({ status: 200, description: '获取成功', type: PaginatedMediaListDto })
+  @ApiOperation({ summary: 'OSS 直传后记录媒体信息', description: '前端直传 OSS 成功后调用，将文件信息写入媒体库' })
+  @ApiResponse({ status: 201, description: '记录成功', type: MediaResponseDto })
+  @Post('oss-record')
+  async ossRecord(@Body() dto: OssRecordDto): Promise<MediaResponseDto> {
+    return this.mediaService.recordOss({
+      filename: dto.object.split('/').pop() ?? dto.object,
+      originalName: dto.originalName,
+      mimeType: dto.mimeType,
+      size: dto.size,
+      storageType: StorageType.OSS,
+      storagePath: dto.object,
+      alt: dto.alt,
+    });
+  }
+
+  @ApiOperation({ summary: '获取媒体列表', description: '分页获取媒体文件列表' })  @ApiResponse({ status: 200, description: '获取成功', type: PaginatedMediaListDto })
   @Get()
   async findAll(@Query() query: QueryMediaDto): Promise<PaginatedMediaListDto> {
     return this.mediaService.findAll({

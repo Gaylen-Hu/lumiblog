@@ -38,7 +38,17 @@ export class MediaService {
    */
   async upload(params: UploadMediaParams): Promise<MediaResponseDto> {
     this.validateFileSize(params.size);
+    return this.createRecord(params);
+  }
 
+  /**
+   * 记录 OSS 直传文件（跳过大小校验，OSS 侧已限制）
+   */
+  async recordOss(params: UploadMediaParams): Promise<MediaResponseDto> {
+    return this.createRecord(params);
+  }
+
+  private async createRecord(params: UploadMediaParams): Promise<MediaResponseDto> {
     const mediaType = this.detectMediaType(params.mimeType);
     const url = this.buildUrl(params.storageType, params.storagePath);
 

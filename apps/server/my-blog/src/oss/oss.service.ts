@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   GetOssSignatureDto,
   OssSignatureResponseDto,
@@ -24,7 +25,10 @@ import {
 export class OssService {
   private readonly logger = new Logger(OssService.name);
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * 获取 OSS 直传签名
@@ -75,7 +79,7 @@ export class OssService {
       const callback = {
         callbackUrl,
         callbackBody:
-          'bucket=${bucket}&object=${object}&etag=${etag}&size=${size}&mimeType=${mimeType}',
+          'bucket=${bucket}&object=${object}&etag=${etag}&size=${size}&mimeType=${mimeType}&originalName=${x:originalName}',
         callbackBodyType: 'application/x-www-form-urlencoded',
       };
       response.callback = Buffer.from(JSON.stringify(callback)).toString('base64');
@@ -86,7 +90,7 @@ export class OssService {
   }
 
   /**
-   * 处理 OSS 上传回调
+   * 处理 OSS 上传回调，将文件信息写入数据库
    */
   async handleCallback(params: OssCallbackDto): Promise<OssCallbackResponseDto> {
     const bucket = this.configService.get<string>('OSS_BUCKET')!;
@@ -98,15 +102,32 @@ export class OssService {
 
     const url = `${endpoint}/${params.object}`;
     const filename = params.object.split('/').pop() ?? params.object;
+    const mediaType = this.detectMediaTypeFromMime(params.mimeType);
 
-    this.logger.log(`OSS 上传回调: ${params.object}, 大小: ${params.size}`);
+    const media = await this.prisma.media.create({
+      data: {
+        filename,
+        originalName: params.originalName ?? filename,
+        mimeType: params.mimeType,
+        size: Number(params.size),
+        url,
+        storageType: 'oss',
+        storagePath: params.object,
+        mediaType,
+        width: null,
+        height: null,
+        alt: null,
+      },
+    });
+
+    this.logger.log(`OSS 上传回调写库成功: ${media.id}, 文件: ${params.object}`);
 
     return new OssCallbackResponseDto({
       success: true,
       url,
       filename,
-      size: params.size,
-      mimeType: params.mimeType,
+      size: media.size,
+      mimeType: media.mimeType,
     });
   }
 
@@ -254,5 +275,18 @@ export class OssService {
    */
   private sign(content: string, secret: string): string {
     return createHmac('sha1', secret).update(content).digest('base64');
+  }
+
+  /**
+   * 根据 MIME 类型检测媒体类型（Prisma 枚举值）
+   */
+  private detectMediaTypeFromMime(
+    mimeType: string,
+  ): 'image' | 'video' | 'audio' | 'document' | 'other' {
+    if (mimeType.startsWith('image/')) return 'image';
+    if (mimeType.startsWith('video/')) return 'video';
+    if (mimeType.startsWith('audio/')) return 'audio';
+    if (mimeType.includes('pdf') || mimeType.includes('document')) return 'document';
+    return 'other';
   }
 }

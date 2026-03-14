@@ -110,6 +110,11 @@ export class OssCallbackDto {
   @ApiProperty({ description: 'MIME 类型', example: 'image/jpeg' })
   @IsString()
   mimeType: string;
+
+  @ApiPropertyOptional({ description: '原始文件名', example: 'photo.jpg' })
+  @IsOptional()
+  @IsString()
+  originalName?: string;
 }
 
 /**

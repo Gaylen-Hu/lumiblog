@@ -2,7 +2,7 @@ import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, message, Upload } from 'antd';
 import type { RcFile, UploadFile, UploadProps } from 'antd/es/upload';
 import React, { useState } from 'react';
-import { getOssSignature } from '@/services/blog/media';
+import { getOssSignature, recordOssUpload } from '@/services/blog/media';
 
 // 默认最大文件大小：10MB
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024;
@@ -121,6 +121,8 @@ const OssUploader: React.FC<OssUploaderProps> = ({
       formData.append('signature', signatureData.signature);
       if (signatureData.callback) {
         formData.append('callback', signatureData.callback);
+        // OSS 自定义变量，用于回调时传递原始文件名
+        formData.append('x:originalName', rcFile.name);
       }
       formData.append('file', rcFile);
 
@@ -136,27 +138,45 @@ const OssUploader: React.FC<OssUploaderProps> = ({
         }
       };
 
-      xhr.onload = () => {
+      xhr.onload = async () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          // 上传成功，构建媒体信息
-          const mediaInfo: BlogAPI.Media = {
-            id: '', // 由后端回调生成
-            filename: signatureData.key.split('/').pop() || rcFile.name,
-            originalName: rcFile.name,
-            mimeType: rcFile.type,
-            size: rcFile.size,
-            url: signatureData.url,
-            storageType: 'oss',
-            mediaType: getMediaCategory(rcFile.type) || 'other',
-            width: null,
-            height: null,
-            alt: null,
-            createdAt: new Date().toISOString(),
-          };
+          try {
+            // 无 OSS 服务端回调时，前端主动上报写库
+            if (!signatureData.callback) {
+              await recordOssUpload({
+                object: signatureData.key,
+                originalName: rcFile.name,
+                mimeType: rcFile.type,
+                size: rcFile.size,
+                url: signatureData.url,
+              });
+            }
 
-          uploadSuccess?.(mediaInfo);
-          onSuccess?.(mediaInfo);
-          message.success(`${rcFile.name} 上传成功`);
+            const mediaInfo: BlogAPI.Media = {
+              id: '',
+              filename: signatureData.key.split('/').pop() || rcFile.name,
+              originalName: rcFile.name,
+              mimeType: rcFile.type,
+              size: rcFile.size,
+              url: signatureData.url,
+              storageType: 'oss',
+              mediaType: getMediaCategory(rcFile.type) || 'other',
+              width: null,
+              height: null,
+              alt: null,
+              createdAt: new Date().toISOString(),
+            };
+
+            uploadSuccess?.(mediaInfo);
+            onSuccess?.(mediaInfo);
+            message.success(`${rcFile.name} 上传成功`);
+          } catch (err) {
+            console.error('[OssUploader] reportOssUpload 失败:', err);
+            const error = new Error('上传成功但记录失败，请刷新列表');
+            uploadError?.(error);
+            onError?.(error);
+            message.warning('上传成功但记录失败，请刷新列表');
+          }
         } else {
           const error = new Error(`上传失败：${xhr.statusText || '未知错误'}`);
           uploadError?.(error);

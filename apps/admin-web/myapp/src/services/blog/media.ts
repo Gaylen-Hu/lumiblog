@@ -33,3 +33,19 @@ export async function getOssSignature(data: BlogAPI.OssSignatureRequest) {
     data,
   });
 }
+
+/** OSS 直传成功后记录媒体信息 POST /api/admin/media/oss-record */
+export async function recordOssUpload(data: {
+  object: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  alt?: string;
+}) {
+  return request<BlogAPI.Media>('/api/admin/media/oss-record', {
+    method: 'POST',
+    data,
+    skipErrorHandler: true,
+  });
+}
