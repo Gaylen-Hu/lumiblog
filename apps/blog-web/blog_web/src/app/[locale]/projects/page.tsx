@@ -7,7 +7,7 @@ export default async function ProjectsPage() {
   const projects = projectsRes.data
 
   return (
-    <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade">
+    <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade bg-white dark:bg-slate-950 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#111111] dark:text-white">

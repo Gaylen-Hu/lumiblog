@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { Project } from '@/types';
 import TiltCard from './ui/TiltCard';
 import SpotlightCard from './ui/SpotlightCard';
@@ -9,6 +10,8 @@ interface ProjectCardProps {
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
+  const t = useTranslations('projects');
+
   if (!project.link) return null;
 
   return (
@@ -31,7 +34,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
               <span className="px-4 py-2 bg-white rounded-full text-sm font-semibold text-[#111111] translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                查看项目
+                {t('viewProject')}
               </span>
             </div>
           </div>

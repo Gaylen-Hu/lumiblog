@@ -1,11 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import Beams from './ui/Beams';
 import SplitText from './ui/SplitText';
 import GradientText from './ui/GradientText';
 
 export default function HeroSection() {
+  const t = useTranslations('hero');
+
   return (
     <div className="relative min-h-[90vh] flex items-center px-6 md:px-12 lg:px-24 pt-20 overflow-hidden bg-white dark:bg-slate-950">
       {/* Animated Beams Background */}
@@ -32,12 +35,12 @@ export default function HeroSection() {
 
       <div className="max-w-4xl relative z-10">
         <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold tracking-wide uppercase mb-6 animate-fade-in-up">
-          探索技术与设计的前沿
+          {t('badge')}
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-[#111111] dark:text-white leading-[1.1] mb-8">
           <SplitText
-            text="用代码创造"
+            text={t('line1')}
             delay={40}
             className="block"
           />
@@ -46,17 +49,17 @@ export default function HeroSection() {
             animationSpeed={6}
             className="block"
           >
-            数字杰作
+            {t('line2')}
           </GradientText>
           <SplitText
-            text="的艺术。"
+            text={t('line3')}
             delay={40}
             className="block"
           />
         </h1>
 
         <p className="text-xl md:text-2xl text-[#555555] dark:text-gray-400 font-light leading-relaxed max-w-2xl mb-12 animate-fade-in-up delay-200">
-          专注于极简设计系统和高性能应用开发，将复杂需求转化为无缝、直观的用户体验。
+          {t('description')}
         </p>
 
         <div className="flex flex-wrap gap-4 animate-fade-in-up delay-300">
@@ -64,7 +67,7 @@ export default function HeroSection() {
             href="/projects"
             className="px-8 py-4 bg-[#111111] dark:bg-white text-white dark:text-[#111111] rounded-full font-medium hover:bg-[#333333] dark:hover:bg-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 group"
           >
-            查看项目
+            {t('viewProjects')}
             <svg
               className="w-4 h-4 group-hover:translate-x-1 transition-transform"
               fill="none"
@@ -83,7 +86,7 @@ export default function HeroSection() {
             href="/posts"
             className="px-8 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-[#111111] dark:text-white rounded-full font-medium hover:bg-gray-50 dark:hover:bg-slate-800 hover:shadow-md hover:-translate-y-1 transition-all duration-300"
           >
-            阅读博客
+            {t('readBlog')}
           </Link>
         </div>
       </div>

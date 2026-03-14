@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import AnimatedCounter from './ui/AnimatedCounter'
 
 interface StatsSectionProps {
@@ -15,11 +16,12 @@ export default function StatsSection({
   openSourceCount,
   talkCount,
 }: StatsSectionProps) {
+  const t = useTranslations('stats')
   const stats = [
-    { label: '文章数量', value: articleCount, suffix: '+' },
-    { label: '项目经验', value: yearsOfExperience, suffix: ' 年' },
-    { label: '开源贡献', value: openSourceCount, suffix: '+' },
-    { label: '技术分享', value: talkCount, suffix: '+' },
+    { label: t('articles'), value: articleCount, suffix: '+' },
+    { label: t('experience'), value: yearsOfExperience, suffix: '+' },
+    { label: t('openSource'), value: openSourceCount, suffix: '+' },
+    { label: t('talks'), value: talkCount, suffix: '+' },
   ]
 
   return (

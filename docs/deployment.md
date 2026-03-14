@@ -1,4 +1,4 @@
-# 服务端部署文档
+# 部署文档
 
 ## 服务器信息
 
@@ -12,7 +12,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Nginx (443/80)                        │
-│  badmin.example.com                                      │
+│  www.example.com                                         │
 ├──────────────┬──────────────────┬───────────────────────────┤
 │ /api         │ /badmin          │ /                         │
 │ ↓            │ ↓                │ ↓                         │
@@ -32,6 +32,17 @@
   :5432           :6379
 ```
 
+## 访问地址
+
+| 环境 | 服务 | URL |
+|------|------|-----|
+| 生产 | 前端页面 | https://www.example.com |
+| 生产 | 管理后台 | https://www.example.com/badmin |
+| 生产 | API | https://www.example.com/api |
+| 本地 | 前端页面 | http://localhost:3001 |
+| 本地 | 管理后台 | http://localhost:8002 |
+| 本地 | API | http://localhost:3000 |
+
 ## 端口映射
 
 | 服务 | 内部端口 | 说明 |
@@ -42,9 +53,11 @@
 | PostgreSQL | 5432 | 数据库 |
 | Redis | 6379 | 缓存 |
 
+---
+
 ## 环境变量配置
 
-### 后端服务配置 (`apps/server/my-blog/.env`)
+### 后端 `apps/server/my-blog/.env`
 
 ```bash
 # PostgreSQL 配置
@@ -73,8 +86,8 @@ WX_NAME="your_wechat_name"
 WX_APP_ID=your_wechat_app_id
 WX_APP_SECRET=your_wechat_app_secret
 
-# CORS 允许的域名（逗号分隔）
-CORS_ORIGINS=http://localhost:8002,https://badmin.example.com,https://admin.example.com
+# CORS 允许的域名（生产环境只允许主域名）
+CORS_ORIGINS=https://www.example.com
 
 # 豆包 AI 配置
 DOUBAO_API_KEY=your_doubao_api_key
@@ -88,7 +101,86 @@ OSS_REGION=oss-cn-beijing
 OSS_ENDPOINT=https://your_oss_bucket.oss-cn-beijing.aliyuncs.com
 ```
 
-## 部署步骤
+### 前端博客 `apps/blog-web/blog_web/.env.local`
+
+```bash
+# 后端 API 地址（通过 Nginx /api 路径代理）
+NEXT_PUBLIC_API_URL=https://www.example.com/api/v1/public
+
+# 站点域名（用于 robots.txt / sitemap / OG 标签）
+NEXT_PUBLIC_SITE_URL=https://www.example.com
+```
+
+### 管理后台 `apps/admin-web/myapp/.env`
+
+```bash
+# 生产环境
+REACT_APP_ENV=prod
+
+# API 基础地址（通过 Nginx /api 路径代理）
+API_BASE_URL=https://www.example.com/api
+```
+
+---
+
+## SEO 屏蔽说明
+
+`/badmin` 和 `/api` 路径不应被搜索引擎索引。
+
+前端博客已在 `src/app/robots.ts` 中配置：
+
+```
+User-agent: *
+Allow: /
+Disallow: /badmin
+Disallow: /api
+Sitemap: https://www.example.com/sitemap.xml
+```
+
+访问 `https://www.example.com/robots.txt` 可验证是否生效。
+
+---
+
+## 本地开发环境
+
+### 启动顺序
+
+```bash
+# 1. 后端 API（端口 3000）
+cd apps/server/my-blog
+pnpm start:dev
+
+# 2. 前端博客（端口 3001）
+cd apps/blog-web/blog_web
+pnpm dev
+
+# 3. 管理后台（端口 8002）
+cd apps/admin-web/myapp
+pnpm dev
+```
+
+### 本地环境变量
+
+**后端** `apps/server/my-blog/.env` 中 CORS 改为：
+```bash
+CORS_ORIGINS=http://localhost:3001,http://localhost:8002
+```
+
+**前端博客** `apps/blog-web/blog_web/.env.local`：
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3000/v1/public
+NEXT_PUBLIC_SITE_URL=http://localhost:3001
+```
+
+**管理后台** `apps/admin-web/myapp/.env`：
+```bash
+REACT_APP_ENV=dev
+API_BASE_URL=http://localhost:3000
+```
+
+---
+
+## 生产部署步骤
 
 ### 1. 拉取最新代码
 
@@ -97,27 +189,29 @@ cd /root/myblog
 git pull origin main
 ```
 
-### 2. 部署后端服务 (NestJS API)
+### 2. 写入环境变量文件
+
+按上方"环境变量配置"章节，在服务器上创建对应的 `.env` / `.env.local` 文件。
+
+### 3. 部署后端服务 (NestJS API)
 
 ```bash
 cd /root/myblog/apps/server/my-blog
 pnpm install
 pnpm run build
 
-# 重启 PM2 服务
 pm2 restart my-blog-api
 # 或首次启动
 pm2 start dist/src/main.js --name my-blog-api
 ```
 
-### 3. 部署管理后台 (Admin Web)
+### 4. 部署管理后台 (Admin Web)
 
 ```bash
 cd /root/myblog/apps/admin-web/myapp
 pnpm install
 NODE_ENV=production UMI_ENV=prod pnpm run build
 
-# 创建 serve 启动脚本
 cat > dist/serve.cjs << 'EOF'
 const { spawn } = require('child_process');
 const path = require('path');
@@ -136,47 +230,42 @@ child.on('error', (err) => {
 });
 EOF
 
-# 重启 PM2 服务
 pm2 restart admin-web
 # 或首次启动
 pm2 start dist/serve.cjs --name admin-web --cwd "/root/myblog/apps/admin-web/myapp"
 ```
 
-### 4. 部署前端页面 (Blog Web)
+### 5. 部署前端页面 (Blog Web)
 
 ```bash
 cd /root/myblog/apps/blog-web/blog_web
 pnpm install
 NODE_ENV=production pnpm run build
 
-# 重启 PM2 服务
 pm2 restart blog-web
 # 或首次启动
 PORT=3001 NODE_ENV=production pm2 start npm --name blog-web -- start
 ```
 
-### 5. 保存 PM2 配置
+### 6. 保存 PM2 配置
 
 ```bash
 pm2 save
 ```
 
+---
+
 ## Nginx 配置
 
-配置文件位置: `/etc/nginx/sites-available/badmin.example.com`
+配置文件位置: `/etc/nginx/sites-available/www.example.com`
 
 ```nginx
-# 管理后台 Nginx 配置
-# 域名: badmin.example.com
-# - /api 代理到后端服务 (localhost:3000)
-# - /badmin 代理到管理后台静态文件 (localhost:8002)
-# - / 代理到前端页面 (localhost:3001)
-
 server {
-    server_name badmin.example.com;
+    server_name www.example.com example.com;
 
-    # 后端 API 服务
-    location /api {
+    # 后端 API（剥去 /api 前缀后转发）
+    location /api/ {
+        rewrite ^/api/(.*)$ /$1 break;
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -201,7 +290,7 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # 前端页面 (Blog Web)
+    # 前端博客
     location / {
         proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
@@ -214,60 +303,53 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # SSL配置 - 使用Certbot申请证书后会自动添加
     listen 443 ssl;
-    ssl_certificate /etc/letsencrypt/live/badmin.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/badmin.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/www.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/www.example.com/privkey.pem;
     include /etc/nginx/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }
 
-# HTTP重定向到HTTPS
+# HTTP 重定向到 HTTPS，裸域名重定向到 www
 server {
-    if ($host = badmin.example.com) {
-        return 301 https://$host$request_uri;
-    }
-
     listen 80;
-    server_name badmin.example.com;
-    return 404;
+    server_name www.example.com example.com;
+    return 301 https://www.example.com$request_uri;
 }
 ```
 
 应用 Nginx 配置：
 
 ```bash
-sudo ln -s /root/myblog/nginx-admin-template.conf /etc/nginx/sites-available/badmin.example.com
-sudo ln -s /etc/nginx/sites-available/badmin.example.com /etc/nginx/sites-enabled/
+# 删除旧配置
+sudo rm -f /etc/nginx/sites-enabled/badmin.example.com
+
+# 创建新配置
+sudo ln -s /etc/nginx/sites-available/www.example.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+申请 SSL 证书：
+
+```bash
+sudo certbot --nginx -d www.example.com -d example.com
+```
+
+---
 
 ## 常用命令
 
 ### PM2 管理
 
 ```bash
-# 查看所有服务状态
-pm2 list
-
-# 查看服务日志
-pm2 logs [service-name]
-
-# 重启服务
-pm2 restart [service-name]
-
-# 停止服务
-pm2 stop [service-name]
-
-# 删除服务
-pm2 delete [service-name]
-
-# 保存当前进程列表
-pm2 save
-
-# 查看服务详细信息
-pm2 show [service-name]
+pm2 list                        # 查看所有服务状态
+pm2 logs [service-name]         # 查看服务日志
+pm2 restart [service-name]      # 重启服务
+pm2 stop [service-name]         # 停止服务
+pm2 delete [service-name]       # 删除服务
+pm2 save                        # 保存当前进程列表
+pm2 show [service-name]         # 查看服务详细信息
 ```
 
 ### 数据库操作
@@ -283,82 +365,39 @@ pg_dump -h your_db_host -U your_db_user your_db_name > backup.sql
 psql -h your_db_host -U your_db_user your_db_name < backup.sql
 ```
 
+---
+
 ## 服务器安全配置
 
-### SSH 配置
-
 ```bash
-# /etc/ssh/sshd_config
-PermitRootLogin prohibit-password  # 仅允许密钥登录
-PasswordAuthentication no           # 禁用密码认证
-PubkeyAuthentication yes            # 启用公钥认证
+# SSH 配置 /etc/ssh/sshd_config
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# 防火墙
+ufw enable
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
 ```
 
-### 建议的安全措施
-
-1. **启用防火墙**
-   ```bash
-   ufw enable
-   ufw allow 22/tcp
-   ufw allow 80/tcp
-   ufw allow 443/tcp
-   ```
-
-2. **限制数据库访问**
-   - PostgreSQL 绑定到 127.0.0.1
-   - Redis 配置密码并绑定到 127.0.0.1
-
-3. **定期更新系统**
-   ```bash
-   apt update && apt upgrade -y
-   ```
-
-## 访问地址
-
-| 服务 | URL |
-|------|-----|
-| API | https://badmin.example.com/api |
-| 管理后台 | https://badmin.example.com/badmin |
-| 前端页面 | https://badmin.example.com/ |
+---
 
 ## 故障排查
 
 ### admin-web 启动失败
 
-如果 `admin-web` 启动失败，检查 `serve.cjs` 是否存在：
-
 ```bash
 ls -la /root/myblog/apps/admin-web/myapp/dist/serve.cjs
-
-# 如果不存在，重新创建
-cat > /root/myblog/apps/admin-web/myapp/dist/serve.cjs << 'EOF'
-const { spawn } = require('child_process');
-const path = require('path');
-
-const servePath = '/usr/local/nodejs/bin/serve';
-const distPath = path.join(__dirname);
-
-const child = spawn(servePath, [distPath, '-l', '8002'], {
-  stdio: 'inherit',
-  shell: true
-});
-
-child.on('error', (err) => {
-  console.error('Failed to start serve:', err);
-  process.exit(1);
-});
-EOF
-
+# 不存在则重新执行部署步骤 4 中的 cat 命令
 pm2 restart admin-web
 ```
 
-### 查看服务日志
+### 查看日志
 
 ```bash
-# PM2 日志
 pm2 logs [service-name] --lines 100
-
-# Nginx 日志
 tail -f /var/log/nginx/access.log
 tail -f /var/log/nginx/error.log
 ```

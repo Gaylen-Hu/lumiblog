@@ -5,16 +5,21 @@ import { Link } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import HeaderControls from './HeaderControls'
+import Logo from './Logo'
 
 interface HeaderProps {
   siteName?: string
 }
 
-export default function Header({ siteName = 'NOVA' }: HeaderProps) {
+export default function Header({ siteName = '墨千' }: HeaderProps) {
   const pathname = usePathname()
   const t = useTranslations('nav')
   const ts = useTranslations('search')
+  const tRoot = useTranslations()
   const [isScrolled, setIsScrolled] = useState(false)
+
+  // 根据当前语言显示对应博客名
+  const displayName = tRoot('siteName')
 
   const navItems = [
     { name: t('home'), href: '/' },
@@ -41,9 +46,13 @@ export default function Header({ siteName = 'NOVA' }: HeaderProps) {
         <div className="flex items-center gap-8">
           <Link
             href="/"
-            className="text-xl font-bold tracking-tight text-[#111111] dark:text-white"
+            className="flex items-center gap-2 text-[#111111] dark:text-white hover:opacity-80 transition-opacity"
+            aria-label={displayName}
           >
-            {siteName}<span className="text-blue-500">.</span>
+            <Logo height={28} />
+            <span className="text-xl font-bold tracking-tight">
+              {displayName}<span className="text-blue-500">.</span>
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">

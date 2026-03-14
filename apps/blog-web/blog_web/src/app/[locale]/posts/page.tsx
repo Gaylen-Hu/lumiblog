@@ -40,15 +40,15 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   }
 
   const activeFilter = params.category
-    ? `分类: ${params.category}`
+    ? `${t('filterCategory')}: ${params.category}`
     : params.tag
-      ? `标签: ${params.tag}`
+      ? `${t('filterTag')}: ${params.tag}`
       : params.search
-        ? `搜索: ${params.search}`
+        ? `${t('filterSearch')}: ${params.search}`
         : null
 
   return (
-    <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade">
+    <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade bg-white dark:bg-slate-950 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#111111] dark:text-white">
@@ -61,7 +61,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 {activeFilter}
               </span>
               <Link href="/posts" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                清除筛选
+                {t('clearFilter')}
               </Link>
             </div>
           )}
@@ -78,7 +78,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <h3 className="text-xl font-bold text-gray-400">{t('readMore')}</h3>
+            <h3 className="text-xl font-bold text-gray-400">{t('noPostsFound')}</h3>
           </div>
         )}
 
@@ -89,27 +89,27 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                上一页
+                {t('prevPage')}
               </Link>
             ) : (
               <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 cursor-not-allowed">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                上一页
+                {t('prevPage')}
               </span>
             )}
             <span className="text-sm text-gray-500">{page} / {totalPages}</span>
             {page < totalPages ? (
               <Link href={buildPageUrl(page + 1)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors">
-                下一页
+                {t('nextPage')}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
             ) : (
               <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 cursor-not-allowed">
-                下一页
+                {t('nextPage')}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

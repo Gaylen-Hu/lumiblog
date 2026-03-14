@@ -1,4 +1,5 @@
 {
+  "siteName": "墨千",
   "nav": {
     "home": "首页",
     "posts": "文章",
@@ -25,12 +26,17 @@
     "interest": "兴趣",
     "architecture": "建筑",
     "daily": "日常",
-    "morningCoffee": "晨间咖啡"
+    "morningCoffee": "晨间咖啡",
+    "bio1": "我是一名数字工匠，拥有超过 6 年的产品构建经验，专注于弥合人类情感与机器逻辑之间的鸿沟。",
+    "bio2": "目前，我正在探索 AI 驱动界面与程序化几何的交叉领域。",
+    "bio3": "当我不在代码编辑器前时，你会发现我在探索山间小径、拍摄粗野主义建筑，或者冲泡一杯完美的手冲咖啡。"
   },
   "footer": {
     "builtWith": "用 ❤️ 构建",
     "about": "关于",
-    "rss": "RSS"
+    "rss": "RSS",
+    "copyright": "保留所有权利",
+    "defaultDescription": "探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。"
   },
   "theme": {
     "toggle": "切换主题",
@@ -45,10 +51,35 @@
     "readMore": "阅读更多",
     "backToList": "返回列表",
     "publishedAt": "发布于",
-    "readingTime": "分钟阅读"
+    "readingTime": "分钟阅读",
+    "noPostsFound": "暂无文章",
+    "clearFilter": "清除筛选",
+    "filterCategory": "分类",
+    "filterTag": "标签",
+    "filterSearch": "搜索",
+    "prevPage": "上一页",
+    "nextPage": "下一页",
+    "uncategorized": "未分类",
+    "readArticle": "阅读文章"
   },
   "projects": {
     "title": "全部项目",
-    "viewProject": "查看项目"
+    "viewProject": "查看项目",
+    "noProjects": "暂无项目"
+  },
+  "stats": {
+    "articles": "文章数量",
+    "experience": "项目经验",
+    "openSource": "开源贡献",
+    "talks": "技术分享"
+  },
+  "hero": {
+    "badge": "探索技术与设计的前沿",
+    "line1": "用代码创造",
+    "line2": "数字杰作",
+    "line3": "的艺术。",
+    "description": "专注于极简设计系统和高性能应用开发，将复杂需求转化为无缝、直观的用户体验。",
+    "viewProjects": "查看项目",
+    "readBlog": "阅读博客"
   }
 }

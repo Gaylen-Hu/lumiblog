@@ -1,4 +1,5 @@
 {
+  "siteName": "Byte&Beyond",
   "nav": {
     "home": "Home",
     "posts": "Posts",
@@ -25,12 +26,17 @@
     "interest": "Interest",
     "architecture": "Architecture",
     "daily": "Daily",
-    "morningCoffee": "Morning Coffee"
+    "morningCoffee": "Morning Coffee",
+    "bio1": "I'm a digital craftsman with 6+ years of experience building products, focused on bridging the gap between human emotion and machine logic.",
+    "bio2": "Currently exploring the intersection of AI-driven interfaces and procedural geometry.",
+    "bio3": "When I'm not at my editor, you'll find me hiking mountain trails, photographing brutalist architecture, or brewing the perfect pour-over."
   },
   "footer": {
     "builtWith": "Built with ❤️",
     "about": "About",
-    "rss": "RSS"
+    "rss": "RSS",
+    "copyright": "All rights reserved",
+    "defaultDescription": "Exploring the frontier of technology, design, and human potential through a minimalist lens."
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -45,10 +51,35 @@
     "readMore": "Read more",
     "backToList": "Back to list",
     "publishedAt": "Published on",
-    "readingTime": "min read"
+    "readingTime": "min read",
+    "noPostsFound": "No posts found",
+    "clearFilter": "Clear filter",
+    "filterCategory": "Category",
+    "filterTag": "Tag",
+    "filterSearch": "Search",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "uncategorized": "Uncategorized",
+    "readArticle": "Read article"
   },
   "projects": {
     "title": "All Projects",
-    "viewProject": "View Project"
+    "viewProject": "View Project",
+    "noProjects": "No projects yet"
+  },
+  "stats": {
+    "articles": "Articles",
+    "experience": "Years Exp.",
+    "openSource": "Open Source",
+    "talks": "Talks"
+  },
+  "hero": {
+    "badge": "Exploring the frontier of tech & design",
+    "line1": "Crafting digital",
+    "line2": "masterpieces",
+    "line3": "with code.",
+    "description": "Focused on minimalist design systems and high-performance app development, transforming complex requirements into seamless, intuitive user experiences.",
+    "viewProjects": "View Projects",
+    "readBlog": "Read Blog"
   }
 }

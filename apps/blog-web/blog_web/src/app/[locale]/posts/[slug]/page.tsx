@@ -33,7 +33,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug } = await params
   const post = await getArticleBySlug(slug)
-  if (!post) return { title: '文章未找到' }
+  if (!post) return { title: 'Post not found' }
   return {
     title: post.seo.metaTitle || `${post.title} - NOVA`,
     description: post.seo.metaDescription || post.excerpt || '',
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 }
 
 export default async function PostPage({ params }: PostPageProps) {
-  const { slug } = await params
+  const { slug, locale } = await params
   const [post, t] = await Promise.all([getArticleBySlug(slug), getTranslations('posts')])
 
   if (!post) notFound()
@@ -90,7 +90,7 @@ export default async function PostPage({ params }: PostPageProps) {
             <div>
               <p className="text-sm font-bold text-[#111111] dark:text-white">{post.author.name}</p>
               <p className="text-xs text-gray-400">
-                {t('publishedAt')} {new Date(post.publishedAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {t('publishedAt')} {new Date(post.publishedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             </div>
           </div>

@@ -7,7 +7,6 @@ import type {
   Category,
   Tag,
 } from '@/types'
-import { MOCK_POSTS, MOCK_PROJECTS } from './mock-data'
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1/public'
@@ -34,13 +33,7 @@ export async function getArticles(params?: {
     if (!res.ok) throw new Error('Failed to fetch articles')
     return res.json()
   } catch {
-    // Fallback to mock data for build time
-    return {
-      data: MOCK_POSTS,
-      total: MOCK_POSTS.length,
-      page: 1,
-      pageSize: 10,
-    }
+    return { data: [], total: 0, page: 1, pageSize: 10 }
   }
 }
 
@@ -87,17 +80,7 @@ export async function getProjects(params?: {
     if (!res.ok) throw new Error('Failed to fetch projects')
     return res.json()
   } catch {
-    // Fallback to mock data for build time
-    let filtered = MOCK_PROJECTS
-    if (params?.featured) {
-      filtered = filtered.filter((p) => p.featured)
-    }
-    return {
-      data: filtered,
-      total: filtered.length,
-      page: 1,
-      pageSize: 10,
-    }
+    return { data: [], total: 0, page: 1, pageSize: 10 }
   }
 }
 
@@ -178,7 +161,7 @@ interface SiteStats {
 
 // 默认配置（API 不可用时使用）
 const DEFAULT_SITE_CONFIG: SiteConfig = {
-  siteName: 'NOVA',
+  siteName: '墨千',
   siteDescription: '探索技术与设计的前沿',
   logo: null,
   favicon: null,
@@ -194,7 +177,7 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
     techStack: [],
   },
   seo: {
-    defaultTitle: 'NOVA - 探索技术与设计的前沿',
+    defaultTitle: '墨千 - 探索技术与设计的前沿',
     defaultDescription: '以极简主义的视角，探索技术、设计与人类潜能的前沿。',
     keywords: null,
     defaultOgImage: null,

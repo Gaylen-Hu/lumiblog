@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useLocale } from 'next-intl';
 
 interface CommentsProps {
   slug: string;
@@ -8,6 +9,7 @@ interface CommentsProps {
 
 export default function Comments({ slug }: CommentsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const locale = useLocale();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -28,12 +30,12 @@ export default function Comments({ slug }: CommentsProps) {
     script.setAttribute('data-emit-metadata', '0');
     script.setAttribute('data-input-position', 'top');
     script.setAttribute('data-theme', 'light');
-    script.setAttribute('data-lang', 'zh-CN');
+    script.setAttribute('data-lang', locale === 'zh' ? 'zh-CN' : 'en');
     script.crossOrigin = 'anonymous';
     script.async = true;
 
     container.appendChild(script);
-  }, [slug]);
+  }, [slug, locale]);
 
   return (
     <section className="mt-16 pt-8 border-t border-gray-100">

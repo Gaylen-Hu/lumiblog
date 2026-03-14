@@ -6,11 +6,10 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string }>
 }) {
-  const { locale } = await params
   const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])
   return {
     title: `${t('title')} - ${config.siteName}`,
-    description: config.owner.bio || `了解更多关于 ${config.owner.name} 的信息。`,
+    description: config.owner.bio || t('bio1'),
     alternates: { languages: { zh: '/zh/about', en: '/en/about' } },
   }
 }
@@ -39,9 +38,9 @@ export default async function AboutPage() {
                 ))
               ) : (
                 <>
-                  <p>我是一名数字工匠，拥有超过 6 年的产品构建经验，专注于弥合人类情感与机器逻辑之间的鸿沟。</p>
-                  <p>目前，我正在探索 AI 驱动界面与程序化几何的交叉领域。</p>
-                  <p>当我不在代码编辑器前时，你会发现我在探索山间小径、拍摄粗野主义建筑，或者冲泡一杯完美的手冲咖啡。</p>
+                  <p>{t('bio1')}</p>
+                  <p>{t('bio2')}</p>
+                  <p>{t('bio3')}</p>
                 </>
               )}
             </div>

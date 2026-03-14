@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface SocialLinks {
   github?: string;
@@ -33,18 +36,22 @@ const TWITTER_ICON = (
 );
 
 export default function Footer({
-  siteName = 'NOVA',
-  siteDescription = '探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。',
+  siteName,
+  siteDescription,
   socialLinks = {},
   filing = { icp: null, gongan: null, copyright: null },
 }: FooterProps) {
+  const t = useTranslations('footer');
+  const tRoot = useTranslations();
+  const displayName = siteName || tRoot('siteName');
+  const resolvedDescription = siteDescription || t('defaultDescription');
   const socialItems = [
     socialLinks.github ? { name: 'GitHub', href: socialLinks.github, icon: GITHUB_ICON } : null,
     socialLinks.twitter ? { name: 'Twitter', href: socialLinks.twitter, icon: TWITTER_ICON } : null,
   ].filter(Boolean) as { name: string; href: string; icon: React.ReactNode }[];
 
   const currentYear = new Date().getFullYear();
-  const copyrightText = filing.copyright || `© ${currentYear} ${siteName} — 保留所有权利`;
+  const copyrightText = filing.copyright || `© ${currentYear} ${displayName} — ${t('copyright')}`;
 
   return (
     <footer className="py-20 px-6 md:px-12 lg:px-24 bg-white dark:bg-slate-950 border-t border-gray-100 dark:border-slate-800">
@@ -55,10 +62,10 @@ export default function Footer({
               href="/"
               className="text-2xl font-bold tracking-tighter text-[#111111] dark:text-white mb-6 block"
             >
-              {siteName}<span className="text-blue-500">.</span>
+              {displayName}<span className="text-blue-500">.</span>
             </Link>
             <p className="text-[#555555] dark:text-gray-400 max-w-sm font-light leading-relaxed">
-              {siteDescription}
+              {resolvedDescription}
             </p>
           </div>
 
@@ -84,13 +91,13 @@ export default function Footer({
                 href="/about"
                 className="hover:text-[#111111] dark:hover:text-white transition-colors"
               >
-                关于
+                {t('about')}
               </Link>
               <Link
                 href="/rss"
                 className="hover:text-[#111111] dark:hover:text-white transition-colors"
               >
-                RSS
+                {t('rss')}
               </Link>
             </div>
           </div>
@@ -120,7 +127,7 @@ export default function Footer({
               </a>
             ) : null}
           </div>
-          <p>用 ❤️ 构建</p>
+          <p>{t('builtWith')}</p>
         </div>
       </div>
     </footer>

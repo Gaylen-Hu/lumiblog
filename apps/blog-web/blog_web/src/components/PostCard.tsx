@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import type { Post } from '@/types';
 import TiltCard from './ui/TiltCard';
 import SpotlightCard from './ui/SpotlightCard';
@@ -10,9 +11,11 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post }: PostCardProps) {
-  const categoryName = post.category?.name ?? '未分类';
+  const t = useTranslations('posts');
+  const locale = useLocale();
+  const categoryName = post.category?.name ?? t('uncategorized');
   const displayDate = post.publishedAt
-    ? new Date(post.publishedAt).toLocaleDateString('zh-CN', {
+    ? new Date(post.publishedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -53,7 +56,7 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
 
           <div className="flex items-center gap-2 text-sm font-semibold text-[#111111] dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors mt-auto">
-            阅读文章
+            {t('readArticle')}
             <svg
               className="w-3 h-3 group-hover:translate-x-1 transition-transform"
               fill="none"

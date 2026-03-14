@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4: 使用 class 策略支持 next-themes */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #111111;
