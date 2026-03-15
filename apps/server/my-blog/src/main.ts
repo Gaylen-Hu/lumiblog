@@ -1,10 +1,15 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // 增大 body 限制，防止大内容（如文章正文、base64 图片）触发 400
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ limit: '10mb', extended: true }));
 
   // 启用 CORS，从环境变量读取允许的域名（必须显式配置）
   const corsOriginsEnv = process.env.CORS_ORIGINS;
