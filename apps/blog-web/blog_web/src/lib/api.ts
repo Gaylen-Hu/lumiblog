@@ -41,14 +41,20 @@ export async function getArticles(params?: {
 export async function getArticleBySlug(
   slug: string,
 ): Promise<PostDetail | null> {
-  const res = await fetch(`${API_BASE_URL}/articles/${slug}`, {
-    next: { revalidate: 60 },
-  })
-  if (!res.ok) {
-    if (res.status === 404) return null
-    throw new Error('Failed to fetch article')
+  try {
+    const res = await fetch(`${API_BASE_URL}/articles/${slug}`, {
+      next: { revalidate: 60 },
+    })
+    if (!res.ok) {
+      if (res.status === 404) return null
+      console.error(`Failed to fetch article "${slug}": ${res.status} ${res.statusText}`)
+      return null
+    }
+    return res.json()
+  } catch (err) {
+    console.error(`Error fetching article "${slug}":`, err)
+    return null
   }
-  return res.json()
 }
 
 // 文章 slugs（用于 SSG generateStaticParams）

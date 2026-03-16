@@ -4,6 +4,7 @@ import HeroSection from '@/components/HeroSection'
 import StatsSection from '@/components/StatsSection'
 import PostCard from '@/components/PostCard'
 import ProjectCard from '@/components/ProjectCard'
+import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getArticles, getProjects, getSiteStats } from '@/lib/api'
 
 export default async function Home() {
@@ -46,8 +47,10 @@ export default async function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {posts.map((post, i) => (
+              <ScrollReveal key={post.id} delay={i * 0.08} direction="up">
+                <PostCard post={post} />
+              </ScrollReveal>
             ))}
           </div>
 
@@ -81,8 +84,10 @@ export default async function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
+            {projects.map((project, i) => (
+              <ScrollReveal key={project.id} delay={i * 0.08} direction="up">
+                <ProjectCard project={project} />
+              </ScrollReveal>
             ))}
           </div>
         </div>

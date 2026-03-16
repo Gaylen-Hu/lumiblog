@@ -29,7 +29,32 @@
     "morningCoffee": "Morning Coffee",
     "bio1": "I'm a digital craftsman with 6+ years of experience building products, focused on bridging the gap between human emotion and machine logic.",
     "bio2": "Currently exploring the intersection of AI-driven interfaces and procedural geometry.",
-    "bio3": "When I'm not at my editor, you'll find me hiking mountain trails, photographing brutalist architecture, or brewing the perfect pour-over."
+    "bio3": "When I'm not at my editor, you'll find me hiking mountain trails, photographing brutalist architecture, or brewing the perfect pour-over.",
+    "techUniverse": "Tech Universe",
+    "timeline": {
+      "title": "The Roadmap",
+      "subtitle": "Key milestones from my 2017 internship to the present.",
+      "y2017": {
+        "title": "First Steps",
+        "desc": "Entered the industry as an intern, witnessing the transition from jQuery to modern frameworks."
+      },
+      "y2019": {
+        "title": "Full-Stack Leap",
+        "desc": "Deepened expertise in React/Vue ecosystems and started Node.js backend development for multi-platform coverage."
+      },
+      "y2022": {
+        "title": "Efficiency Revolution",
+        "desc": "Focused on automation scripts and tooling, optimizing workflows with Python and Node.js."
+      },
+      "y2024": {
+        "title": "AI Lab",
+        "desc": "Fully embraced AI-driven development, exploring prompt engineering and multimodal interaction."
+      },
+      "y2025": {
+        "title": "Intelligent Systems",
+        "desc": "Leading AI projects with deep integration of voice/video communication and digital avatar generation."
+      }
+    }
   },
   "footer": {
     "builtWith": "Built with ❤️",

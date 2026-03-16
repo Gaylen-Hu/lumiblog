@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import ProjectCard from '@/components/ProjectCard'
+import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getProjects } from '@/lib/api'
 
 export default async function ProjectsPage() {
@@ -16,8 +17,10 @@ export default async function ProjectsPage() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+          {projects.map((project, i) => (
+            <ScrollReveal key={project.id} delay={i * 0.07} direction="up">
+              <ProjectCard project={project} />
+            </ScrollReveal>
           ))}
         </div>
 

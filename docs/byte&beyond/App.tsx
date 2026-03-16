@@ -47,12 +47,12 @@ const App: React.FC = () => {
           {view === 'blog' && <div className="py-12 px-6 md:px-12 lg:px-24"><Articles onSelectPost={navigateToPost} fullView /></div>}
           {view === 'timeline' && <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9]"><Microblog /></div>}
           {view === 'projects' && <div className="py-12 px-6 md:px-12 lg:px-24"><Projects /></div>}
-          {view === 'about' && <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9]"><About /></div>}
+          {view === 'about' && <About />}
           {view === 'post' && selectedPost && <BlogPost article={selectedPost} onBack={() => handleNavigate('blog')} />}
         </div>
       </main>
 
-      <Footer />
+      {view !== 'about' && <Footer />}
       <AISummarizer />
 
       <style>{`

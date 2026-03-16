@@ -29,3 +29,9 @@ export interface TechStack {
   level: number; // 0 to 100
   icon?: string;
 }
+
+export interface TimelineEvent {
+  year: string;
+  title: string;
+  description: string;
+}

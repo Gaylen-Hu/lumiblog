@@ -75,10 +75,44 @@ export const MICROPOSTS: MicroPost[] = [
 ];
 
 export const TECH_STACK: TechStack[] = [
+  { name: 'Vue 3', level: 95 },
+  { name: 'Pinia', level: 90 },
+  { name: 'Next.js', level: 92 },
   { name: 'React', level: 95 },
-  { name: 'TypeScript', level: 90 },
-  { name: 'Node.js', level: 85 },
-  { name: 'Tailwind CSS', level: 98 },
-  { name: 'Framer Motion', level: 80 },
+  { name: 'UniApp', level: 88 },
+  { name: 'Electron', level: 85 },
+  { name: 'HarmonyOS', level: 80 },
+  { name: 'NestJS', level: 85 },
+  { name: 'Redis', level: 80 },
+  { name: 'JWT', level: 90 },
   { name: 'Python', level: 75 },
+  { name: 'Node.js', level: 90 },
+];
+
+export const TIMELINE_EVENTS = [
+  {
+    year: '2017',
+    title: '实习启航',
+    description: '初入职场，在实习中开启了前端开发的探索之旅，见证了从 JQuery 到现代框架的转型。',
+  },
+  {
+    year: '2019',
+    title: '全栈进阶',
+    description: '深耕 React/Vue 生态，开始接触 Node.js 后端开发，实现多端覆盖。',
+  },
+  {
+    year: '2022',
+    title: '效率革命',
+    description: '专注于自动化脚本与提效工具，利用 Python 和 Node.js 优化开发流程。',
+  },
+  {
+    year: '2024',
+    title: 'AI 实验室',
+    description: '全面拥抱 AI 驱动开发，探索 .cursorrules、提示词工程与多模态交互。',
+  },
+  {
+    year: '2025',
+    title: '博思特 AI',
+    description: '主导博思特 AI 项目，实现语音/视频通话与数字分身生成的深度集成。',
+  },
 ];

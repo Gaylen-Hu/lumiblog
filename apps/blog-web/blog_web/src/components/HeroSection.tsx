@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import Beams from './ui/Beams';
 import SplitText from './ui/SplitText';
 import GradientText from './ui/GradientText';
+import ShinyText from './ui/ShinyText';
+import Magnet from './ui/Magnet';
 
 export default function HeroSection() {
   const t = useTranslations('hero');
@@ -34,8 +36,13 @@ export default function HeroSection() {
       <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="max-w-4xl relative z-10">
-        <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-semibold tracking-wide uppercase mb-6 animate-fade-in-up">
-          {t('badge')}
+        <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-xs font-semibold tracking-wide uppercase mb-6 animate-fade-in-up">
+          <ShinyText
+            text={t('badge')}
+            color="#3b82f6"
+            shineColor="#93c5fd"
+            speed={3}
+          />
         </div>
 
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-[#111111] dark:text-white leading-[1.1] mb-8">
@@ -62,32 +69,36 @@ export default function HeroSection() {
           {t('description')}
         </p>
 
-        <div className="flex flex-wrap gap-4 animate-fade-in-up delay-300">
-          <Link
-            href="/projects"
-            className="px-8 py-4 bg-[#111111] dark:bg-white text-white dark:text-[#111111] rounded-full font-medium hover:bg-[#333333] dark:hover:bg-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex items-center gap-2 group"
-          >
-            {t('viewProjects')}
-            <svg
-              className="w-4 h-4 group-hover:translate-x-1 transition-transform"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <div className="flex flex-wrap items-center gap-0 animate-fade-in-up delay-300">
+          <Magnet padding={40} magnetStrength={0.35}>
+            <Link
+              href="/projects"
+              className="px-8 py-4 bg-[#111111] dark:bg-white text-white dark:text-[#111111] rounded-full font-medium hover:bg-[#333333] dark:hover:bg-gray-100 hover:shadow-xl transition-all duration-300 flex items-center gap-2 group"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </Link>
-          <Link
-            href="/posts"
-            className="px-8 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-[#111111] dark:text-white rounded-full font-medium hover:bg-gray-50 dark:hover:bg-slate-800 hover:shadow-md hover:-translate-y-1 transition-all duration-300"
-          >
-            {t('readBlog')}
-          </Link>
+              {t('viewProjects')}
+              <svg
+                className="w-4 h-4 group-hover:translate-x-1 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </Link>
+          </Magnet>
+          <Magnet padding={40} magnetStrength={0.35}>
+            <Link
+              href="/posts"
+              className="px-8 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-[#111111] dark:text-white rounded-full font-medium hover:bg-gray-50 dark:hover:bg-slate-800 hover:shadow-md transition-all duration-300"
+            >
+              {t('readBlog')}
+            </Link>
+          </Magnet>
         </div>
       </div>
 

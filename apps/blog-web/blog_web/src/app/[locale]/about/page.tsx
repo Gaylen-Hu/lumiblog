@@ -1,11 +1,12 @@
 import { getTranslations } from 'next-intl/server'
 import { getSiteConfig } from '@/lib/api'
+import dynamic from 'next/dynamic'
+import BlurText from '@/components/ui/BlurText'
+import ScrollReveal from '@/components/ui/ScrollReveal'
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+const IconCloud = dynamic(() => import('@/components/IconCloud'), { ssr: false })
+
+export async function generateMetadata() {
   const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])
   return {
     title: `${t('title')} - ${config.siteName}`,
@@ -21,15 +22,24 @@ export default async function AboutPage() {
   const { owner } = config
   const techStack = owner.techStack.length > 0 ? owner.techStack : FALLBACK_TECH_STACK
 
+  const timelineEvents = [
+    { year: '2017', titleKey: 'timeline.y2017.title', descKey: 'timeline.y2017.desc' },
+    { year: '2019', titleKey: 'timeline.y2019.title', descKey: 'timeline.y2019.desc' },
+    { year: '2022', titleKey: 'timeline.y2022.title', descKey: 'timeline.y2022.desc' },
+    { year: '2024', titleKey: 'timeline.y2024.title', descKey: 'timeline.y2024.desc' },
+    { year: '2025', titleKey: 'timeline.y2025.title', descKey: 'timeline.y2025.desc' },
+  ] as const
+
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900 min-h-screen animate-page-fade">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-20 items-center">
+      <div className="max-w-7xl mx-auto space-y-32">
+
+        {/* Section 1: Persona */}
+        <div className="grid lg:grid-cols-2 gap-20 items-center pt-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white mb-8 leading-tight">
-              {t('tagline1')}
-              <br />
-              {t('tagline2')}<span className="text-blue-600">{t('tagline3')}</span>{t('tagline4')}
+              <BlurText text={t('tagline1')} delay={60} className="block" />
+              <BlurText text={`${t('tagline2')}${t('tagline3')}${t('tagline4')}`} delay={60} className="block" />
             </h2>
             <div className="space-y-6 text-[#555555] dark:text-gray-400 leading-relaxed text-lg font-light">
               {owner.bio ? (
@@ -100,6 +110,77 @@ export default async function AboutPage() {
             </div>
           </div>
         </div>
+
+        {/* Section 2: Tech Stack with IconCloud */}
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="order-2 lg:order-1">
+            <IconCloud />
+          </div>
+          <div className="space-y-8 order-1 lg:order-2">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white tracking-tight">
+              {t('techUniverse')}
+            </h2>
+            <div className="grid gap-4">
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                <h4 className="text-xs font-mono text-blue-500 uppercase tracking-widest mb-3">Frontend Core</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['Vue 3', 'Pinia', 'Next.js', 'React'].map((tag) => (
+                    <span key={tag} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                <h4 className="text-xs font-mono text-emerald-500 uppercase tracking-widest mb-3">Cross-Platform</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['UniApp', 'Electron', 'HarmonyOS'].map((tag) => (
+                    <span key={tag} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+                <h4 className="text-xs font-mono text-purple-500 uppercase tracking-widest mb-3">Full-Stack</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['NestJS', 'Redis', 'PostgreSQL', 'JWT'].map((tag) => (
+                    <span key={tag} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Timeline */}
+        <div className="space-y-12">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white tracking-tight mb-3">
+              {t('timeline.title')}
+            </h2>
+            <p className="text-[#555555] dark:text-gray-400">{t('timeline.subtitle')}</p>
+          </div>
+
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500 via-blue-300 to-transparent opacity-30 hidden md:block" />
+            <div className="space-y-10">
+              {timelineEvents.map(({ year, titleKey, descKey }, i) => (
+                <ScrollReveal key={year} delay={i * 0.1} direction="left">
+                  <div className="relative md:pl-12 group">
+                    <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-blue-500 hidden md:block group-hover:scale-150 transition-transform" />
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-12">
+                      <span className="text-2xl font-mono font-bold text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors shrink-0">
+                        {year}
+                      </span>
+                      <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-[#111111] dark:text-white">{t(titleKey)}</h3>
+                        <p className="text-[#555555] dark:text-gray-400 leading-relaxed font-light">{t(descKey)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   )

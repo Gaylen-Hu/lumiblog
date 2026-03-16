@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import PostCard from '@/components/PostCard'
+import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getArticles } from '@/lib/api'
 
 const PAGE_SIZE = 9
@@ -68,8 +69,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+          {posts.map((post, i) => (
+            <ScrollReveal key={post.id} delay={i * 0.06} direction="up">
+              <PostCard post={post} />
+            </ScrollReveal>
           ))}
         </div>
 
