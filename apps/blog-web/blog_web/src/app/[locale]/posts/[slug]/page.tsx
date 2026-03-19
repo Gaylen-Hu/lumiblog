@@ -6,9 +6,12 @@ import { getArticleBySlug, getArticleSlugs } from '@/lib/api'
 import type { Metadata } from 'next'
 import ReadingProgress from '@/components/ReadingProgress'
 import Comments from '@/components/Comments'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
+export const dynamic = 'force-dynamic'
 
 interface PostPageProps {
   params: Promise<{ slug: string; locale: string }>
@@ -90,7 +93,7 @@ export default async function PostPage({ params }: PostPageProps) {
             <div>
               <p className="text-sm font-bold text-[#111111] dark:text-white">{post.author.name}</p>
               <p className="text-xs text-gray-400">
-                {t('publishedAt')} {new Date(post.publishedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {t('publishedAt')} {post.publishedAt.split('T')[0]}
               </p>
             </div>
           </div>
@@ -109,12 +112,11 @@ export default async function PostPage({ params }: PostPageProps) {
             </div>
           )}
 
-          {post.content.split('\n\n').map((para, i) => {
-            if (para.startsWith('### ')) {
-              return <h2 key={i} className="text-2xl font-bold mt-12 mb-6 text-[#111111] dark:text-white">{para.replace('### ', '')}</h2>
-            }
-            return <p key={i} className="mb-8">{para}</p>
-          })}
+          <div className="markdown-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {post.content}
+            </ReactMarkdown>
+          </div>
         </div>
 
         {post.tags.length > 0 && (
