@@ -195,3 +195,20 @@ model SiteConfig {
 
   @@map("site_config")
 }
+
+model TimelineEntry {
+  id        String   @id @default(uuid())
+  year      String
+  titleZh   String   @db.VarChar(100)
+  titleEn   String   @db.VarChar(100)
+  descZh    String   @db.VarChar(500)
+  descEn    String   @db.VarChar(500)
+  order     Int      @default(0)
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@index([isVisible])
+  @@map("timeline_entries")
+}
