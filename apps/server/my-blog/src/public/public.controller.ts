@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { PublicService } from './public.service';
+import { TimelineService } from '../timeline/timeline.service';
+import { PublicTimelineResponseDto } from '../timeline/dto';
 import {
   PublicArticleQueryDto,
   PublicArticleDetailDto,
@@ -22,7 +24,10 @@ import {
 @ApiTags('公开接口')
 @Controller({ path: 'public', version: '1' })
 export class PublicController {
-  constructor(private readonly publicService: PublicService) {}
+  constructor(
+    private readonly publicService: PublicService,
+    private readonly timelineService: TimelineService,
+  ) {}
 
   // ==================== 文章接口 ====================
 
@@ -101,5 +106,14 @@ export class PublicController {
   @Get('stats')
   async getStats(): Promise<SiteStatsDto> {
     return this.publicService.getStats();
+  }
+
+  // ==================== 时间轴接口 ====================
+
+  @ApiOperation({ summary: '获取时间轴列表', description: '获取所有可见的时间轴条目，按 order 升序排列' })
+  @ApiResponse({ status: 200, description: '获取成功', type: [PublicTimelineResponseDto] })
+  @Get('timeline')
+  async getTimeline(): Promise<PublicTimelineResponseDto[]> {
+    return this.timelineService.findPublished();
   }
 }

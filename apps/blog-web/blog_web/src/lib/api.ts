@@ -233,3 +233,27 @@ export async function getSiteStats(): Promise<SiteStats> {
 }
 
 export type { SiteConfig, SiteStats }
+
+// 时间轴条目类型
+export interface TimelineEntry {
+  id: string
+  year: string
+  titleZh: string
+  titleEn: string
+  descZh: string
+  descEn: string
+  order: number
+}
+
+// 时间轴列表（ISR 缓存 1 小时）
+export async function getTimeline(): Promise<TimelineEntry[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/timeline`, {
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) throw new Error('Failed to fetch timeline')
+    return res.json()
+  } catch {
+    return []
+  }
+}

@@ -295,6 +295,40 @@ declare namespace BlogAPI {
   interface CreateApiKeyResponse extends ApiKey {
     key: string;
   }
+
+  // 时间轴
+  interface Timeline {
+    id: string;
+    year: string;
+    titleZh: string;
+    titleEn: string;
+    descZh: string;
+    descEn: string;
+    order: number;
+    isVisible: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface CreateTimelineParams {
+    year: string;
+    titleZh: string;
+    titleEn: string;
+    descZh: string;
+    descEn: string;
+    order: number;
+    isVisible: boolean;
+  }
+
+  interface UpdateTimelineParams {
+    year?: string;
+    titleZh?: string;
+    titleEn?: string;
+    descZh?: string;
+    descEn?: string;
+    order?: number;
+    isVisible?: boolean;
+  }
 }
 
 // 微信公众号类型定义

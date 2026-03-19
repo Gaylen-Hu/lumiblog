@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server'
-import { getSiteConfig } from '@/lib/api'
+import { getSiteConfig, getTimeline } from '@/lib/api'
+import type { TimelineEntry } from '@/lib/api'
 import dynamic from 'next/dynamic'
 import BlurText from '@/components/ui/BlurText'
 import ScrollReveal from '@/components/ui/ScrollReveal'
@@ -17,18 +18,33 @@ export async function generateMetadata() {
 
 const FALLBACK_TECH_STACK = ['React', 'TypeScript', 'Next.js', 'Node.js', 'Tailwind CSS', 'NestJS']
 
-export default async function AboutPage() {
-  const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])
+const FALLBACK_TIMELINE = [
+  { year: '2017', titleKey: 'timeline.y2017.title', descKey: 'timeline.y2017.desc' },
+  { year: '2019', titleKey: 'timeline.y2019.title', descKey: 'timeline.y2019.desc' },
+  { year: '2022', titleKey: 'timeline.y2022.title', descKey: 'timeline.y2022.desc' },
+  { year: '2024', titleKey: 'timeline.y2024.title', descKey: 'timeline.y2024.desc' },
+  { year: '2025', titleKey: 'timeline.y2025.title', descKey: 'timeline.y2025.desc' },
+] as const
+
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params
+  const [config, t, apiTimeline] = await Promise.all([getSiteConfig(), getTranslations('about'), getTimeline()])
   const { owner } = config
   const techStack = owner.techStack.length > 0 ? owner.techStack : FALLBACK_TECH_STACK
 
-  const timelineEvents = [
-    { year: '2017', titleKey: 'timeline.y2017.title', descKey: 'timeline.y2017.desc' },
-    { year: '2019', titleKey: 'timeline.y2019.title', descKey: 'timeline.y2019.desc' },
-    { year: '2022', titleKey: 'timeline.y2022.title', descKey: 'timeline.y2022.desc' },
-    { year: '2024', titleKey: 'timeline.y2024.title', descKey: 'timeline.y2024.desc' },
-    { year: '2025', titleKey: 'timeline.y2025.title', descKey: 'timeline.y2025.desc' },
-  ] as const
+  // API 数据优先，降级使用 i18n fallback
+  const useApiData = apiTimeline.length > 0
+  const timelineItems: { year: string; title: string; desc: string }[] = useApiData
+    ? apiTimeline.map((entry: TimelineEntry) => ({
+        year: entry.year,
+        title: locale === 'zh' ? entry.titleZh : entry.titleEn,
+        desc: locale === 'zh' ? entry.descZh : entry.descEn,
+      }))
+    : FALLBACK_TIMELINE.map(({ year, titleKey, descKey }) => ({
+        year,
+        title: t(titleKey),
+        desc: t(descKey),
+      }))
 
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900 min-h-screen animate-page-fade">
@@ -161,7 +177,7 @@ export default async function AboutPage() {
           <div className="relative">
             <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-blue-500 via-blue-300 to-transparent opacity-30 hidden md:block" />
             <div className="space-y-10">
-              {timelineEvents.map(({ year, titleKey, descKey }, i) => (
+              {timelineItems.map(({ year, title, desc }, i) => (
                 <ScrollReveal key={year} delay={i * 0.1} direction="left">
                   <div className="relative md:pl-12 group">
                     <div className="absolute left-[-4px] top-2 w-2 h-2 rounded-full bg-blue-500 hidden md:block group-hover:scale-150 transition-transform" />
@@ -170,8 +186,8 @@ export default async function AboutPage() {
                         {year}
                       </span>
                       <div className="space-y-1">
-                        <h3 className="text-lg font-bold text-[#111111] dark:text-white">{t(titleKey)}</h3>
-                        <p className="text-[#555555] dark:text-gray-400 leading-relaxed font-light">{t(descKey)}</p>
+                        <h3 className="text-lg font-bold text-[#111111] dark:text-white">{title}</h3>
+                        <p className="text-[#555555] dark:text-gray-400 leading-relaxed font-light">{desc}</p>
                       </div>
                     </div>
                   </div>

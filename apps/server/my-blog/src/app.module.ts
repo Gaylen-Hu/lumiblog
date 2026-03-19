@@ -19,6 +19,7 @@ import { PublicModule } from './public/public.module';
 import { SiteConfigModule } from './site-config/site-config.module';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { ProjectModule } from './project/project.module';
+import { TimelineModule } from './timeline/timeline.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ProjectModule } from './project/project.module';
     SiteConfigModule,
     ApiKeyModule,
     ProjectModule,
+    TimelineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

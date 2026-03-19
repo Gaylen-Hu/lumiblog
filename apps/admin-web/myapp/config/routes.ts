@@ -93,6 +93,12 @@ export default [
         path: '/content/projects',
         component: './content/projects',
       },
+      {
+        name: 'timeline',
+        icon: 'fieldTime',
+        path: '/content/timeline',
+        component: './content/timeline',
+      },
     ],
   },
 
