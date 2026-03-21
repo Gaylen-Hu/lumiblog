@@ -4,7 +4,13 @@
     "home": "Home",
     "posts": "Posts",
     "projects": "Projects",
+    "timeline": "Timeline",
     "about": "About"
+  },
+  "timeline": {
+    "title": "Timeline",
+    "subtitle": "Key milestones along the journey.",
+    "empty": "No timeline entries yet"
   },
   "search": {
     "placeholder": "Search..."

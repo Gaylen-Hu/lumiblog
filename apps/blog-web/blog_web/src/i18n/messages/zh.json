@@ -4,7 +4,13 @@
     "home": "首页",
     "posts": "文章",
     "projects": "项目",
+    "timeline": "时间轴",
     "about": "关于"
+  },
+  "timeline": {
+    "title": "时间轴",
+    "subtitle": "记录成长路径上的关键节点。",
+    "empty": "暂无时间轴内容"
   },
   "search": {
     "placeholder": "搜索..."

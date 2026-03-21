@@ -25,6 +25,7 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
     { name: t('home'), href: '/' },
     { name: t('posts'), href: '/posts' },
     { name: t('projects'), href: '/projects' },
+    { name: t('timeline'), href: '/timeline' },
     { name: t('about'), href: '/about' },
   ]
 

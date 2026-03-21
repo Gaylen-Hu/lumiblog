@@ -1,11 +1,9 @@
 import { getTranslations } from 'next-intl/server'
 import { getSiteConfig, getTimeline } from '@/lib/api'
 import type { TimelineEntry } from '@/lib/api'
-import dynamic from 'next/dynamic'
 import BlurText from '@/components/ui/BlurText'
 import ScrollReveal from '@/components/ui/ScrollReveal'
-
-const IconCloud = dynamic(() => import('@/components/IconCloud'), { ssr: false })
+import IconCloud from '@/components/IconCloud'
 
 export async function generateMetadata() {
   const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])

@@ -416,19 +416,178 @@ psql -h your_db_host -U your_db_user your_db_name < backup.sql
 
 ---
 
-## 服务器安全配置
+## 使用 deploy.sh 一键部署
+
+项目根目录提供了 `deploy.sh` 脚本，可一键完成所有服务的拉取、构建和重启。
 
 ```bash
-# SSH 配置 /etc/ssh/sshd_config
-PermitRootLogin prohibit-password
-PasswordAuthentication no
-PubkeyAuthentication yes
+# 赋予执行权限（首次）
+chmod +x /root/myblog/deploy.sh
 
-# 防火墙
+# 执行部署
+cd /root/myblog
+./deploy.sh
+```
+
+### 自定义端口（可选）
+
+通过环境变量覆盖默认端口：
+
+```bash
+BACKEND_PORT=3000 BLOG_PORT=3001 ADMIN_PORT=8002 MCP_PORT=4000 ./deploy.sh
+```
+
+### 脚本安全特性
+
+- `set -euo pipefail`：任意命令失败立即退出，未定义变量报错
+- 前置检查：验证 `git`、`node`、`pm2` 命令及项目目录存在
+- 环境变量文件缺失时给出警告而非静默跳过
+- 本地未提交修改自动 stash，避免 pull 冲突
+- 每步构建后验证产物是否存在
+- 后端启动后自动健康检查（`/health` 接口）
+- `trap ERR` 捕获错误并打印出错行号
+
+---
+
+## 服务器安全配置
+
+### SSH 加固
+
+编辑 `/etc/ssh/sshd_config`：
+
+```bash
+PermitRootLogin prohibit-password   # 禁止密码登录 root，只允许密钥
+PasswordAuthentication no           # 全局禁用密码认证
+PubkeyAuthentication yes
+MaxAuthTries 3
+ClientAliveInterval 300
+ClientAliveCountMax 2
+```
+
+```bash
+sudo systemctl restart sshd
+```
+
+### 防火墙（UFW）
+
+```bash
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp    # SSH
+ufw allow 80/tcp    # HTTP
+ufw allow 443/tcp   # HTTPS
 ufw enable
-ufw allow 22/tcp
-ufw allow 80/tcp
-ufw allow 443/tcp
+ufw status verbose
+```
+
+> 内部端口（3000/3001/8002/4000/5432/6379）不对外暴露，只通过 Nginx 代理访问。
+
+### Nginx 安全响应头
+
+在两个站点配置的 `server` 块中加入：
+
+```nginx
+# 隐藏 Nginx 版本号
+server_tokens off;
+
+# 安全响应头
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+# HSTS（仅 HTTPS 站点）
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+```
+
+管理后台额外加入（禁止搜索引擎索引）：
+
+```nginx
+add_header X-Robots-Tag "noindex, nofollow" always;
+```
+
+### SSL/TLS 加固
+
+在 `/etc/nginx/options-ssl-nginx.conf` 中确认以下配置：
+
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+ssl_prefer_server_ciphers off;
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 1d;
+ssl_session_tickets off;
+```
+
+### 环境变量文件权限
+
+```bash
+# 只有 root 可读写
+chmod 600 /root/myblog/apps/server/my-blog/.env
+chmod 600 /root/myblog/apps/blog-web/blog_web/.env.local
+chmod 600 /root/myblog/apps/admin-web/myapp/.env.production
+```
+
+### JWT Secret 生成
+
+```bash
+# 生成 64 字节随机 secret
+openssl rand -base64 64
+```
+
+---
+
+## 回滚
+
+### 快速回滚到上一个 commit
+
+```bash
+cd /root/myblog
+
+# 查看最近提交记录
+git log --oneline -10
+
+# 回滚到指定 commit（替换 <commit-hash>）
+git checkout <commit-hash>
+
+# 重新部署
+./deploy.sh
+```
+
+### 回滚后恢复到最新
+
+```bash
+git checkout main
+git pull origin main
+./deploy.sh
+```
+
+---
+
+## 数据库备份
+
+### 手动备份
+
+```bash
+# 备份到带时间戳的文件
+pg_dump -h your_db_host -U your_db_user your_db_name \
+  > /root/backups/blog_$(date +%Y%m%d_%H%M%S).sql
+```
+
+### 自动定时备份（crontab）
+
+```bash
+# 编辑 crontab
+crontab -e
+
+# 每天凌晨 3 点备份，保留最近 7 天
+0 3 * * * pg_dump -h your_db_host -U your_db_user your_db_name > /root/backups/blog_$(date +\%Y\%m\%d).sql && find /root/backups -name "blog_*.sql" -mtime +7 -delete
+```
+
+```bash
+# 创建备份目录
+mkdir -p /root/backups
 ```
 
 ---
@@ -443,6 +602,19 @@ ls -la /root/myblog/apps/admin-web/myapp/dist/serve.cjs
 pm2 restart admin-web
 ```
 
+### 后端健康检查失败
+
+```bash
+# 查看后端日志
+pm2 logs my-blog-api --lines 50
+
+# 手动测试健康接口
+curl http://localhost:3000/health
+
+# 检查环境变量是否正确
+pm2 show my-blog-api
+```
+
 ### 查看日志
 
 ```bash
@@ -454,5 +626,14 @@ tail -f /var/log/nginx/error.log
 ### 检查端口占用
 
 ```bash
-ss -tuln | grep -E ':(3000|3001|8002)'
+ss -tuln | grep -E ':(3000|3001|8002|4000)'
+```
+
+### 证书续期
+
+Let's Encrypt 证书 90 天到期，certbot 会自动续期。手动检查：
+
+```bash
+sudo certbot renew --dry-run
+sudo systemctl status certbot.timer
 ```
