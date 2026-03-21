@@ -1,0 +1,47 @@
+name: Auto Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  GIT_BRANCH: main  # 你的 git 分支名称
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # 设置超时时间
+
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+          script_stop: true
+          request_pty: true  # 启用 PTY 以支持彩色的日志输出
+          script: |
+            set -e  # 遇到错误立即退出
+
+            cd /root/myblog
+
+            # 拉取最新代码
+            echo "=== 拉取最新代码 ==="
+            git fetch origin
+            git reset --hard origin/${{ env.GIT_BRANCH }}
+            git clean -fd
+            echo "当前 commit: $(git rev-parse --short HEAD)"
+
+            # 执行部署脚本
+            echo "=== 开始部署 ==="
+            chmod +x deploy.sh
+            ./deploy.sh
+
+            echo "=== 部署完成 ==="
+            pm2 list
