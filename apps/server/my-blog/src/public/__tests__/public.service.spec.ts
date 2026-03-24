@@ -206,7 +206,10 @@ describe('PublicService', () => {
     it('应返回文章详情', async () => {
       // Arrange
       const mockArticle = buildMockArticle({ slug: 'my-post' });
-      prisma.article.findFirst.mockResolvedValue(mockArticle);
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle) // 主文章
+        .mockResolvedValueOnce(null)        // prev = null
+        .mockResolvedValueOnce(null);       // next = null
 
       // Act
       const result = await service.getArticleBySlug('my-post');
@@ -223,7 +226,7 @@ describe('PublicService', () => {
 
     it('文章不存在时应抛出 NotFoundException', async () => {
       // Arrange
-      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.findFirst.mockResolvedValueOnce(null);
 
       // Act & Assert
       await expect(service.getArticleBySlug('nonexistent')).rejects.toThrow(
@@ -234,7 +237,10 @@ describe('PublicService', () => {
     it('应异步递增阅读量', async () => {
       // Arrange
       const mockArticle = buildMockArticle({ id: 'art-1' });
-      prisma.article.findFirst.mockResolvedValue(mockArticle);
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle) // 主文章
+        .mockResolvedValueOnce(null)        // prev = null
+        .mockResolvedValueOnce(null);       // next = null
       prisma.article.update.mockResolvedValue(mockArticle);
 
       // Act
@@ -245,6 +251,79 @@ describe('PublicService', () => {
         where: { id: 'art-1' },
         data: { viewCount: { increment: 1 } },
       });
+    });
+
+    it('中间文章应返回正确的 prevArticle 和 nextArticle', async () => {
+      // Arrange
+      const now = new Date('2024-06-01T00:00:00Z');
+      const prevDate = new Date('2024-05-01T00:00:00Z');
+      const nextDate = new Date('2024-07-01T00:00:00Z');
+      const mockArticle = buildMockArticle({ slug: 'middle-post', publishedAt: now });
+      const prevMock = { slug: 'older-post', title: '更早的文章', publishedAt: prevDate };
+      const nextMock = { slug: 'newer-post', title: '更新的文章', publishedAt: nextDate };
+
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle) // 主文章
+        .mockResolvedValueOnce(prevMock)    // prev
+        .mockResolvedValueOnce(nextMock);   // next
+
+      // Act
+      const result = await service.getArticleBySlug('middle-post');
+
+      // Assert
+      expect(result.prevArticle?.slug).toBe('older-post');
+      expect(result.nextArticle?.slug).toBe('newer-post');
+    });
+
+    it('最早文章的 prevArticle 应为 null', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({ slug: 'oldest-post', publishedAt: new Date('2024-01-01') });
+
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle) // 主文章
+        .mockResolvedValueOnce(null)        // prev = null
+        .mockResolvedValueOnce({ slug: 'newer-post', title: '更新的文章', publishedAt: new Date('2024-06-01') }); // next
+
+      // Act
+      const result = await service.getArticleBySlug('oldest-post');
+
+      // Assert
+      expect(result.prevArticle).toBeNull();
+      expect(result.nextArticle?.slug).toBe('newer-post');
+    });
+
+    it('最晚文章的 nextArticle 应为 null', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({ slug: 'newest-post', publishedAt: new Date('2024-12-01') });
+
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle) // 主文章
+        .mockResolvedValueOnce({ slug: 'older-post', title: '更早的文章', publishedAt: new Date('2024-06-01') }) // prev
+        .mockResolvedValueOnce(null);       // next = null
+
+      // Act
+      const result = await service.getArticleBySlug('newest-post');
+
+      // Assert
+      expect(result.prevArticle?.slug).toBe('older-post');
+      expect(result.nextArticle).toBeNull();
+    });
+
+    it('唯一文章时 prevArticle 和 nextArticle 均应为 null', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({ slug: 'only-post' });
+
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle) // 主文章
+        .mockResolvedValueOnce(null)        // prev = null
+        .mockResolvedValueOnce(null);       // next = null
+
+      // Act
+      const result = await service.getArticleBySlug('only-post');
+
+      // Assert
+      expect(result.prevArticle).toBeNull();
+      expect(result.nextArticle).toBeNull();
     });
   });
 

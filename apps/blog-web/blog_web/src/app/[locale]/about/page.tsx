@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server'
+import Image from 'next/image'
 import { getSiteConfig, getTimeline } from '@/lib/api'
 import type { TimelineEntry } from '@/lib/api'
 import BlurText from '@/components/ui/BlurText'
@@ -28,6 +29,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params
   const [config, t, apiTimeline] = await Promise.all([getSiteConfig(), getTranslations('about'), getTimeline()])
   const { owner } = config
+  const { aboutImage1, aboutImage2 } = config
   const techStack = owner.techStack.length > 0 ? owner.techStack : FALLBACK_TECH_STACK
 
   // API 数据优先，降级使用 i18n fallback
@@ -89,11 +91,21 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
               <div className="aspect-square rounded-3xl overflow-hidden shadow-sm group">
-                <img
-                  src="https://picsum.photos/400/400?random=20"
-                  alt="Hobby 1"
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                />
+                {aboutImage1 !== null ? (
+                  <Image
+                    src={aboutImage1}
+                    alt="Hobby 1"
+                    width={400}
+                    height={400}
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
+                    <svg className="w-12 h-12 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
               </div>
               <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-blue-600 flex items-end p-8 text-white relative group">
                 <div className="z-10 relative">
@@ -115,11 +127,21 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                 </div>
               </div>
               <div className="aspect-square rounded-3xl overflow-hidden shadow-sm group">
-                <img
-                  src="https://picsum.photos/400/400?random=22"
-                  alt="Hobby 2"
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                />
+                {aboutImage2 !== null ? (
+                  <Image
+                    src={aboutImage2}
+                    alt="Hobby 2"
+                    width={400}
+                    height={400}
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center">
+                    <svg className="w-12 h-12 text-gray-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
               </div>
             </div>
           </div>

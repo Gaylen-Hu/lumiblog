@@ -129,6 +129,16 @@ export class UpdateSiteConfigDto {
   @IsOptional()
   @IsString()
   socialWeibo?: string;
+
+  @ApiPropertyOptional({ description: 'About 页面图片1 URL' })
+  @IsOptional()
+  @IsString()
+  aboutImage1?: string;
+
+  @ApiPropertyOptional({ description: 'About 页面图片2 URL' })
+  @IsOptional()
+  @IsString()
+  aboutImage2?: string;
 }
 
 export class SiteConfigResponseDto {
@@ -203,6 +213,12 @@ export class SiteConfigResponseDto {
 
   @ApiPropertyOptional({ description: '微博链接' })
   socialWeibo: string | null;
+
+  @ApiPropertyOptional({ description: 'About 页面图片1 URL' })
+  aboutImage1: string | null;
+
+  @ApiPropertyOptional({ description: 'About 页面图片2 URL' })
+  aboutImage2: string | null;
 
   @ApiProperty({ description: '创建时间' })
   createdAt: Date;

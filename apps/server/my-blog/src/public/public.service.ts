@@ -8,6 +8,7 @@ import {
   PublicArticleDetailDto,
   PaginatedPublicArticleListDto,
   ArticleSlugsResponseDto,
+  ArticleNavItemDto,
   AuthorDto,
   CategoryBriefDto,
   TagBriefDto,
@@ -112,7 +113,23 @@ export class PublicService {
       })
       .catch((err) => this.logger.error(`阅读量更新失败: ${err.message}`));
 
-    return this.toArticleDetail(article);
+    const [prev, next] = await Promise.all([
+      this.prisma.article.findFirst({
+        where: { isPublished: true, publishedAt: { lt: article.publishedAt } },
+        orderBy: { publishedAt: 'desc' },
+        select: { slug: true, title: true, publishedAt: true },
+      }),
+      this.prisma.article.findFirst({
+        where: { isPublished: true, publishedAt: { gt: article.publishedAt } },
+        orderBy: { publishedAt: 'asc' },
+        select: { slug: true, title: true, publishedAt: true },
+      }),
+    ]);
+
+    const prevArticle = prev ? new ArticleNavItemDto(prev) : null;
+    const nextArticle = next ? new ArticleNavItemDto(next) : null;
+
+    return this.toArticleDetail(article, prevArticle, nextArticle);
   }
 
   /**
@@ -238,6 +255,8 @@ export class PublicService {
       }),
       analyticsGoogle: config.analyticsGoogle ?? null,
       analyticsBaidu: config.analyticsBaidu ?? null,
+      aboutImage1: config.aboutImage1 ?? null,
+      aboutImage2: config.aboutImage2 ?? null,
     });
   }
 
@@ -348,7 +367,11 @@ export class PublicService {
   /**
    * 转换为文章详情 DTO
    */
-  private toArticleDetail(article: ArticleWithRelations): PublicArticleDetailDto {
+  private toArticleDetail(
+    article: ArticleWithRelations,
+    prevArticle: ArticleNavItemDto | null,
+    nextArticle: ArticleNavItemDto | null,
+  ): PublicArticleDetailDto {
     return new PublicArticleDetailDto({
       id: article.id,
       slug: article.slug,
@@ -369,6 +392,8 @@ export class PublicService {
         metaDescription: article.seoDescription,
         ogImage: article.coverImage,
       }),
+      prevArticle,
+      nextArticle,
     });
   }
 

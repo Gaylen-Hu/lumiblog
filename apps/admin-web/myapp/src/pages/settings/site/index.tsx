@@ -12,6 +12,8 @@ const SiteConfigPage: React.FC = () => {
   const [logoPickerOpen, setLogoPickerOpen] = useState(false);
   const [faviconPickerOpen, setFaviconPickerOpen] = useState(false);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [aboutImage1PickerOpen, setAboutImage1PickerOpen] = useState(false);
+  const [aboutImage2PickerOpen, setAboutImage2PickerOpen] = useState(false);
   const [formRef] = ProForm.useForm();
 
   useEffect(() => {
@@ -39,6 +41,8 @@ const SiteConfigPage: React.FC = () => {
         logo: config?.logo ?? undefined,
         favicon: config?.favicon ?? undefined,
         ownerAvatar: config?.ownerAvatar ?? undefined,
+        aboutImage1: config?.aboutImage1 ?? undefined,
+        aboutImage2: config?.aboutImage2 ?? undefined,
       });
       message.success('保存成功');
     } catch {
@@ -176,6 +180,42 @@ const SiteConfigPage: React.FC = () => {
             </Space>
           </ProForm.Item>
 
+          <Divider orientation="left">About 页面图片</Divider>
+
+          <ProForm.Item label="About 图片1（左上）">
+            <Space direction="vertical">
+              {config?.aboutImage1 ? (
+                <Image
+                  src={config.aboutImage1}
+                  alt="About Image 1"
+                  width={80}
+                  height={80}
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ color: '#999' }}>暂未设置</div>
+              )}
+              <Button onClick={() => setAboutImage1PickerOpen(true)}>选择图片</Button>
+            </Space>
+          </ProForm.Item>
+
+          <ProForm.Item label="About 图片2（右下）">
+            <Space direction="vertical">
+              {config?.aboutImage2 ? (
+                <Image
+                  src={config.aboutImage2}
+                  alt="About Image 2"
+                  width={80}
+                  height={80}
+                  style={{ objectFit: 'cover' }}
+                />
+              ) : (
+                <div style={{ color: '#999' }}>暂未设置</div>
+              )}
+              <Button onClick={() => setAboutImage2PickerOpen(true)}>选择图片</Button>
+            </Space>
+          </ProForm.Item>
+
           <Divider orientation="left">技术栈 & 统计数据</Divider>
 
           <Form.Item
@@ -305,6 +345,26 @@ const SiteConfigPage: React.FC = () => {
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, ownerAvatar: media.url } : null));
           setAvatarPickerOpen(false);
+        }}
+        accept="image/*"
+      />
+
+      <MediaPicker
+        open={aboutImage1PickerOpen}
+        onCancel={() => setAboutImage1PickerOpen(false)}
+        onSelect={(media) => {
+          setConfig((prev) => (prev ? { ...prev, aboutImage1: media.url } : null));
+          setAboutImage1PickerOpen(false);
+        }}
+        accept="image/*"
+      />
+
+      <MediaPicker
+        open={aboutImage2PickerOpen}
+        onCancel={() => setAboutImage2PickerOpen(false)}
+        onSelect={(media) => {
+          setConfig((prev) => (prev ? { ...prev, aboutImage2: media.url } : null));
+          setAboutImage2PickerOpen(false);
         }}
         accept="image/*"
       />

@@ -60,7 +60,7 @@ export default async function LocaleLayout({
         {/* 防止暗黑模式 hydration 闪烁 */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t==='system'||!t)&&window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||((t==='system'||!t)&&prefersDark)){document.documentElement.classList.add('dark');}}catch(e){}})()`,
           }}
         />
         {config.analyticsGoogle ? (

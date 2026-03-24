@@ -150,6 +150,12 @@ export class SiteConfigDto {
   @ApiPropertyOptional({ description: '百度统计 site key' })
   readonly analyticsBaidu: string | null;
 
+  @ApiPropertyOptional({ description: 'About 页面图片1 URL（左上）' })
+  readonly aboutImage1: string | null;
+
+  @ApiPropertyOptional({ description: 'About 页面图片2 URL（右下）' })
+  readonly aboutImage2: string | null;
+
   constructor(params: {
     siteName: string;
     siteDescription: string;
@@ -161,6 +167,8 @@ export class SiteConfigDto {
     filing: FilingInfoDto;
     analyticsGoogle?: string | null;
     analyticsBaidu?: string | null;
+    aboutImage1?: string | null;
+    aboutImage2?: string | null;
   }) {
     this.siteName = params.siteName;
     this.siteDescription = params.siteDescription;
@@ -172,5 +180,7 @@ export class SiteConfigDto {
     this.filing = params.filing;
     this.analyticsGoogle = params.analyticsGoogle ?? null;
     this.analyticsBaidu = params.analyticsBaidu ?? null;
+    this.aboutImage1 = params.aboutImage1 ?? null;
+    this.aboutImage2 = params.aboutImage2 ?? null;
   }
 }

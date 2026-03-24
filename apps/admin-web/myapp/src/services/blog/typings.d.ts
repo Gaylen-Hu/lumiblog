@@ -27,6 +27,8 @@ declare namespace BlogAPI {
     socialTwitter: string | null;
     socialLinkedin: string | null;
     socialWeibo: string | null;
+    aboutImage1: string | null;
+    aboutImage2: string | null;
     createdAt: string;
     updatedAt: string;
   }
@@ -55,6 +57,8 @@ declare namespace BlogAPI {
     socialTwitter?: string;
     socialLinkedin?: string;
     socialWeibo?: string;
+    aboutImage1?: string;
+    aboutImage2?: string;
   }
   // 分页响应
   interface PaginatedResponse<T> {

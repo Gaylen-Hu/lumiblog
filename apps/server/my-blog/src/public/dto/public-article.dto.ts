@@ -163,6 +163,26 @@ export class PublicArticleListItemDto {
 }
 
 /**
+ * 文章导航项 DTO（用于上一篇/下一篇导航）
+ */
+export class ArticleNavItemDto {
+  @ApiProperty({ description: '文章 slug' })
+  readonly slug: string;
+
+  @ApiProperty({ description: '文章标题' })
+  readonly title: string;
+
+  @ApiProperty({ description: '发布时间' })
+  readonly publishedAt: Date;
+
+  constructor(params: { slug: string; title: string; publishedAt: Date }) {
+    this.slug = params.slug;
+    this.title = params.title;
+    this.publishedAt = params.publishedAt;
+  }
+}
+
+/**
  * SEO 信息 DTO
  */
 export class SeoInfoDto {
@@ -199,17 +219,27 @@ export class PublicArticleDetailDto extends PublicArticleListItemDto {
   @ApiProperty({ description: 'SEO 信息', type: SeoInfoDto })
   readonly seo: SeoInfoDto;
 
+  @ApiPropertyOptional({ description: '上一篇文章（更早发布）', type: ArticleNavItemDto })
+  readonly prevArticle: ArticleNavItemDto | null;
+
+  @ApiPropertyOptional({ description: '下一篇文章（更晚发布）', type: ArticleNavItemDto })
+  readonly nextArticle: ArticleNavItemDto | null;
+
   constructor(
     params: ConstructorParameters<typeof PublicArticleListItemDto>[0] & {
       content: string;
       updatedAt: Date;
       seo: SeoInfoDto;
+      prevArticle: ArticleNavItemDto | null;
+      nextArticle: ArticleNavItemDto | null;
     },
   ) {
     super(params);
     this.content = params.content;
     this.updatedAt = params.updatedAt;
     this.seo = params.seo;
+    this.prevArticle = params.prevArticle;
+    this.nextArticle = params.nextArticle;
   }
 }
 

@@ -17,6 +17,15 @@ export default function StatsSection({
   talkCount,
 }: StatsSectionProps) {
   const t = useTranslations('stats')
+
+  const allZero =
+    articleCount === 0 &&
+    yearsOfExperience === 0 &&
+    openSourceCount === 0 &&
+    talkCount === 0
+
+  if (allZero) return null
+
   const stats = [
     { label: t('articles'), value: articleCount, suffix: '+' },
     { label: t('experience'), value: yearsOfExperience, suffix: '+' },

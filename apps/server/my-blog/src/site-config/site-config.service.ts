@@ -68,6 +68,8 @@ export class SiteConfigService {
       socialTwitter: config.socialTwitter,
       socialLinkedin: config.socialLinkedin,
       socialWeibo: config.socialWeibo,
+      aboutImage1: config.aboutImage1,
+      aboutImage2: config.aboutImage2,
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,
     };

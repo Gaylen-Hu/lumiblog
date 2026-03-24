@@ -21,14 +21,22 @@ describe('SiteConfigService', () => {
     gongan: null,
     copyright: null,
     analytics: null,
+    analyticsGoogle: null,
+    analyticsBaidu: null,
     ownerName: null,
     ownerAvatar: null,
     ownerBio: null,
     ownerEmail: null,
+    ownerTechStack: [],
+    yearsOfExperience: null,
+    openSourceCount: null,
+    talkCount: null,
     socialGithub: null,
     socialTwitter: null,
     socialLinkedin: null,
     socialWeibo: null,
+    aboutImage1: null,
+    aboutImage2: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -179,6 +187,88 @@ describe('SiteConfigService', () => {
         data: updateDto,
       });
       expect(result.title).toBe('Updated');
+    });
+  });
+
+  // ============ mapToDto: aboutImage fields ============
+
+  describe('mapToDto: aboutImage fields', () => {
+    it('aboutImage1 和 aboutImage2 有有效 URL 时应正确映射到 DTO', async () => {
+      // Arrange
+      const configWithImages = {
+        ...mockSiteConfig,
+        aboutImage1: 'https://example.com/image1.jpg',
+        aboutImage2: 'https://example.com/image2.jpg',
+      };
+      prisma.siteConfig.findFirst.mockResolvedValue(configWithImages);
+
+      // Act
+      const result = await service.getConfig();
+
+      // Assert
+      expect(result.aboutImage1).toBe('https://example.com/image1.jpg');
+      expect(result.aboutImage2).toBe('https://example.com/image2.jpg');
+    });
+
+    it('aboutImage1 和 aboutImage2 为 null 时 DTO 应返回 null', async () => {
+      // Arrange
+      const configWithNullImages = {
+        ...mockSiteConfig,
+        aboutImage1: null,
+        aboutImage2: null,
+      };
+      prisma.siteConfig.findFirst.mockResolvedValue(configWithNullImages);
+
+      // Act
+      const result = await service.getConfig();
+
+      // Assert
+      expect(result.aboutImage1).toBeNull();
+      expect(result.aboutImage2).toBeNull();
+    });
+  });
+
+  // ============ Property 1 & 2: mapToDto aboutImage field integrity and value mapping ============
+  // Feature: about-page-image-fix, Property 1: mapToDto 字段完整性
+  // Feature: about-page-image-fix, Property 2: mapToDto 值映射正确性
+
+  describe('Property 1 & 2: mapToDto aboutImage field integrity and value mapping', () => {
+    it('对任意 SiteConfig 记录，DTO 应始终包含 aboutImage1 和 aboutImage2 字段且类型正确，值与输入完全一致', async () => {
+      // **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**
+      await fc.assert(
+        fc.asyncProperty(
+          fc.option(fc.webUrl(), { nil: null }),
+          fc.option(fc.webUrl(), { nil: null }),
+          async (aboutImage1: string | null, aboutImage2: string | null) => {
+            // Arrange
+            prisma.siteConfig.findFirst.mockReset();
+            const configRecord = {
+              ...mockSiteConfig,
+              aboutImage1,
+              aboutImage2,
+            };
+            prisma.siteConfig.findFirst.mockResolvedValue(configRecord);
+
+            // Act
+            const result = await service.getConfig();
+
+            // Assert — Property 1: fields exist with correct types
+            expect(Object.prototype.hasOwnProperty.call(result, 'aboutImage1')).toBe(true);
+            expect(Object.prototype.hasOwnProperty.call(result, 'aboutImage2')).toBe(true);
+            expect(
+              result.aboutImage1 === null || typeof result.aboutImage1 === 'string',
+            ).toBe(true);
+            expect(
+              result.aboutImage2 === null || typeof result.aboutImage2 === 'string',
+            ).toBe(true);
+
+            // Assert — Property 2: values exactly match input
+            expect(result.aboutImage1).toBe(aboutImage1);
+            expect(result.aboutImage2).toBe(aboutImage2);
+          },
+        ),
+        { numRuns: 100 },
+      );
     });
   });
 

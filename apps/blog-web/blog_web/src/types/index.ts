@@ -1,3 +1,10 @@
+// 文章导航项类型 — 对齐后端 ArticleNavItemDto
+export interface ArticleNavItem {
+  slug: string;
+  title: string;
+  publishedAt: string;
+}
+
 // 文章列表项类型 — 对齐后端 PublicArticleListItemDto
 export interface Post {
   id: string;
@@ -21,6 +28,8 @@ export interface PostDetail extends Post {
     metaDescription: string | null;
     ogImage: string | null;
   };
+  prevArticle?: ArticleNavItem | null;
+  nextArticle?: ArticleNavItem | null;
 }
 
 // 项目类型 — 对齐后端 PublicProjectDto

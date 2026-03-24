@@ -156,6 +156,8 @@ interface SiteConfig {
   }
   analyticsGoogle: string | null
   analyticsBaidu: string | null
+  aboutImage1: string | null
+  aboutImage2: string | null
 }
 
 interface SiteStats {
@@ -195,6 +197,8 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
   },
   analyticsGoogle: null,
   analyticsBaidu: null,
+  aboutImage1: null,
+  aboutImage2: null,
 }
 
 const DEFAULT_STATS: SiteStats = {

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "highlight.js/styles/github.css";
 
 /* Tailwind v4: 使用 class 策略支持 next-themes */
 @variant dark (&:where(.dark, .dark *));
@@ -125,6 +126,29 @@ html.dark {
 .markdown-content pre code {
   @apply bg-transparent p-0 text-sm;
 }
+
+/* highlight.js 暗色模式覆盖（基于 github-dark 主题色） */
+.dark .markdown-content pre code.hljs {
+  background: transparent;
+  color: #c9d1d9;
+}
+.dark .hljs-comment,
+.dark .hljs-quote { color: #8b949e; }
+.dark .hljs-keyword,
+.dark .hljs-selector-tag { color: #ff7b72; }
+.dark .hljs-number,
+.dark .hljs-literal { color: #79c0ff; }
+.dark .hljs-string,
+.dark .hljs-doctag { color: #a5d6ff; }
+.dark .hljs-title,
+.dark .hljs-section { color: #d2a8ff; }
+.dark .hljs-type,
+.dark .hljs-class .hljs-title { color: #ffa657; }
+.dark .hljs-tag,
+.dark .hljs-name,
+.dark .hljs-attribute { color: #7ee787; }
+.dark .hljs-built_in { color: #ffa657; }
+.dark .hljs-meta { color: #8b949e; }
 
 .markdown-content table {
   @apply w-full mb-6 border-collapse;

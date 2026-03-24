@@ -190,6 +190,8 @@ model SiteConfig {
   socialTwitter      String?
   socialLinkedin     String?
   socialWeibo        String?
+  aboutImage1        String?  // About 页面左上图片 URL
+  aboutImage2        String?  // About 页面右下图片 URL
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

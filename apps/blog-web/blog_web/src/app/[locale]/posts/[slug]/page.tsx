@@ -3,11 +3,15 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import { getArticleBySlug, getArticleSlugs } from '@/lib/api'
+import { parseTocItems, slugify } from '@/lib/toc'
 import type { Metadata } from 'next'
 import ReadingProgress from '@/components/ReadingProgress'
+import ArticleToc from '@/components/ArticleToc'
 import Comments from '@/components/Comments'
+import PrevNextNav from '@/components/PrevNextNav'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
@@ -50,9 +54,12 @@ export default async function PostPage({ params }: PostPageProps) {
 
   if (!post) notFound()
 
+  const tocItems = parseTocItems(post.content)
+
   return (
     <article className="min-h-screen bg-white dark:bg-slate-950 pb-32 animate-page-fade">
       <ReadingProgress />
+      <ArticleToc items={tocItems} />
 
       <div className="max-w-3xl mx-auto px-6 pt-12">
         <Link
@@ -113,7 +120,21 @@ export default async function PostPage({ params }: PostPageProps) {
           )}
 
           <div className="markdown-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+              components={{
+                h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
+                  <h1 id={slugify(String(children))} {...props}>{children}</h1>
+                ),
+                h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
+                  <h2 id={slugify(String(children))} {...props}>{children}</h2>
+                ),
+                h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
+                  <h3 id={slugify(String(children))} {...props}>{children}</h3>
+                ),
+              }}
+            >
               {post.content}
             </ReactMarkdown>
           </div>
@@ -130,6 +151,8 @@ export default async function PostPage({ params }: PostPageProps) {
             </div>
           </div>
         )}
+
+        <PrevNextNav prevArticle={post.prevArticle} nextArticle={post.nextArticle} />
 
         <Comments slug={slug} />
       </div>
