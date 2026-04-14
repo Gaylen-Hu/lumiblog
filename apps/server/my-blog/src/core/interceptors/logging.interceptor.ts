@@ -3,29 +3,40 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+import { StructuredLogger } from '../logger/structured-logger.service';
 
 /**
  * 全局日志拦截器
- * 记录请求和响应信息
+ * 记录请求和响应的结构化日志信息
  */
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(LoggingInterceptor.name);
+  constructor(private readonly logger: StructuredLogger) {
+    this.logger.setContext(LoggingInterceptor.name);
+  }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context.switchToHttp().getRequest<Request>();
+    const httpCtx = context.switchToHttp();
+    const request = httpCtx.getRequest<Request>();
     const { method, url } = request;
     const startTime = Date.now();
 
     return next.handle().pipe(
       tap(() => {
-        const duration = Date.now() - startTime;
-        this.logger.log(`${method} ${url} - ${duration}ms`);
+        const response = httpCtx.getResponse<Response>();
+        const statusCode: number = response.statusCode;
+        const duration: number = Date.now() - startTime;
+
+        this.logger.log('HTTP request completed', {
+          method,
+          url,
+          statusCode,
+          duration,
+        });
       }),
     );
   }

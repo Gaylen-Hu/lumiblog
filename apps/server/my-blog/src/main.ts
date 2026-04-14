@@ -2,10 +2,16 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { StructuredLogger } from './core';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(StructuredLogger));
+
+  // 安全头：防 XSS、clickjacking、MIME 嗅探等
+  app.use(helmet());
 
   // 增大 body 限制，防止大内容（如文章正文、base64 图片）触发 400
   app.use(json({ limit: '10mb' }));

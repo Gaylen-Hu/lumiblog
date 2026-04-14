@@ -2,7 +2,8 @@ import { Module, Global } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { HttpExceptionFilter } from './filters';
 import { LoggingInterceptor } from './interceptors';
-import { AppLogger } from './logger';
+import { LoggerModule } from './logger/logger.module';
+import { StructuredLogger } from './logger/structured-logger.service';
 import { RequestContextService } from './context';
 
 /**
@@ -11,6 +12,7 @@ import { RequestContextService } from './context';
  */
 @Global()
 @Module({
+  imports: [LoggerModule],
   providers: [
     {
       provide: APP_FILTER,
@@ -20,9 +22,8 @@ import { RequestContextService } from './context';
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
     },
-    AppLogger,
     RequestContextService,
   ],
-  exports: [AppLogger, RequestContextService],
+  exports: [StructuredLogger, RequestContextService],
 })
 export class CoreModule {}

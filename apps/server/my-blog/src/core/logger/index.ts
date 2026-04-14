@@ -1,1 +1,2 @@
-export { AppLogger } from './app-logger.service';
+export { StructuredLogger } from './structured-logger.service';
+export { LoggerModule } from './logger.module';
