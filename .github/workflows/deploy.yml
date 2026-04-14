@@ -27,7 +27,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Install server dependencies
         working-directory: apps/server/my-blog
@@ -69,10 +69,10 @@ jobs:
             git clean -fd
             echo "当前 commit: $(git rev-parse --short HEAD)"
 
-            # 执行部署脚本
+            # 执行部署脚本（跳过 git 操作，CI 已处理）
             echo "=== 开始部署 ==="
             chmod +x deploy.sh
-            ./deploy.sh
+            SKIP_GIT=true ./deploy.sh
 
             echo "=== 部署完成 ==="
             pm2 list

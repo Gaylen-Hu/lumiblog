@@ -22,6 +22,7 @@ BACKEND_PORT="${BACKEND_PORT:-3000}"
 BLOG_PORT="${BLOG_PORT:-3001}"
 ADMIN_PORT="${ADMIN_PORT:-8002}"
 MCP_PORT="${MCP_PORT:-4000}"
+SKIP_GIT="${SKIP_GIT:-false}"  # CI 环境下设为 true 跳过 git 操作
 
 # 日志函数
 log_info() {
@@ -95,19 +96,24 @@ fi
 log_info "使用包管理器: $INSTALL_CMD"
 
 # ========================================
-# 1. 从git拉取最新代码
+# 1. 从git拉取最新代码（CI 环境下跳过）
 # ========================================
-log_step "步骤 1/6: 从git拉取最新代码"
+if [ "$SKIP_GIT" = "true" ]; then
+    log_step "步骤 1/6: 跳过 git 操作（CI 已处理）"
+    log_info "当前 commit: $(git rev-parse --short HEAD)"
+else
+    log_step "步骤 1/6: 从git拉取最新代码"
 
-# 检查是否有未提交的本地修改
-if ! git diff --quiet || ! git diff --cached --quiet; then
-    log_warn "检测到本地未提交的修改，将被 stash 暂存"
-    git stash push -m "deploy-script-auto-stash-$(date +%Y%m%d%H%M%S)"
+    # 检查是否有未提交的本地修改
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        log_warn "检测到本地未提交的修改，将被 stash 暂存"
+        git stash push -m "deploy-script-auto-stash-$(date +%Y%m%d%H%M%S)"
+    fi
+
+    git fetch origin
+    git pull origin "$GIT_BRANCH"
+    log_info "当前 commit: $(git rev-parse --short HEAD)"
 fi
-
-git fetch origin
-git pull origin "$GIT_BRANCH"
-log_info "当前 commit: $(git rev-parse --short HEAD)"
 
 # ========================================
 # 2. 后端服务部署 (NestJS API)
@@ -118,8 +124,11 @@ cd "$PROJECT_ROOT/apps/server/my-blog"
 log_info "安装后端依赖..."
 $INSTALL_CMD install --frozen-lockfile 2>/dev/null || $INSTALL_CMD install
 
+log_info "生成 Prisma Client..."
+$INSTALL_CMD exec prisma generate
+
 log_info "构建后端..."
-$INSTALL_CMD run build
+NODE_OPTIONS="--max-old-space-size=512" $INSTALL_CMD run build
 
 # 验证构建产物
 if [ ! -f "dist/src/main.js" ]; then
@@ -134,7 +143,8 @@ else
     log_info "首次启动后端服务 (my-blog-api), 端口: $BACKEND_PORT..."
     pm2 start dist/src/main.js \
         --name my-blog-api \
-        --max-memory-restart 512M \
+        --max-memory-restart 300M \
+        --node-args="--max-old-space-size=256" \
         --log-date-format "YYYY-MM-DD HH:mm:ss"
 fi
 
@@ -161,7 +171,7 @@ log_info "安装管理后台依赖..."
 $INSTALL_CMD install --frozen-lockfile 2>/dev/null || $INSTALL_CMD install
 
 log_info "构建管理后台..."
-NODE_ENV=production UMI_ENV=prod $INSTALL_CMD run build
+NODE_OPTIONS="--max-old-space-size=512" NODE_ENV=production UMI_ENV=prod $INSTALL_CMD run build
 
 # 验证构建产物
 if [ ! -d "dist" ]; then
@@ -176,14 +186,15 @@ if ! command -v serve &> /dev/null; then
 fi
 
 # 创建 serve 启动脚本（解决 ESM 兼容性问题）
-cat > "$PROJECT_ROOT/apps/admin-web/myapp/dist/serve.cjs" << 'EOF'
+cat > "$PROJECT_ROOT/apps/admin-web/myapp/dist/serve.cjs" << 'SERVEOF'
 const { spawn } = require('child_process');
 const path = require('path');
 
-const servePath = path.join(__dirname, '../node_modules/.bin/serve');
-const distPath = path.join(__dirname);
+const distPath = path.resolve(__dirname);
+const port = process.env.ADMIN_PORT || '8002';
 
-const child = spawn(servePath, [distPath, '-l', process.env.ADMIN_PORT || '8002'], {
+// 优先使用全局 serve，回退到本地 node_modules
+const child = spawn('serve', [distPath, '-l', port, '-s'], {
   stdio: 'inherit',
   shell: true
 });
@@ -192,7 +203,11 @@ child.on('error', (err) => {
   console.error('Failed to start serve:', err);
   process.exit(1);
 });
-EOF
+
+child.on('exit', (code) => {
+  process.exit(code || 0);
+});
+SERVEOF
 
 if pm2 list | grep -q "admin-web"; then
     log_info "重启管理后台服务 (admin-web)..."
@@ -216,7 +231,7 @@ log_info "安装前端依赖..."
 $INSTALL_CMD install --frozen-lockfile 2>/dev/null || $INSTALL_CMD install
 
 log_info "构建前端..."
-$INSTALL_CMD run build
+NODE_OPTIONS="--max-old-space-size=512" $INSTALL_CMD run build
 
 # 验证构建产物
 if [ ! -d ".next" ]; then
@@ -231,7 +246,7 @@ else
     log_info "首次启动前端服务 (blog-web), 端口: $BLOG_PORT..."
     PORT=$BLOG_PORT NODE_ENV=production pm2 start npm \
         --name blog-web \
-        --max-memory-restart 512M \
+        --max-memory-restart 300M \
         --log-date-format "YYYY-MM-DD HH:mm:ss" \
         -- start
 fi
