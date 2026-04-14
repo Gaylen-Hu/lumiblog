@@ -3,7 +3,6 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { HttpExceptionFilter } from './filters';
 import { LoggingInterceptor } from './interceptors';
 import { LoggerModule } from './logger/logger.module';
-import { StructuredLogger } from './logger/structured-logger.service';
 import { RequestContextService } from './context';
 
 /**
@@ -24,6 +23,6 @@ import { RequestContextService } from './context';
     },
     RequestContextService,
   ],
-  exports: [StructuredLogger, RequestContextService],
+  exports: [RequestContextService],
 })
 export class CoreModule {}
