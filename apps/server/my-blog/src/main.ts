@@ -8,7 +8,8 @@ import { StructuredLogger } from './core';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(StructuredLogger));
+  const logger = await app.resolve(StructuredLogger);
+  app.useLogger(logger);
 
   // 安全头：防 XSS、clickjacking、MIME 嗅探等
   app.use(helmet());
