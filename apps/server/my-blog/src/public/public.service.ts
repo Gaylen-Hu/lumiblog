@@ -117,19 +117,25 @@ export class PublicService {
 
     const [prev, next] = await Promise.all([
       this.prisma.article.findFirst({
-        where: { isPublished: true, publishedAt: { lt: article.publishedAt } },
+        where: {
+          isPublished: true,
+          publishedAt: { not: null, lt: article.publishedAt ?? new Date() },
+        },
         orderBy: { publishedAt: 'desc' },
         select: { slug: true, title: true, publishedAt: true },
       }),
       this.prisma.article.findFirst({
-        where: { isPublished: true, publishedAt: { gt: article.publishedAt } },
+        where: {
+          isPublished: true,
+          publishedAt: { not: null, gt: article.publishedAt ?? new Date() },
+        },
         orderBy: { publishedAt: 'asc' },
         select: { slug: true, title: true, publishedAt: true },
       }),
     ]);
 
-    const prevArticle = prev ? new ArticleNavItemDto(prev) : null;
-    const nextArticle = next ? new ArticleNavItemDto(next) : null;
+    const prevArticle = prev ? new ArticleNavItemDto({ slug: prev.slug, title: prev.title, publishedAt: prev.publishedAt! }) : null;
+    const nextArticle = next ? new ArticleNavItemDto({ slug: next.slug, title: next.title, publishedAt: next.publishedAt! }) : null;
 
     return this.toArticleDetail(article, prevArticle, nextArticle);
   }

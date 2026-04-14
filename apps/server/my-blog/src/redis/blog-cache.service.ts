@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 
 /**
  * 缓存服务封装 - 提供带日志和降级的 Redis 缓存操作

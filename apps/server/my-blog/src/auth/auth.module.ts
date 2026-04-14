@@ -17,16 +17,12 @@ import { ApiKeyModule } from '../api-key/api-key.module';
     ApiKeyModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService): JwtModuleOptions => {
-        const expiresIn =
-          configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m';
-        return {
-          secret: configService.get<string>('JWT_SECRET'),
-          signOptions: {
-            expiresIn,
-          },
-        };
-      },
+      useFactory: (configService: ConfigService): JwtModuleOptions => ({
+        secret: configService.get<string>('JWT_SECRET') || 'default-secret',
+        signOptions: {
+          expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m') as any,
+        },
+      }),
       inject: [ConfigService],
     }),
   ],

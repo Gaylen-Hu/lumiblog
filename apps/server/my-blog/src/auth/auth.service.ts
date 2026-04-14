@@ -50,12 +50,7 @@ export class AuthService {
 
   async login(user: SafeUser): Promise<TokenPairResponse> {
     const payload: JwtPayload = { sub: user.id, email: user.email };
-    const expiresIn = this.configService.get<string>(
-      'JWT_ACCESS_EXPIRES_IN',
-      '15m',
-    );
-
-    const accessToken = this.jwtService.sign(payload, { expiresIn });
+    const accessToken = this.jwtService.sign(payload);
     const refreshToken = await this.refreshTokenService.createRefreshToken(
       user.id,
     );
@@ -99,11 +94,7 @@ export class AuthService {
     }
 
     const payload: JwtPayload = { sub: user.id, email: user.email };
-    const expiresIn = this.configService.get<string>(
-      'JWT_ACCESS_EXPIRES_IN',
-      '15m',
-    );
-    const accessToken = this.jwtService.sign(payload, { expiresIn });
+    const accessToken = this.jwtService.sign(payload);
 
     return {
       access_token: accessToken,

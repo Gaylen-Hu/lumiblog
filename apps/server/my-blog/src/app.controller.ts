@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { AppService } from './app.service';
+import { AppService, HealthStatus } from './app.service';
 
 @Controller()
 export class AppController {
@@ -16,7 +16,7 @@ export class AppController {
   @ApiResponse({ status: 200, description: '服务正常' })
   @ApiResponse({ status: 503, description: '服务异常' })
   @Get('health')
-  async getHealth() {
+  async getHealth(): Promise<HealthStatus> {
     return this.appService.getHealth();
   }
 }
