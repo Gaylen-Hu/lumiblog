@@ -92,7 +92,6 @@ describe('AuthService (refresh/logout)', () => {
       });
       expect(mockJwtService.sign).toHaveBeenCalledWith(
         { sub: 'user-1', email: 'admin@example.com' },
-        { expiresIn: '15m' },
       );
       expect(mockRefreshTokenService.createRefreshToken).toHaveBeenCalledWith(
         'user-1',
@@ -173,7 +172,6 @@ describe('AuthService (refresh/logout)', () => {
       });
       expect(mockJwtService.sign).toHaveBeenCalledWith(
         { sub: 'user-1', email: 'admin@example.com' },
-        { expiresIn: '15m' },
       );
     });
 

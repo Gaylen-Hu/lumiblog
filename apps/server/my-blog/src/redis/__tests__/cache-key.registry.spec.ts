@@ -21,7 +21,7 @@ describe('CacheKeyRegistry - Property 2: 键注册表不变量', () => {
   const allStringValues = allKeys
     .map((key) => ({
       name: key,
-      value: (CacheKeyRegistry as Record<string, unknown>)[key],
+      value: (CacheKeyRegistry as unknown as Record<string, unknown>)[key],
     }))
     .filter((entry): entry is { name: string; value: string } =>
       typeof entry.value === 'string',
@@ -72,7 +72,7 @@ describe('CacheKeyRegistry - Property 2: 键注册表不变量', () => {
         fc.constantFrom(...cacheKeys),
         (keyName) => {
           const ttlName = `${keyName}_TTL`;
-          const ttlValue = (CacheKeyRegistry as Record<string, unknown>)[
+          const ttlValue = (CacheKeyRegistry as unknown as Record<string, unknown>)[
             ttlName
           ];
           expect(ttlValue).toBeDefined();

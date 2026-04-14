@@ -33,6 +33,10 @@ describe('LocalStrategy', () => {
         id: '1',
         email: 'admin@example.com',
         name: 'Admin',
+        role: 'ADMIN',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockAuthService.validateUser.mockResolvedValue(user);
 

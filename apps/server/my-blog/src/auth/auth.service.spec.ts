@@ -140,7 +140,6 @@ describe('AuthService', () => {
       });
       expect(jwtService.sign).toHaveBeenCalledWith(
         { sub: '1', email: 'admin@example.com' },
-        { expiresIn: '15m' },
       );
     });
   });

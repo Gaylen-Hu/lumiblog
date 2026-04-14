@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
-import { UserService, SafeUser } from './user.service';
+import { UserService } from './user.service';
 import { UserRole } from './dto/create-user.dto';
+import { User as PrismaUser } from '@prisma/client';
+
+type SafeUser = Omit<PrismaUser, 'password'>;
 
 describe('UserController', () => {
   let controller: UserController;
@@ -12,6 +15,7 @@ describe('UserController', () => {
     email: 'test@example.com',
     name: 'Test User',
     role: UserRole.VIEWER,
+    avatar: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

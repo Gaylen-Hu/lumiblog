@@ -28,7 +28,10 @@ describe('Property 1: Login produces a valid token pair', () => {
         AuthService,
         {
           provide: JwtService,
-          useValue: new JwtService({ secret: TEST_JWT_SECRET }),
+          useValue: new JwtService({
+            secret: TEST_JWT_SECRET,
+            signOptions: { expiresIn: '15m' },
+          }),
         },
         {
           provide: UserService,
