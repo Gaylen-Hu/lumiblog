@@ -228,7 +228,7 @@ else
         --log-date-format "YYYY-MM-DD HH:mm:ss"
 fi
 
-health_check "my-blog-api" "http://localhost:$BACKEND_PORT/health" 15 2
+health_check "my-blog-api" "http://localhost:$BACKEND_PORT/v1/health" 15 2
 
 # ========================================
 # 3. 管理后台部署 (Ant Design Pro)
