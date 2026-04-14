@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { TokenPairResponseDto } from './refresh-token.dto';
 
 export class LoginDto {
   @ApiProperty({
@@ -21,13 +22,7 @@ export class LoginDto {
   password: string;
 }
 
-export class LoginResponseDto {
-  @ApiProperty({
-    description: 'JWT 访问令牌',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-  })
-  access_token: string;
-}
+export class LoginResponseDto extends TokenPairResponseDto {}
 
 export class ProfileResponseDto {
   @ApiProperty({ description: '用户 ID', example: 'clxxx...' })

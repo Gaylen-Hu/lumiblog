@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
+import { RefreshTokenService } from './refresh-token.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -11,6 +13,22 @@ describe('AuthService', () => {
 
   const mockJwtService = {
     sign: jest.fn().mockReturnValue('mock-jwt-token'),
+  };
+
+  const mockRefreshTokenService = {
+    createRefreshToken: jest.fn().mockResolvedValue('a'.repeat(64)),
+    validateAndConsume: jest.fn(),
+    revokeAllUserTokens: jest.fn().mockResolvedValue(0),
+    validateTokenFormat: jest.fn().mockReturnValue(true),
+  };
+
+  const mockConfigService = {
+    get: jest.fn((key: string, defaultValue: unknown) => {
+      const config: Record<string, unknown> = {
+        JWT_ACCESS_EXPIRES_IN: '15m',
+      };
+      return config[key] ?? defaultValue;
+    }),
   };
 
   beforeEach(async () => {
@@ -24,6 +42,8 @@ describe('AuthService', () => {
         AuthService,
         { provide: JwtService, useValue: mockJwtService },
         { provide: UserService, useValue: userService },
+        { provide: RefreshTokenService, useValue: mockRefreshTokenService },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -111,16 +131,17 @@ describe('AuthService', () => {
       // Assert
       expect(result).toEqual({
         access_token: 'mock-jwt-token',
+        refresh_token: 'a'.repeat(64),
         user: {
           id: '1',
           email: 'admin@example.com',
           name: 'Admin',
         },
       });
-      expect(jwtService.sign).toHaveBeenCalledWith({
-        sub: '1',
-        email: 'admin@example.com',
-      });
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        { sub: '1', email: 'admin@example.com' },
+        { expiresIn: '15m' },
+      );
     });
   });
 });

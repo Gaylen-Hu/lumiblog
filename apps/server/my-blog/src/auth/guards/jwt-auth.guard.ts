@@ -1,5 +1,4 @@
 import {
-  CanActivate,
   ExecutionContext,
   Injectable,
   UnauthorizedException,
@@ -42,5 +41,21 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     // 否则走 Passport JWT 验证
     return super.canActivate(context) as Promise<boolean>;
+  }
+
+  handleRequest<TUser>(err: Error | null, user: TUser, info: Error | null): TUser {
+    if (info?.name === 'TokenExpiredError') {
+      throw new UnauthorizedException({
+        statusCode: 401,
+        message: 'Token expired',
+        error: 'TOKEN_EXPIRED',
+      });
+    }
+
+    if (err || !user) {
+      throw err || new UnauthorizedException();
+    }
+
+    return user;
   }
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CategoryService } from '../category.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BlogCacheService } from '../../redis';
 
 function buildMockCategory(overrides: Partial<{
   id: string;
@@ -47,6 +48,7 @@ describe('CategoryService', () => {
       count: jest.Mock;
     };
   };
+  let blogCacheService: { del: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -61,10 +63,15 @@ describe('CategoryService', () => {
       },
     };
 
+    blogCacheService = {
+      del: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CategoryService,
         { provide: PrismaService, useValue: prisma },
+        { provide: BlogCacheService, useValue: blogCacheService },
       ],
     }).compile();
 
@@ -87,6 +94,7 @@ describe('CategoryService', () => {
       expect(actual.level).toBe(1);
       expect(actual.path).toBe('/tech');
       expect(actual.parentId).toBeNull();
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:public:categories');
     });
 
     it('应该成功创建子分类', async () => {
@@ -203,6 +211,7 @@ describe('CategoryService', () => {
       // Assert
       expect(actual.name).toBe('科技');
       expect(actual.slug).toBe('tech');
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:public:categories');
     });
 
     it('应该在更新 slug 时更新路径', async () => {
@@ -229,6 +238,7 @@ describe('CategoryService', () => {
 
       // Act & Assert
       await expect(service.remove('cat-1')).resolves.toBeUndefined();
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:public:categories');
     });
 
     it('应该在存在子分类时抛出 BadRequestException', async () => {

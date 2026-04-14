@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BlogCacheService, CacheKeyRegistry } from '../redis';
 import { CreateCategoryParams, UpdateCategoryParams } from './domain/category.model';
 import { CategoryResponseDto, CategoryTreeNodeDto } from './dto';
 import { Category } from '@prisma/client';
@@ -17,7 +18,10 @@ const MAX_CATEGORY_LEVEL = 3;
 export class CategoryService {
   private readonly logger = new Logger(CategoryService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blogCacheService: BlogCacheService,
+  ) {}
 
   /**
    * 创建分类
@@ -51,6 +55,7 @@ export class CategoryService {
     });
 
     this.logger.log(`分类创建成功: ${category.id}`);
+    await this.blogCacheService.del(CacheKeyRegistry.PUBLIC_CATEGORIES);
     return this.toResponseDto(category);
   }
 
@@ -124,6 +129,7 @@ export class CategoryService {
     }
 
     this.logger.log(`分类更新成功: ${id}`);
+    await this.blogCacheService.del(CacheKeyRegistry.PUBLIC_CATEGORIES);
     return this.toResponseDto(category);
   }
 
@@ -142,6 +148,7 @@ export class CategoryService {
 
     await this.prisma.category.delete({ where: { id } });
     this.logger.log(`分类删除成功: ${id}`);
+    await this.blogCacheService.del(CacheKeyRegistry.PUBLIC_CATEGORIES);
   }
 
   private async findById(id: string): Promise<Category> {

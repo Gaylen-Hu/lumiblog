@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as fc from 'fast-check';
 import { SiteConfigService } from '../site-config.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BlogCacheService } from '../../redis';
 
 describe('SiteConfigService', () => {
   let service: SiteConfigService;
   let prisma: Record<string, any>;
+  let blogCacheService: Record<string, jest.Mock>;
 
   const mockConfigId = 'config-001';
   const now = new Date('2024-01-01');
@@ -50,10 +52,16 @@ describe('SiteConfigService', () => {
       },
     };
 
+    blogCacheService = {
+      wrap: jest.fn((_key: string, fn: () => Promise<unknown>, _ttl: number) => fn()),
+      del: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SiteConfigService,
         { provide: PrismaService, useValue: prisma },
+        { provide: BlogCacheService, useValue: blogCacheService },
       ],
     }).compile();
 
@@ -269,6 +277,56 @@ describe('SiteConfigService', () => {
         ),
         { numRuns: 100 },
       );
+    });
+  });
+
+  // ============ 缓存相关单元测试 ============
+  // **Validates: Requirements 2.1, 2.2, 2.5**
+
+  describe('缓存集成', () => {
+    it('getConfig 应使用 blogCacheService.wrap 包裹数据库查询', async () => {
+      // Arrange
+      prisma.siteConfig.findFirst.mockResolvedValue(mockSiteConfig);
+
+      // Act
+      await service.getConfig();
+
+      // Assert
+      expect(blogCacheService.wrap).toHaveBeenCalledTimes(1);
+      expect(blogCacheService.wrap).toHaveBeenCalledWith(
+        'blog:site-config',
+        expect.any(Function),
+        3600,
+      );
+    });
+
+    it('getConfig 缓存命中时不应查询数据库', async () => {
+      // Arrange — wrap 直接返回缓存数据，不调用 fn
+      const cachedData = { ...mockSiteConfig, title: 'Cached Title' };
+      blogCacheService.wrap.mockResolvedValue(cachedData);
+
+      // Act
+      const result = await service.getConfig();
+
+      // Assert
+      expect(result).toEqual(cachedData);
+      expect(prisma.siteConfig.findFirst).not.toHaveBeenCalled();
+      expect(prisma.siteConfig.create).not.toHaveBeenCalled();
+    });
+
+    it('updateConfig 应在更新后清除缓存', async () => {
+      // Arrange
+      const updateDto = { title: 'Updated Title' };
+      const updatedConfig = { ...mockSiteConfig, ...updateDto };
+      prisma.siteConfig.findFirst.mockResolvedValue(mockSiteConfig);
+      prisma.siteConfig.update.mockResolvedValue(updatedConfig);
+
+      // Act
+      await service.updateConfig(updateDto);
+
+      // Assert
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:site-config');
+      expect(blogCacheService.del).toHaveBeenCalledTimes(1);
     });
   });
 

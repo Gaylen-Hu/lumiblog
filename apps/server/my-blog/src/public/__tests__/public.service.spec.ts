@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PublicService } from '../public.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SiteConfigService } from '../../site-config/site-config.service';
+import { BlogCacheService } from '../../redis';
 import * as fc from 'fast-check';
 
 // ─── Mock article builder ───────────────────────────────────────────
@@ -72,6 +73,12 @@ describe('PublicService', () => {
     project: { findMany: jest.Mock; count: jest.Mock };
   };
   let siteConfigService: { getConfig: jest.Mock };
+  let blogCacheService: {
+    get: jest.Mock;
+    set: jest.Mock;
+    del: jest.Mock;
+    wrap: jest.Mock;
+  };
 
   beforeEach(async () => {
     prisma = {
@@ -89,12 +96,19 @@ describe('PublicService', () => {
       },
     };
     siteConfigService = { getConfig: jest.fn() };
+    blogCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      wrap: jest.fn().mockImplementation((_key: string, fn: () => Promise<unknown>) => fn()),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PublicService,
         { provide: PrismaService, useValue: prisma },
         { provide: SiteConfigService, useValue: siteConfigService },
+        { provide: BlogCacheService, useValue: blogCacheService },
       ],
     }).compile();
 
@@ -557,6 +571,70 @@ describe('PublicService', () => {
       expect(result.socialLinks.twitter).toBeUndefined();
       expect(result.socialLinks.linkedin).toBeUndefined();
       expect(result.socialLinks.weibo).toBeUndefined();
+    });
+  });
+
+  // ─── 缓存集成测试 ─────────────────────────────────────────────
+
+  describe('缓存集成', () => {
+    it('getCategories 应使用 blogCacheService.wrap 包裹数据库查询', async () => {
+      // Arrange
+      prisma.category.findMany.mockResolvedValue([]);
+
+      // Act
+      await service.getCategories();
+
+      // Assert
+      expect(blogCacheService.wrap).toHaveBeenCalledWith(
+        'blog:public:categories',
+        expect.any(Function),
+        1800,
+      );
+    });
+
+    it('getCategories 缓存命中时不应查询数据库', async () => {
+      // Arrange — wrap returns cached data directly without calling fn
+      const cachedData = {
+        data: [{ id: 'cat-1', name: '技术', slug: 'tech', description: null, articleCount: 5 }],
+      };
+      blogCacheService.wrap.mockResolvedValue(cachedData);
+
+      // Act
+      const result = await service.getCategories();
+
+      // Assert
+      expect(result).toBe(cachedData);
+      expect(prisma.category.findMany).not.toHaveBeenCalled();
+    });
+
+    it('getTags 应使用 blogCacheService.wrap 包裹数据库查询', async () => {
+      // Arrange
+      prisma.tag.findMany.mockResolvedValue([]);
+
+      // Act
+      await service.getTags();
+
+      // Assert
+      expect(blogCacheService.wrap).toHaveBeenCalledWith(
+        'blog:public:tags',
+        expect.any(Function),
+        1800,
+      );
+    });
+
+    it('getTags 缓存命中时不应查询数据库', async () => {
+      // Arrange — wrap returns cached data directly without calling fn
+      const cachedData = {
+        data: [{ id: 'tag-1', name: 'TypeScript', slug: 'typescript', articleCount: 10 }],
+      };
+      blogCacheService.wrap.mockResolvedValue(cachedData);
+
+      // Act
+      const result = await service.getTags();
+
+      // Assert
+      expect(result).toBe(cachedData);
+      expect(prisma.tag.findMany).not.toHaveBeenCalled();
     });
   });
 

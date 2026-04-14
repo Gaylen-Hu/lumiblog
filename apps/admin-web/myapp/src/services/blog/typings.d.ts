@@ -229,6 +229,17 @@ declare namespace BlogAPI {
     autoUpdated: boolean;
   }
 
+  // AI 文生图
+  interface ImageGenerationParams {
+    prompt: string;
+    size?: '512x512' | '1024x1024' | '2K';
+    watermark?: boolean;
+  }
+
+  interface ImageGenerationResponse {
+    url: string;
+  }
+
   // 发布到微信
   interface PublishToWechatParams {
     author?: string;

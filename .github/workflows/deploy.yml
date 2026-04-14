@@ -11,9 +11,40 @@ env:
   GIT_BRANCH: main  # 你的 git 分支名称
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install server dependencies
+        working-directory: apps/server/my-blog
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        working-directory: apps/server/my-blog
+        run: pnpm exec prisma generate
+
+      - name: Run tests
+        working-directory: apps/server/my-blog
+        run: pnpm test --no-coverage
+
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 设置超时时间
+    needs: test  # deploy 仅在 test 通过后执行
+    timeout-minutes: 30
 
     steps:
       - name: Deploy to Server

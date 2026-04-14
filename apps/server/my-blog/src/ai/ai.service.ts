@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import {
   DOUBAO_API_BASE_URL,
   DOUBAO_DEFAULT_MODEL,
+  DOUBAO_IMAGE_GEN_MODEL,
+  IMAGE_GEN_TIMEOUT,
   TRANSLATE_SYSTEM_PROMPT,
   SEO_SYSTEM_PROMPT,
   MAX_RETRIES,
@@ -19,6 +21,9 @@ import {
   SeoOptimizeDto,
   SeoOptimizeResponseDto,
   TargetLanguage,
+  ImageGenerationDto,
+  ImageGenerationResponseDto,
+  ImageSize,
 } from './dto';
 
 /** 豆包 Responses API 响应结构 */
@@ -30,6 +35,15 @@ interface DoubaoResponsesApiResponse {
       type: string;
       text?: string;
     }>;
+  }>;
+}
+
+/** 豆包文生图 API 响应结构 */
+interface DoubaoImageGenResponse {
+  created: number;
+  data: Array<{
+    url?: string;
+    b64_json?: string;
   }>;
 }
 
@@ -224,5 +238,85 @@ ${params.content}`;
       systemPrompt,
     );
     return this.executeDoubaoRequest(input, '豆包多模态');
+  }
+
+  /**
+   * 调用豆包文生图 API
+   */
+  async generateImage(
+    params: ImageGenerationDto,
+  ): Promise<ImageGenerationResponseDto> {
+    const apiKey = this.configService.get<string>('DOUBAO_API_KEY');
+    if (!apiKey) {
+      throw new ServiceUnavailableException('豆包 API Key 未配置');
+    }
+
+    const model = this.configService.get<string>(
+      'DOUBAO_IMAGE_GEN_MODEL',
+      DOUBAO_IMAGE_GEN_MODEL,
+    );
+
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          IMAGE_GEN_TIMEOUT,
+        );
+
+        const response = await fetch(
+          `${DOUBAO_API_BASE_URL}/images/generations`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              prompt: params.prompt,
+              response_format: 'url',
+              size: params.size ?? ImageSize['1024x1024'],
+              watermark: params.watermark ?? true,
+            }),
+            signal: controller.signal,
+          },
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `文生图 API 错误: ${response.status} - ${errorText}`,
+          );
+        }
+
+        const data = (await response.json()) as DoubaoImageGenResponse;
+        const imageUrl = data.data?.[0]?.url;
+
+        if (!imageUrl) {
+          throw new Error('文生图返回内容为空');
+        }
+
+        this.logger.log(`文生图调用成功，尝试次数: ${attempt}`);
+        return new ImageGenerationResponseDto(imageUrl);
+      } catch (error) {
+        lastError = error as Error;
+        this.logger.warn(
+          `文生图调用失败，尝试 ${attempt}/${MAX_RETRIES}: ${lastError.message}`,
+        );
+        if (attempt < MAX_RETRIES) {
+          await this.delay(1000 * attempt);
+        }
+      }
+    }
+
+    this.logger.error('文生图调用最终失败', lastError);
+    throw new ServiceUnavailableException(
+      '文生图服务暂时不可用，请稍后重试',
+    );
   }
 }

@@ -14,6 +14,10 @@ import {
   DoubaoImagePromptDto,
   DoubaoResponseDto,
 } from './dto/doubao.dto';
+import {
+  ImageGenerationDto,
+  ImageGenerationResponseDto,
+} from './dto/image-generation.dto';
 
 @ApiTags('AI')
 @ApiBearerAuth('JWT-auth')
@@ -64,5 +68,16 @@ export class AiController {
       dto.systemPrompt,
     );
     return new DoubaoResponseDto(content);
+  }
+
+  @ApiOperation({ summary: 'AI 文生图', description: '使用豆包 AI 根据提示词生成图片' })
+  @ApiResponse({ status: 200, description: '生成成功', type: ImageGenerationResponseDto })
+  @ApiResponse({ status: 400, description: '参数错误' })
+  @ApiResponse({ status: 503, description: 'AI 服务不可用' })
+  @Post('image/generate')
+  async generateImage(
+    @Body() dto: ImageGenerationDto,
+  ): Promise<ImageGenerationResponseDto> {
+    return this.aiService.generateImage(dto);
   }
 }

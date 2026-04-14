@@ -5,6 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { OssService } from '../oss.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { FileCategory } from '../dto';
 import { OSS_SIGNATURE_EXPIRE, FILE_SIZE_LIMITS } from '../oss.constants';
 
@@ -40,6 +41,26 @@ describe('OssService', () => {
       providers: [
         OssService,
         { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: PrismaService,
+          useValue: {
+            media: {
+              create: jest.fn().mockImplementation(({ data }) => 
+                Promise.resolve({
+                  id: 'media-1',
+                  filename: data.filename,
+                  originalName: data.originalName,
+                  mimeType: data.mimeType,
+                  size: data.size,
+                  url: data.url,
+                  storageType: data.storageType,
+                  storagePath: data.storagePath,
+                  mediaType: data.mediaType,
+                }),
+              ),
+            },
+          },
+        },
       ],
     }).compile();
 

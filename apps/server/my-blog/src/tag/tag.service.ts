@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BlogCacheService, CacheKeyRegistry } from '../redis';
 import { CreateTagParams, UpdateTagParams } from './domain/tag.model';
 import { TagResponseDto } from './dto';
 import { Tag } from '@prisma/client';
@@ -13,7 +14,10 @@ import { Tag } from '@prisma/client';
 export class TagService {
   private readonly logger = new Logger(TagService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly blogCacheService: BlogCacheService,
+  ) {}
 
   /**
    * 创建标签
@@ -31,6 +35,7 @@ export class TagService {
     });
 
     this.logger.log(`标签创建成功: ${tag.id}`);
+    await this.blogCacheService.del(CacheKeyRegistry.PUBLIC_TAGS);
     return this.toResponseDto(tag);
   }
 
@@ -101,6 +106,7 @@ export class TagService {
     });
 
     this.logger.log(`标签更新成功: ${id}`);
+    await this.blogCacheService.del(CacheKeyRegistry.PUBLIC_TAGS);
     return this.toResponseDto(tag);
   }
 
@@ -111,6 +117,7 @@ export class TagService {
     await this.findById(id);
     await this.prisma.tag.delete({ where: { id } });
     this.logger.log(`标签删除成功: ${id}`);
+    await this.blogCacheService.del(CacheKeyRegistry.PUBLIC_TAGS);
   }
 
   /**

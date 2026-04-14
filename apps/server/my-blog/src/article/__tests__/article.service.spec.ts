@@ -67,6 +67,7 @@ describe('ArticleService', () => {
     articleTag: {
       deleteMany: jest.Mock;
     };
+    $transaction: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -83,6 +84,7 @@ describe('ArticleService', () => {
       articleTag: {
         deleteMany: jest.fn(),
       },
+      $transaction: jest.fn(async (fn: (prisma: unknown) => Promise<unknown>) => fn(prisma)),
     };
 
     const module: TestingModule = await Test.createTestingModule({

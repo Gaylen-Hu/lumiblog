@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { TagService } from '../tag.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BlogCacheService } from '../../redis';
 
 function buildMockTag(overrides: Partial<{
   id: string;
@@ -36,6 +37,7 @@ describe('TagService', () => {
       delete: jest.Mock;
     };
   };
+  let blogCacheService: { get: jest.Mock; set: jest.Mock; del: jest.Mock; wrap: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -49,10 +51,18 @@ describe('TagService', () => {
       },
     };
 
+    blogCacheService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn().mockResolvedValue(undefined),
+      wrap: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TagService,
         { provide: PrismaService, useValue: prisma },
+        { provide: BlogCacheService, useValue: blogCacheService },
       ],
     }).compile();
 
@@ -73,6 +83,7 @@ describe('TagService', () => {
       expect(actual.name).toBe('TypeScript');
       expect(actual.slug).toBe('typescript');
       expect(actual.articleCount).toBe(0);
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:public:tags');
     });
 
     it('应该在 slug 重复时抛出 ConflictException', async () => {
@@ -212,6 +223,7 @@ describe('TagService', () => {
       // Assert
       expect(actual.name).toBe('TS');
       expect(actual.slug).toBe('typescript');
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:public:tags');
     });
 
     it('应该在 slug 重复时抛出 ConflictException', async () => {
@@ -235,6 +247,7 @@ describe('TagService', () => {
       // Act & Assert
       await expect(service.remove('tag-1')).resolves.toBeUndefined();
       expect(prisma.tag.delete).toHaveBeenCalledWith({ where: { id: 'tag-1' } });
+      expect(blogCacheService.del).toHaveBeenCalledWith('blog:public:tags');
     });
   });
 

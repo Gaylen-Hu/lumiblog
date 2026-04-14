@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SiteConfigService } from '../site-config/site-config.service';
+import { BlogCacheService, CacheKeyRegistry } from '../redis';
 import {
   PublicArticleQueryDto,
   PublicArticleListItemDto,
@@ -55,6 +56,7 @@ export class PublicService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly siteConfigService: SiteConfigService,
+    private readonly blogCacheService: BlogCacheService,
   ) {}
 
   /**
@@ -170,52 +172,64 @@ export class PublicService {
    * 获取分类列表（含已发布文章数量）
    */
   async getCategories(): Promise<PublicCategoryListDto> {
-    const categories = await this.prisma.category.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        _count: { select: { articles: { where: { isPublished: true } } } },
-      },
-    });
+    return this.blogCacheService.wrap<PublicCategoryListDto>(
+      CacheKeyRegistry.PUBLIC_CATEGORIES,
+      async () => {
+        const categories = await this.prisma.category.findMany({
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            _count: { select: { articles: { where: { isPublished: true } } } },
+          },
+        });
 
-    const data = categories.map(
-      (c) =>
-        new PublicCategoryDto({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-          description: c.description,
-          articleCount: c._count.articles,
-        }),
+        const data = categories.map(
+          (c) =>
+            new PublicCategoryDto({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              description: c.description,
+              articleCount: c._count.articles,
+            }),
+        );
+        return new PublicCategoryListDto(data);
+      },
+      CacheKeyRegistry.PUBLIC_CATEGORIES_TTL,
     );
-    return new PublicCategoryListDto(data);
   }
 
   /**
    * 获取标签列表（含文章数量）
    */
   async getTags(): Promise<PublicTagListDto> {
-    const tags = await this.prisma.tag.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        _count: { select: { articles: true } },
-      },
-    });
+    return this.blogCacheService.wrap<PublicTagListDto>(
+      CacheKeyRegistry.PUBLIC_TAGS,
+      async () => {
+        const tags = await this.prisma.tag.findMany({
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            _count: { select: { articles: true } },
+          },
+        });
 
-    const data = tags.map(
-      (t) =>
-        new PublicTagDto({
-          id: t.id,
-          name: t.name,
-          slug: t.slug,
-          articleCount: t._count.articles,
-        }),
+        const data = tags.map(
+          (t) =>
+            new PublicTagDto({
+              id: t.id,
+              name: t.name,
+              slug: t.slug,
+              articleCount: t._count.articles,
+            }),
+        );
+        return new PublicTagListDto(data);
+      },
+      CacheKeyRegistry.PUBLIC_TAGS_TTL,
     );
-    return new PublicTagListDto(data);
   }
 
   /**

@@ -282,7 +282,10 @@ describe('ApiKeyService', () => {
 
       // Assert
       expect(prisma.apiKey.findMany).toHaveBeenCalledWith({
-        where: { isRevoked: false },
+        where: {
+          isRevoked: false,
+          keyPrefix: { startsWith: 'sk-any-' },
+        },
         select: {
           id: true,
           keyHash: true,

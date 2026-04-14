@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CoreModule } from './core';
@@ -16,6 +17,7 @@ import { WechatModule } from './wechat/wechat.module';
 import { AiModule } from './ai/ai.module';
 import { OssModule } from './oss/oss.module';
 import { PublicModule } from './public/public.module';
+import { RedisModule, CacheKeyRegistry } from './redis';
 import { SiteConfigModule } from './site-config/site-config.module';
 import { ApiKeyModule } from './api-key/api-key.module';
 import { ProjectModule } from './project/project.module';
@@ -27,23 +29,35 @@ import { TimelineModule } from './timeline/timeline.module';
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'dev'}`,
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'short',
-        ttl: 10000,
-        limit: 10,
-      },
-      {
-        name: 'medium',
-        ttl: 60000,
-        limit: 30,
-      },
-      {
-        name: 'long',
-        ttl: 3600000,
-        limit: 100,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'short',
+            ttl: 10000,
+            limit: 10,
+          },
+          {
+            name: 'medium',
+            ttl: 60000,
+            limit: 30,
+          },
+          {
+            name: 'long',
+            ttl: 3600000,
+            limit: 100,
+          },
+        ],
+        storage: new ThrottlerStorageRedisService({
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: config.get<number>('REDIS_PORT', 6379),
+          password: config.get<string>('REDIS_PASSWORD', ''),
+          keyPrefix: CacheKeyRegistry.THROTTLER_PREFIX,
+        }),
+      }),
+    }),
+    RedisModule,
     PrismaModule,
     CoreModule,
     SeoModule,
