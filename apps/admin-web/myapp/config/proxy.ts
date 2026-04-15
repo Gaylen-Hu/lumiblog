@@ -28,14 +28,14 @@ export default {
    */
   test: {
     '/api/': {
-      target: 'https://badmin.example.com',
+      target: 'https://badmin.new-universe.cn',
       changeOrigin: true,
       pathRewrite: { '^/api': '/api/v1' },
     },
   },
   pre: {
     '/api/': {
-      target: 'https://badmin.example.com',
+      target: 'https://badmin.new-universe.cn',
       changeOrigin: true,
       pathRewrite: { '^/api': '/api/v1' },
     },

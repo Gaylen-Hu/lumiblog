@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
         hostname: '**',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.oss-cn-beijing.aliyuncs.com',
+        pathname: '/**',
+      },
     ],
   },
 }
