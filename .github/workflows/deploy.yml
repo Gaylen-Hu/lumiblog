@@ -63,9 +63,11 @@ jobs:
           cp -r dist _deploy/dist
           cp -r prisma _deploy/prisma
           cp package.json pnpm-lock.yaml _deploy/
+          # 复制已生成的 prisma client（避免在 prod 依赖中跑 generate）
+          cp -r node_modules/.prisma _deploy/node_modules/.prisma 2>/dev/null || true
+          cp -r node_modules/@prisma _deploy/node_modules/@prisma 2>/dev/null || true
           cd _deploy
           pnpm install --frozen-lockfile --prod
-          DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm exec prisma generate
 
       # ── 构建管理后台 (Ant Design Pro) ──
       - name: Build admin
