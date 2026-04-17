@@ -1,8 +1,8 @@
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import PostCard from '@/components/PostCard'
 import ScrollReveal from '@/components/ui/ScrollReveal'
-import { getArticles } from '@/lib/api'
+import { getArticles, toApiLocale } from '@/lib/api'
 
 const PAGE_SIZE = 9
 
@@ -16,7 +16,7 @@ interface PostsPageProps {
 }
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
-  const [params, t] = await Promise.all([searchParams, getTranslations('posts')])
+  const [params, t, locale] = await Promise.all([searchParams, getTranslations('posts'), getLocale()])
   const page = Math.max(1, Number(params.page) || 1)
 
   const articlesRes = await getArticles({
@@ -25,6 +25,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
     category: params.category,
     tag: params.tag,
     search: params.search,
+    locale: toApiLocale(locale),
   })
 
   const posts = articlesRes.data

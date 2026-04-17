@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import type { Project } from '@/types';
 import TiltCard from './ui/TiltCard';
 import SpotlightCard from './ui/SpotlightCard';
@@ -12,13 +13,9 @@ interface ProjectCardProps {
 export default function ProjectCard({ project }: ProjectCardProps) {
   const t = useTranslations('projects');
 
-  if (!project.link) return null;
-
   return (
-    <a
-      href={project.link}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={`/projects/${project.id}`}
       className="group cursor-pointer relative block"
     >
       <TiltCard maxTilt={8} scale={1.01}>
@@ -59,6 +56,6 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </div>
         </SpotlightCard>
       </TiltCard>
-    </a>
+    </Link>
   );
 }

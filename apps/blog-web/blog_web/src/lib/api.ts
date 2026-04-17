@@ -11,6 +11,16 @@ import type {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1/public'
 
+/** 前端 locale (zh/en) → 后端 locale (zh-CN/en-US) */
+const LOCALE_MAP: Record<string, string> = {
+  zh: 'zh-CN',
+  en: 'en-US',
+}
+
+export function toApiLocale(locale: string): string {
+  return LOCALE_MAP[locale] ?? 'zh-CN'
+}
+
 // 文章列表
 export async function getArticles(params?: {
   page?: number
@@ -18,6 +28,7 @@ export async function getArticles(params?: {
   category?: string
   tag?: string
   search?: string
+  locale?: string
 }): Promise<PaginatedResponse<Post>> {
   try {
     const searchParams = new URLSearchParams()
@@ -26,6 +37,7 @@ export async function getArticles(params?: {
     if (params?.category) searchParams.set('category', params.category)
     if (params?.tag) searchParams.set('tag', params.tag)
     if (params?.search) searchParams.set('search', params.search)
+    if (params?.locale) searchParams.set('locale', params.locale)
 
     const res = await fetch(`${API_BASE_URL}/articles?${searchParams}`, {
       next: { revalidate: 60 },
@@ -40,9 +52,15 @@ export async function getArticles(params?: {
 // 文章详情
 export async function getArticleBySlug(
   slug: string,
+  locale?: string,
 ): Promise<PostDetail | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/articles/${slug}`, {
+    const searchParams = new URLSearchParams()
+    if (locale) searchParams.set('locale', locale)
+    const qs = searchParams.toString()
+    const url = `${API_BASE_URL}/articles/${slug}${qs ? `?${qs}` : ''}`
+
+    const res = await fetch(url, {
       next: { revalidate: 60 },
     })
     if (!res.ok) {
@@ -94,6 +112,22 @@ export async function getProjects(params?: {
   }
 }
 
+// 项目详情
+export async function getProjectById(id: string): Promise<Project | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      next: { revalidate: 60 },
+    })
+    if (!res.ok) {
+      if (res.status === 404) return null
+      return null
+    }
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
 // 分类列表
 export async function getCategories(): Promise<Category[]> {
   const res = await fetch(`${API_BASE_URL}/categories`, {
@@ -118,9 +152,15 @@ export async function getTags(): Promise<Tag[]> {
 export async function searchArticles(
   q: string,
   page = 1,
+  locale?: string,
 ): Promise<PaginatedResponse<SearchResult>> {
+  const searchParams = new URLSearchParams()
+  searchParams.set('q', q)
+  searchParams.set('page', String(page))
+  if (locale) searchParams.set('locale', locale)
+
   const res = await fetch(
-    `${API_BASE_URL}/search?q=${encodeURIComponent(q)}&page=${page}`,
+    `${API_BASE_URL}/search?${searchParams}`,
     {
       next: { revalidate: 0 },
     },

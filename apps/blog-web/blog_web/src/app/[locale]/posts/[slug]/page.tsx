@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
-import { getArticleBySlug, getArticleSlugs } from '@/lib/api'
+import { getArticleBySlug, getArticleSlugs, toApiLocale } from '@/lib/api'
 import { parseTocItems, slugify } from '@/lib/toc'
 import type { Metadata } from 'next'
 import ReadingProgress from '@/components/ReadingProgress'
@@ -38,8 +38,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
-  const { slug } = await params
-  const post = await getArticleBySlug(slug)
+  const { slug, locale } = await params
+  const post = await getArticleBySlug(slug, toApiLocale(locale))
   if (!post) return { title: 'Post not found' }
   return {
     title: post.seo.metaTitle || `${post.title} - NOVA`,
@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 
 export default async function PostPage({ params }: PostPageProps) {
   const { slug, locale } = await params
-  const [post, t] = await Promise.all([getArticleBySlug(slug), getTranslations('posts')])
+  const [post, t] = await Promise.all([getArticleBySlug(slug, toApiLocale(locale)), getTranslations('posts')])
 
   if (!post) notFound()
 

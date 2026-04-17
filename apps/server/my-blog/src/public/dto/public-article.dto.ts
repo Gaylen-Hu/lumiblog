@@ -40,6 +40,11 @@ export class PublicArticleQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiPropertyOptional({ description: '语言标识', example: 'zh-CN' })
+  @IsOptional()
+  @IsString()
+  locale?: string;
 }
 
 /**

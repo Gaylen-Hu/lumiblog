@@ -96,7 +96,10 @@
   "projects": {
     "title": "All Projects",
     "viewProject": "View Project",
-    "noProjects": "No projects yet"
+    "noProjects": "No projects yet",
+    "backToList": "Back to list",
+    "techStack": "Tech Stack",
+    "visitSite": "Visit Site"
   },
   "stats": {
     "articles": "Articles",

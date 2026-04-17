@@ -1,15 +1,16 @@
 import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import HeroSection from '@/components/HeroSection'
 import StatsSection from '@/components/StatsSection'
 import PostCard from '@/components/PostCard'
 import ProjectCard from '@/components/ProjectCard'
 import ScrollReveal from '@/components/ui/ScrollReveal'
-import { getArticles, getProjects, getSiteStats } from '@/lib/api'
+import { getArticles, getProjects, getSiteStats, toApiLocale } from '@/lib/api'
 
 export default async function Home() {
+  const locale = await getLocale()
   const [articlesRes, projectsRes, stats, t] = await Promise.all([
-    getArticles({ page: 1, pageSize: 6 }),
+    getArticles({ page: 1, pageSize: 6, locale: toApiLocale(locale) }),
     getProjects({ featured: true, pageSize: 3 }),
     getSiteStats(),
     getTranslations('home'),

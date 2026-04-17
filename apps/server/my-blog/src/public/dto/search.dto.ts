@@ -30,6 +30,11 @@ export class SearchQueryDto {
   @Min(1)
   @Max(MAX_PAGE_SIZE)
   pageSize?: number = DEFAULT_PAGE_SIZE;
+
+  @ApiPropertyOptional({ description: '语言标识', example: 'zh-CN' })
+  @IsOptional()
+  @IsString()
+  locale?: string;
 }
 
 /**

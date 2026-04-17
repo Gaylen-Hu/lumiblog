@@ -96,7 +96,10 @@
   "projects": {
     "title": "全部项目",
     "viewProject": "查看项目",
-    "noProjects": "暂无项目"
+    "noProjects": "暂无项目",
+    "backToList": "返回列表",
+    "techStack": "技术栈",
+    "visitSite": "访问站点"
   },
   "stats": {
     "articles": "文章数量",

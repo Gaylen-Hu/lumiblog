@@ -9,6 +9,7 @@ import {
   PaginatedPublicArticleListDto,
   ArticleSlugsResponseDto,
   PublicProjectQueryDto,
+  PublicProjectDto,
   PaginatedPublicProjectListDto,
   PublicCategoryListDto,
   PublicTagListDto,
@@ -47,11 +48,15 @@ export class PublicController {
 
   @ApiOperation({ summary: '获取文章详情', description: '根据 slug 获取单篇文章的完整内容' })
   @ApiParam({ name: 'slug', description: '文章 slug' })
+  @ApiQuery({ name: 'locale', required: false, description: '语言标识' })
   @ApiResponse({ status: 200, description: '获取成功', type: PublicArticleDetailDto })
   @ApiResponse({ status: 404, description: '文章不存在' })
   @Get('articles/:slug')
-  async getArticleBySlug(@Param('slug') slug: string): Promise<PublicArticleDetailDto> {
-    return this.publicService.getArticleBySlug(slug);
+  async getArticleBySlug(
+    @Param('slug') slug: string,
+    @Query('locale') locale?: string,
+  ): Promise<PublicArticleDetailDto> {
+    return this.publicService.getArticleBySlug(slug, locale);
   }
 
   // ==================== 项目接口 ====================
@@ -61,6 +66,15 @@ export class PublicController {
   @Get('projects')
   async getProjects(@Query() query: PublicProjectQueryDto): Promise<PaginatedPublicProjectListDto> {
     return this.publicService.getProjects(query);
+  }
+
+  @ApiOperation({ summary: '获取项目详情', description: '根据 ID 获取单个项目的完整信息' })
+  @ApiParam({ name: 'id', description: '项目 ID' })
+  @ApiResponse({ status: 200, description: '获取成功', type: PublicProjectDto })
+  @ApiResponse({ status: 404, description: '项目不存在' })
+  @Get('projects/:id')
+  async getProjectById(@Param('id') id: string): Promise<PublicProjectDto> {
+    return this.publicService.getProjectById(id);
   }
 
   // ==================== 分类接口 ====================

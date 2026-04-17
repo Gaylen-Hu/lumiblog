@@ -63,10 +63,13 @@ export class PublicService {
    * 获取公开文章列表
    */
   async getArticles(query: PublicArticleQueryDto): Promise<PaginatedPublicArticleListDto> {
-    const { page = 1, pageSize = 10, category, tag, search } = query;
+    const { page = 1, pageSize = 10, category, tag, search, locale } = query;
 
     const where: Prisma.ArticleWhereInput = { isPublished: true };
 
+    if (locale) {
+      where.locale = locale;
+    }
     if (category) {
       where.category = { slug: category };
     }
@@ -98,9 +101,12 @@ export class PublicService {
   /**
    * 根据 slug 获取文章详情
    */
-  async getArticleBySlug(slug: string): Promise<PublicArticleDetailDto> {
+  async getArticleBySlug(slug: string, locale?: string): Promise<PublicArticleDetailDto> {
+    const where: Prisma.ArticleWhereInput = { slug, isPublished: true };
+    if (locale) where.locale = locale;
+
     const article = await this.prisma.article.findFirst({
-      where: { slug, isPublished: true },
+      where,
       include: ARTICLE_INCLUDE,
     });
     if (!article) {
@@ -115,10 +121,15 @@ export class PublicService {
       })
       .catch((err) => this.logger.error(`阅读量更新失败: ${err.message}`));
 
+    const navWhere: Prisma.ArticleWhereInput = {
+      isPublished: true,
+      ...(article.locale ? { locale: article.locale } : {}),
+    };
+
     const [prev, next] = await Promise.all([
       this.prisma.article.findFirst({
         where: {
-          isPublished: true,
+          ...navWhere,
           publishedAt: { not: null, lt: article.publishedAt ?? new Date() },
         },
         orderBy: { publishedAt: 'desc' },
@@ -126,7 +137,7 @@ export class PublicService {
       }),
       this.prisma.article.findFirst({
         where: {
-          isPublished: true,
+          ...navWhere,
           publishedAt: { not: null, gt: article.publishedAt ?? new Date() },
         },
         orderBy: { publishedAt: 'asc' },
@@ -171,6 +182,17 @@ export class PublicService {
 
     const data = items.map((p) => new PublicProjectDto(p));
     return new PaginatedPublicProjectListDto({ data, total, page, pageSize });
+  }
+
+  /**
+   * 根据 ID 获取项目详情
+   */
+  async getProjectById(id: string): Promise<PublicProjectDto> {
+    const project = await this.prisma.project.findUnique({ where: { id } });
+    if (!project) {
+      throw new NotFoundException('项目不存在');
+    }
+    return new PublicProjectDto(project);
   }
 
 
@@ -301,10 +323,11 @@ export class PublicService {
    * 搜索文章
    */
   async search(query: SearchQueryDto): Promise<SearchResultDto> {
-    const { q, page = 1, pageSize = 10 } = query;
+    const { q, page = 1, pageSize = 10, locale } = query;
 
     const where: Prisma.ArticleWhereInput = {
       isPublished: true,
+      ...(locale ? { locale } : {}),
       OR: [
         { title: { contains: q, mode: 'insensitive' } },
         { summary: { contains: q, mode: 'insensitive' } },
