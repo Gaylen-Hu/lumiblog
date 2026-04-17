@@ -139,13 +139,14 @@ jobs:
 
       - name: Upload artifacts
         run: |
+          SCP_OPTS="-i ~/.ssh/deploy_key -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
           SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
 
           # 在服务器上创建临时目录
           ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /tmp/blog-deploy"
 
-          # 上传所有产物
-          scp $SSH_OPTS _artifacts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/blog-deploy/
+          # 上传所有产物（scp 用大写 -P 指定端口）
+          scp $SCP_OPTS _artifacts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/blog-deploy/
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
