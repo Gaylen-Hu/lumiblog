@@ -7,6 +7,11 @@
 
 set -euo pipefail
 
+# 确保非交互式 SSH 也能找到 node/pm2/pnpm
+export PATH="/usr/local/bin:/usr/local/nodejs/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:$HOME/.local/share/pnpm:$PATH"
+# 加载 nvm（如果使用 nvm 管理 node）
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" 2>/dev/null || true
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
