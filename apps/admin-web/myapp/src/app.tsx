@@ -154,20 +154,10 @@ export const layout: RunTimeLayoutConfig = ({
  * @doc https://umijs.org/docs/max/request#配置
  */
 
-// 生产环境直接请求 API，开发环境走代理
-// API_BASE_URL 由 config.ts define 注入，构建时会被替换为实际值
-declare const API_BASE_URL: string;
-
 export const request: RequestConfig = {
   ...errorConfig,
-  // 使用 typeof 保护，确保 API_BASE_URL 是字符串类型
-  baseURL: typeof API_BASE_URL === 'string' ? API_BASE_URL : undefined,
   requestInterceptors: [
     (config: any) => {
-      // 生产环境下移除 /api 前缀（已通过 baseURL 处理）
-      if (API_BASE_URL && config.url?.startsWith('/api')) {
-        config.url = config.url.replace(/^\/api/, '');
-      }
       // 添加 token 到请求头
       const token = localStorage.getItem(TOKEN_KEY);
       if (token) {
