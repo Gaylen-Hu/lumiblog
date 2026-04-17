@@ -158,3 +158,4 @@ See [`docs/api-reference.md`](docs/api-reference.md) for the full API reference.
 ## License
 
 MIT
+1
