@@ -121,7 +121,7 @@ if [ -d "uploads" ]; then
 fi
 
 # 清理旧文件，解压新产物
-rm -rf dist node_modules prisma package.json prisma.config.ts
+rm -rf dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc
 tar -xzf "$ARTIFACTS_DIR/server.tar.gz" -C .
 
 # 恢复 uploads
@@ -133,9 +133,17 @@ fi
 log_info "分发环境变量 → .env.prod"
 cp "$ENV_FILE" "$SERVER_DIR/.env.prod"
 
-# 执行数据库迁移（prisma 需要 DATABASE_URL，从 .env.prod 加载）
-log_info "执行数据库迁移..."
+# 安装依赖（不做编译，只下载和链接，对服务器压力很小）
+log_info "安装后端依赖..."
+pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+
+# 生成 Prisma Client
+log_info "生成 Prisma Client..."
 export $(grep -v '^#' "$SERVER_DIR/.env.prod" | grep -E '^DATABASE_URL=' | xargs)
+npx prisma generate
+
+# 执行数据库迁移
+log_info "执行数据库迁移..."
 node_modules/.bin/prisma migrate deploy 2>&1 || log_warn "无待执行迁移或迁移失败"
 unset DATABASE_URL
 

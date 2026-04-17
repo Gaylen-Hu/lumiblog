@@ -112,10 +112,10 @@ jobs:
         run: |
           mkdir -p _artifacts
 
-          # 后端产物（--dereference 跟随 pnpm 符号链接，打包真实文件）
-          tar -czf _artifacts/server.tar.gz --dereference \
+          # 后端产物（只打包构建产物和配置，不含 node_modules）
+          tar -czf _artifacts/server.tar.gz \
             -C apps/server/my-blog \
-            dist prisma node_modules package.json prisma.config.ts
+            dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc
 
           # 管理后台产物（纯静态）
           tar -czf _artifacts/admin.tar.gz -C apps/admin-web/myapp dist
