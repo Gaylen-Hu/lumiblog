@@ -121,7 +121,7 @@ if [ -d "uploads" ]; then
 fi
 
 # 清理旧文件，解压新产物
-rm -rf dist node_modules prisma package.json pnpm-lock.yaml
+rm -rf dist node_modules prisma package.json prisma.config.ts
 tar -xzf "$ARTIFACTS_DIR/server.tar.gz" -C .
 
 # 恢复 uploads

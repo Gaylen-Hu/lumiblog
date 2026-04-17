@@ -57,36 +57,8 @@ jobs:
           pnpm exec prisma generate
           NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
-      - name: Package server for deployment
-        working-directory: apps/server/my-blog
-        run: |
-          mkdir -p _deploy
-
-          # 复制构建产物和 prisma 相关文件
-          cp -r dist _deploy/dist
-          cp -r prisma _deploy/prisma
-          cp package.json pnpm-lock.yaml _deploy/
-          # 复制 prisma 配置文件（migrate deploy 需要）
-          cp prisma.config.ts _deploy/ 2>/dev/null || true
-
-          # 安装 production 依赖
-          cd _deploy
-          pnpm install --frozen-lockfile --prod
-
-          # pnpm v10 可能跳过 postinstall，手动复制已生成的 prisma client
-          rm -rf node_modules/.prisma node_modules/@prisma 2>/dev/null || true
-          cp -r ../node_modules/.prisma node_modules/.prisma
-          cp -r ../node_modules/@prisma node_modules/@prisma
-
-          # 复制 prisma CLI（devDep，但服务器 migrate deploy 需要）
-          cp -r ../node_modules/prisma node_modules/prisma
-          cp -r ../node_modules/.bin/prisma node_modules/.bin/prisma 2>/dev/null || true
-
-          # 验证关键文件
-          echo "=== 验证后端产物 ==="
+          # 验证构建产物
           ls dist/src/main.js
-          ls node_modules/.prisma/client/index.js 2>/dev/null || echo "WARN: prisma client 路径可能不同"
-          ls node_modules/prisma/build/index.js 2>/dev/null || echo "WARN: prisma CLI 路径可能不同"
 
       # ── 构建管理后台 (Ant Design Pro) ──
       - name: Build admin
@@ -140,8 +112,10 @@ jobs:
         run: |
           mkdir -p _artifacts
 
-          # 后端产物
-          tar -czf _artifacts/server.tar.gz -C apps/server/my-blog/_deploy .
+          # 后端产物（--dereference 跟随 pnpm 符号链接，打包真实文件）
+          tar -czf _artifacts/server.tar.gz --dereference \
+            -C apps/server/my-blog \
+            dist prisma node_modules package.json prisma.config.ts
 
           # 管理后台产物（纯静态）
           tar -czf _artifacts/admin.tar.gz -C apps/admin-web/myapp dist
