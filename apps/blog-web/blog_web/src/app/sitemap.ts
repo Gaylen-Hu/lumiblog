@@ -8,7 +8,12 @@ const LOCALES = ['zh', 'en'] as const
 const STATIC_ROUTES = ['', '/posts', '/projects', '/about', '/timeline']
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const slugs = await getArticleSlugs()
+  let slugs: string[] = []
+  try {
+    slugs = await getArticleSlugs()
+  } catch {
+    // CI 构建时 API 不可用，生成不含文章的 sitemap
+  }
 
   // 静态页面：每个 locale 一条
   const staticEntries = LOCALES.flatMap((locale) =>

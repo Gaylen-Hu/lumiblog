@@ -59,12 +59,16 @@ export async function getArticleBySlug(
 
 // 文章 slugs（用于 SSG generateStaticParams）
 export async function getArticleSlugs(): Promise<string[]> {
-  const res = await fetch(`${API_BASE_URL}/articles/slugs`, {
-    next: { revalidate: 300 },
-  })
-  if (!res.ok) return []
-  const data = await res.json()
-  return data.slugs
+  try {
+    const res = await fetch(`${API_BASE_URL}/articles/slugs`, {
+      next: { revalidate: 300 },
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.slugs
+  } catch {
+    return []
+  }
 }
 
 // 项目列表
