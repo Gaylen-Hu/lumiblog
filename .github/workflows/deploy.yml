@@ -29,7 +29,7 @@ jobs:
         working-directory: apps/server/my-blog
         run: |
           pnpm install --frozen-lockfile
-          pnpm exec prisma generate
+          DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm exec prisma generate
           pnpm test --no-coverage
 
   build-and-deploy:
@@ -52,7 +52,7 @@ jobs:
         working-directory: apps/server/my-blog
         run: |
           pnpm install --frozen-lockfile
-          pnpm exec prisma generate
+          DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm exec prisma generate
           NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
       - name: Install server production deps
@@ -65,7 +65,7 @@ jobs:
           cp package.json pnpm-lock.yaml _deploy/
           cd _deploy
           pnpm install --frozen-lockfile --prod
-          pnpm exec prisma generate
+          DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm exec prisma generate
 
       # ── 构建管理后台 (Ant Design Pro) ──
       - name: Build admin
