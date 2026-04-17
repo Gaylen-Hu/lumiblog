@@ -9,6 +9,12 @@
 - 认证方式：`Authorization: Bearer {API_KEY}`
 - API Key 来源：环境变量 `BLOG_API_KEY` 或 `config.json` 中的 `api_key`
 
+## ⛔ 禁止事项
+
+1. **禁止创建中间脚本文件** — 不要创建 `.sh` 文件来包装 `node publish.js` 命令。直接在终端执行 `node publish.js ...` 即可。
+2. **禁止省略 `--slug` 参数** — 中文标题自动生成的 slug 不可用（中文字符会被删除），必须手动提供有意义的英文 slug。
+3. **禁止在本目录下创建任何临时文件或日志文件。**
+
 ---
 
 ## 一、文章管理
@@ -31,6 +37,7 @@
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | --file | ✅ | Markdown 文章路径 |
+| --slug | ✅ | URL 标识（小写字母、数字、连字符），中文文章必须手动提供英文 slug |
 | --cover | ✅* | 封面图路径（有封面图时必传，OSS 直传） |
 | --seo-title | ✅ | Agent 根据文章内容生成的 SEO 标题（≤100字符） |
 | --seo-description | ✅ | Agent 根据文章内容生成的 SEO 描述（≤300字符） |
@@ -39,7 +46,6 @@
 | --tags | ✅ | 标签 ID 列表（逗号分隔，通过 API 查询后选择） |
 | --locale | ❌ | 语言标识：`zh-CN`（默认）或 `en-US` |
 | --translation-group-id | ❌ | 翻译组 ID，发布英文版时传中文版的文章 ID |
-| --slug | ❌ | 自定义 slug（不传则自动从标题生成） |
 | --no-publish | ❌ | 加此 flag 只创建草稿不发布（默认直接发布） |
 
 **脚本默认直接发布。** 只有 Boss 明确说"先不发"时才加 `--no-publish` 创建草稿。
@@ -58,9 +64,10 @@
 #### 调用示例
 
 ```bash
-# 发布中文文章
+# 发布中文文章（直接执行，不要创建 .sh 脚本）
 node publish.js \
   --file "文章.md" \
+  --slug "article-title-slug" \
   --cover "封面.png" \
   --seo-title "SEO标题 | 新宇宙博客" \
   --seo-description "SEO描述" \
@@ -71,10 +78,10 @@ node publish.js \
 # 发布英文文章（关联中文版）
 node publish.js \
   --file "article-en.md" \
+  --slug "article-title-en" \
   --cover "cover.png" \
   --locale "en-US" \
   --translation-group-id "中文版文章ID" \
-  --slug "article-title-en" \
   --seo-title "SEO Title | Blog" \
   --seo-description "SEO description" \
   --summary "Summary" \
