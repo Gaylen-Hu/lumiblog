@@ -1,53 +1,134 @@
-name: Auto Deploy
+name: Build & Deploy
 
 on:
   push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:  # 允许手动触发
+    branches: [main, master]
+  workflow_dispatch:
 
 env:
-  GIT_BRANCH: main  # 你的 git 分支名称
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10'
+  DEPLOY_DIR: /home/myblog
 
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Install server dependencies
+      - name: Install & test server
         working-directory: apps/server/my-blog
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+          pnpm test --no-coverage
 
-      - name: Generate Prisma client
-        working-directory: apps/server/my-blog
-        run: pnpm exec prisma generate
-
-      - name: Run tests
-        working-directory: apps/server/my-blog
-        run: pnpm test --no-coverage
-
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    needs: test  # deploy 仅在 test 通过后执行
+    needs: test
     timeout-minutes: 30
-
     steps:
-      - name: Deploy to Server
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      # ── 构建后端 (NestJS) ──
+      - name: Build server
+        working-directory: apps/server/my-blog
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
+
+      - name: Install server production deps
+        working-directory: apps/server/my-blog
+        run: |
+          # 单独装一份 production 依赖用于上传
+          mkdir -p _deploy
+          cp -r dist _deploy/dist
+          cp -r prisma _deploy/prisma
+          cp package.json pnpm-lock.yaml _deploy/
+          cd _deploy
+          pnpm install --frozen-lockfile --prod
+          pnpm exec prisma generate
+
+      # ── 构建管理后台 (Ant Design Pro) ──
+      - name: Build admin
+        working-directory: apps/admin-web/myapp
+        run: |
+          pnpm install --frozen-lockfile
+          NODE_OPTIONS="--max-old-space-size=4096" NODE_ENV=production UMI_ENV=prod pnpm run build
+
+      # ── 构建博客前端 (Next.js standalone) ──
+      - name: Build blog
+        working-directory: apps/blog-web/blog_web
+        run: |
+          pnpm install --frozen-lockfile
+          NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
+
+      - name: Prepare blog standalone package
+        working-directory: apps/blog-web/blog_web
+        run: |
+          mkdir -p _deploy
+          cp -r .next/standalone/* _deploy/ 2>/dev/null || cp -r .next/standalone/. _deploy/
+          # standalone 模式需要 static 和 public 资源
+          mkdir -p _deploy/.next/static
+          cp -r .next/static _deploy/.next/
+          cp -r public _deploy/public
+
+      # ── 打包产物 ──
+      - name: Create deploy archive
+        run: |
+          mkdir -p _artifacts
+
+          # 后端产物
+          tar -czf _artifacts/server.tar.gz -C apps/server/my-blog/_deploy .
+
+          # 管理后台产物（纯静态）
+          tar -czf _artifacts/admin.tar.gz -C apps/admin-web/myapp dist
+
+          # 博客前端产物（standalone）
+          tar -czf _artifacts/blog.tar.gz -C apps/blog-web/blog_web/_deploy .
+
+          # 部署脚本
+          cp deploy-remote.sh _artifacts/
+
+          ls -lh _artifacts/
+
+      # ── 上传到服务器 ──
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload artifacts
+        run: |
+          SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
+
+          # 在服务器上创建临时目录
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /tmp/blog-deploy"
+
+          # 上传所有产物
+          scp $SSH_OPTS _artifacts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/blog-deploy/
+
+      - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -56,23 +137,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           fingerprint: ${{ secrets.SSH_FINGERPRINT }}
           script_stop: true
-          request_pty: true  # 启用 PTY 以支持彩色的日志输出
+          request_pty: true
           script: |
-            set -e  # 遇到错误立即退出
-
-            cd /root/myblog
-
-            # 拉取最新代码
-            echo "=== 拉取最新代码 ==="
-            git fetch origin
-            git reset --hard origin/${{ env.GIT_BRANCH }}
-            git clean -fd
-            echo "当前 commit: $(git rev-parse --short HEAD)"
-
-            # 执行部署脚本（跳过 git 操作，CI 已处理）
-            echo "=== 开始部署 ==="
-            chmod +x deploy.sh
-            SKIP_GIT=true ./deploy.sh
-
-            echo "=== 部署完成 ==="
-            pm2 list
+            set -e
+            chmod +x /tmp/blog-deploy/deploy-remote.sh
+            /tmp/blog-deploy/deploy-remote.sh
+            rm -rf /tmp/blog-deploy
