@@ -135,8 +135,8 @@ cp "$ENV_FILE" "$SERVER_DIR/.env.prod"
 
 # 执行数据库迁移（prisma 需要 DATABASE_URL，从 .env.prod 加载）
 log_info "执行数据库迁移..."
-export $(grep -v '^#' "$SERVER_DIR/.env.prod" | grep DATABASE_URL | xargs)
-npx prisma migrate deploy 2>&1 || log_warn "无待执行迁移或迁移失败"
+export $(grep -v '^#' "$SERVER_DIR/.env.prod" | grep -E '^DATABASE_URL=' | xargs)
+node_modules/.bin/prisma migrate deploy 2>&1 || log_warn "无待执行迁移或迁移失败"
 unset DATABASE_URL
 
 # 重启后端

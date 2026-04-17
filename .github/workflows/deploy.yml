@@ -9,6 +9,8 @@ env:
   NODE_VERSION: '20'
   PNPM_VERSION: '10'
   DEPLOY_DIR: /home/myblog
+  # prisma generate 和 build 阶段不需要真实数据库连接
+  DATABASE_URL: 'postgresql://placeholder:placeholder@localhost:5432/placeholder'
 
 jobs:
   test:
@@ -29,7 +31,7 @@ jobs:
         working-directory: apps/server/my-blog
         run: |
           pnpm install --frozen-lockfile
-          DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm exec prisma generate
+          pnpm exec prisma generate
           pnpm test --no-coverage
 
   build-and-deploy:
@@ -52,22 +54,39 @@ jobs:
         working-directory: apps/server/my-blog
         run: |
           pnpm install --frozen-lockfile
-          DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" pnpm exec prisma generate
+          pnpm exec prisma generate
           NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
-      - name: Install server production deps
+      - name: Package server for deployment
         working-directory: apps/server/my-blog
         run: |
-          # 单独装一份 production 依赖用于上传
           mkdir -p _deploy
+
+          # 复制构建产物和 prisma 相关文件
           cp -r dist _deploy/dist
           cp -r prisma _deploy/prisma
           cp package.json pnpm-lock.yaml _deploy/
-          # 复制已生成的 prisma client（避免在 prod 依赖中跑 generate）
-          cp -r node_modules/.prisma _deploy/node_modules/.prisma 2>/dev/null || true
-          cp -r node_modules/@prisma _deploy/node_modules/@prisma 2>/dev/null || true
+          # 复制 prisma 配置文件（migrate deploy 需要）
+          cp prisma.config.ts _deploy/ 2>/dev/null || true
+
+          # 安装 production 依赖
           cd _deploy
           pnpm install --frozen-lockfile --prod
+
+          # pnpm v10 可能跳过 postinstall，手动复制已生成的 prisma client
+          rm -rf node_modules/.prisma node_modules/@prisma 2>/dev/null || true
+          cp -r ../node_modules/.prisma node_modules/.prisma
+          cp -r ../node_modules/@prisma node_modules/@prisma
+
+          # 复制 prisma CLI（devDep，但服务器 migrate deploy 需要）
+          cp -r ../node_modules/prisma node_modules/prisma
+          cp -r ../node_modules/.bin/prisma node_modules/.bin/prisma 2>/dev/null || true
+
+          # 验证关键文件
+          echo "=== 验证后端产物 ==="
+          ls dist/src/main.js
+          ls node_modules/.prisma/client/index.js 2>/dev/null || echo "WARN: prisma client 路径可能不同"
+          ls node_modules/prisma/build/index.js 2>/dev/null || echo "WARN: prisma CLI 路径可能不同"
 
       # ── 构建管理后台 (Ant Design Pro) ──
       - name: Build admin
@@ -83,15 +102,38 @@ jobs:
           pnpm install --frozen-lockfile
           NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
 
-      - name: Prepare blog standalone package
+      - name: Package blog standalone
         working-directory: apps/blog-web/blog_web
         run: |
           mkdir -p _deploy
-          cp -r .next/standalone/* _deploy/ 2>/dev/null || cp -r .next/standalone/. _deploy/
+
+          # Next.js standalone 产物路径（可能是根目录或嵌套路径）
+          STANDALONE_DIR=".next/standalone"
+
+          # 检查 standalone 目录结构，找到 server.js 所在位置
+          if [ -f "$STANDALONE_DIR/server.js" ]; then
+            cp -r $STANDALONE_DIR/. _deploy/
+          elif [ -f "$STANDALONE_DIR/apps/blog-web/blog_web/server.js" ]; then
+            # monorepo 场景下 standalone 可能嵌套
+            cp -r $STANDALONE_DIR/. _deploy/
+          else
+            echo "=== standalone 目录结构 ==="
+            find $STANDALONE_DIR -maxdepth 3 -type f -name "server.js" || true
+            ls -la $STANDALONE_DIR/
+            echo "错误：找不到 standalone server.js"
+            exit 1
+          fi
+
           # standalone 模式需要 static 和 public 资源
           mkdir -p _deploy/.next/static
-          cp -r .next/static _deploy/.next/
-          cp -r public _deploy/public
+          cp -r .next/static/. _deploy/.next/static/
+          if [ -d "public" ]; then
+            cp -r public _deploy/public
+          fi
+
+          # 验证关键文件存在
+          echo "=== 验证 standalone 产物 ==="
+          ls -la _deploy/server.js 2>/dev/null || ls -la _deploy/apps/blog-web/blog_web/server.js 2>/dev/null || echo "WARN: server.js 位置待确认"
 
       # ── 打包产物 ──
       - name: Create deploy archive
@@ -110,6 +152,7 @@ jobs:
           # 部署脚本
           cp deploy-remote.sh _artifacts/
 
+          echo "=== 产物大小 ==="
           ls -lh _artifacts/
 
       # ── 上传到服务器 ──
