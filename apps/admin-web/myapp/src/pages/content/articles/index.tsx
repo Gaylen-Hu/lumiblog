@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
-import { App, Button, Popconfirm, Space, Tag, Image, Dropdown } from 'antd';
+import { App, Button, Popconfirm, Tag, Dropdown, Tooltip } from 'antd';
 import React, { useRef, useCallback } from 'react';
 import { history } from '@umijs/max';
 import {
@@ -75,9 +75,20 @@ const ArticleList: React.FC = () => {
     }
   };
 
-  // 使用 useCallback 优化，避免每次渲染都创建新的函数引用
   const getMoreMenuItems = useCallback(
     (record: BlogAPI.ArticleWithRelations) => [
+      {
+        key: 'view',
+        icon: <EyeOutlined />,
+        label: '查看详情',
+        onClick: () => history.push(`/content/articles/${record.id}`),
+      },
+      {
+        key: 'publish',
+        label: record.isPublished ? '取消发布' : '发布',
+        onClick: () => handleTogglePublish(record),
+      },
+      { type: 'divider' as const },
       {
         key: 'translate',
         icon: <TranslationOutlined />,
@@ -96,80 +107,96 @@ const ArticleList: React.FC = () => {
         label: '发布到微信',
         onClick: () => history.push(`/content/articles/${record.id}`),
       },
+      { type: 'divider' as const },
+      {
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: '删除',
+        danger: true,
+        onClick: () => handleDelete(record.id),
+      },
     ],
     [],
   );
 
   const columns: ProColumns<BlogAPI.ArticleWithRelations>[] = [
     {
-      title: '封面',
-      dataIndex: 'coverImage',
-      search: false,
-      width: 100,
-      render: (_, record) =>
-        record.coverImage ? (
-          <Image src={record.coverImage} width={80} height={50} style={{ objectFit: 'cover' }} />
-        ) : (
-          <span style={{ color: '#999' }}>无封面</span>
-        ),
-    },
-    {
-      title: '标题',
+      title: '文章信息',
       dataIndex: 'title',
-      ellipsis: true,
+      width: 360,
+      render: (_, record) => (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {record.coverImage ? (
+            <img
+              src={record.coverImage}
+              alt=""
+              style={{
+                width: 64,
+                height: 42,
+                objectFit: 'cover',
+                borderRadius: 4,
+                flexShrink: 0,
+              }}
+            />
+          ) : null}
+          <div style={{ minWidth: 0 }}>
+            <a
+              onClick={() => history.push(`/content/articles/${record.id}`)}
+              style={{ fontWeight: 500, display: 'block' }}
+              title={record.title}
+            >
+              {record.title}
+            </a>
+            {record.summary ? (
+              <div
+                style={{
+                  color: '#999',
+                  fontSize: 12,
+                  marginTop: 2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={record.summary}
+              >
+                {record.summary}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: '分类 / 标签',
+      dataIndex: 'category',
+      search: false,
       width: 200,
-    },
-    {
-      title: 'Slug',
-      dataIndex: 'slug',
-      copyable: true,
-      ellipsis: true,
-      width: 150,
-      search: false,
-    },
-    {
-      title: '摘要',
-      dataIndex: 'summary',
-      ellipsis: true,
-      search: false,
-    },
-    {
-      title: '分类',
-      dataIndex: ['category', 'name'],
-      search: false,
-      width: 100,
-      render: (_, record) =>
-        record.category ? record.category.name : <span style={{ color: '#999' }}>-</span>,
-    },
-    {
-      title: '标签',
-      dataIndex: 'tags',
-      search: false,
-      width: 150,
-      render: (_, record) =>
-        record.tags && record.tags.length > 0 ? (
-          <Space size={[0, 4]} wrap>
-            {record.tags.map((tag) => (
-              <Tag key={tag.id} color="blue">
-                {tag.name}
-              </Tag>
-            ))}
-          </Space>
-        ) : (
-          <span style={{ color: '#999' }}>-</span>
-        ),
-    },
-    {
-      title: '阅读量',
-      dataIndex: 'viewCount',
-      search: false,
-      width: 80,
-      sorter: true,
+      render: (_, record) => (
+        <div>
+          <div style={{ marginBottom: 4 }}>
+            {record.category ? record.category.name : <span style={{ color: '#bbb' }}>未分类</span>}
+          </div>
+          {record.tags && record.tags.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {record.tags.slice(0, 3).map((tag) => (
+                <Tag key={tag.id} style={{ margin: 0, fontSize: 11 }}>
+                  {tag.name}
+                </Tag>
+              ))}
+              {record.tags.length > 3 ? (
+                <Tooltip title={record.tags.slice(3).map((t) => t.name).join('、')}>
+                  <Tag style={{ margin: 0, fontSize: 11 }}>+{record.tags.length - 3}</Tag>
+                </Tooltip>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ),
     },
     {
       title: '状态',
       dataIndex: 'isPublished',
-      width: 100,
+      width: 80,
       valueType: 'select',
       valueEnum: {
         true: { text: '已发布', status: 'Success' },
@@ -182,45 +209,30 @@ const ArticleList: React.FC = () => {
       ),
     },
     {
-      title: '发布时间',
-      dataIndex: 'publishedAt',
+      title: '更新时间',
+      dataIndex: 'updatedAt',
       valueType: 'dateTime',
       search: false,
       width: 160,
-      render: (_, record) => (record.publishedAt ? _ : '-'),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      valueType: 'dateTime',
-      search: false,
-      width: 160,
+      sorter: true,
+      render: (_, record) => {
+        const date = record.updatedAt || record.createdAt;
+        return date ? new Date(date).toLocaleString('zh-CN') : '-';
+      },
     },
     {
       title: '操作',
       valueType: 'option',
-      width: 220,
-      render: (_, record) => (
-        <Space>
-          <a onClick={() => history.push(`/content/articles/${record.id}`)}>
-            <EyeOutlined /> 查看
-          </a>
-          <a onClick={() => history.push(`/content/articles/edit/${record.id}`)}>
-            <EditOutlined /> 编辑
-          </a>
-          <a onClick={() => handleTogglePublish(record)}>
-            {record.isPublished ? '取消发布' : '发布'}
-          </a>
-          <Dropdown menu={{ items: getMoreMenuItems(record) }}>
-            <a><MoreOutlined /></a>
-          </Dropdown>
-          <Popconfirm title="确定删除此文章？" onConfirm={() => handleDelete(record.id)}>
-            <a style={{ color: '#ff4d4f' }}>
-              <DeleteOutlined />
-            </a>
-          </Popconfirm>
-        </Space>
-      ),
+      width: 120,
+      fixed: 'right',
+      render: (_, record) => [
+        <a key="edit" onClick={() => history.push(`/content/articles/edit/${record.id}`)}>
+          <EditOutlined /> 编辑
+        </a>,
+        <Dropdown key="more" menu={{ items: getMoreMenuItems(record) }} trigger={['click']}>
+          <a><MoreOutlined /> 更多</a>
+        </Dropdown>,
+      ],
     },
   ];
 
@@ -232,6 +244,7 @@ const ArticleList: React.FC = () => {
         rowKey="id"
         search={{
           labelWidth: 80,
+          defaultCollapsed: true,
         }}
         toolBarRender={() => [
           <Button
@@ -244,8 +257,6 @@ const ArticleList: React.FC = () => {
         ]}
         request={async (params) => {
           const { current, pageSize, title, isPublished } = params;
-          // 注意：isPublished 来自 ProTable 搜索表单，类型为字符串
-          // 需要转换为布尔值：'true' -> true, 'false' -> false, undefined -> undefined
           const res = await getArticles({
             page: current,
             limit: pageSize,
@@ -260,9 +271,11 @@ const ArticleList: React.FC = () => {
         }}
         columns={columns}
         pagination={{
-          defaultPageSize: 10,
+          defaultPageSize: 15,
           showSizeChanger: true,
+          showTotal: (total) => `共 ${total} 篇文章`,
         }}
+        scroll={{ x: 920 }}
       />
     </PageContainer>
   );

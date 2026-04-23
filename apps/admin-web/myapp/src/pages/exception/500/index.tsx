@@ -1,4 +1,4 @@
-import { Link } from '@umijs/max';
+import { history } from '@umijs/max';
 import { Button, Card, Result } from 'antd';
 
 export default () => (
@@ -6,11 +6,11 @@ export default () => (
     <Result
       status="500"
       title="500"
-      subTitle="Sorry, something went wrong."
+      subTitle="抱歉，服务器出了点问题。"
       extra={
-        <Link to="/">
-          <Button type="primary">Back Home</Button>
-        </Link>
+        <Button type="primary" onClick={() => history.push('/')}>
+          返回首页
+        </Button>
       }
     />
   </Card>

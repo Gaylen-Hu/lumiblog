@@ -1,4 +1,4 @@
-import { Link } from '@umijs/max';
+import { history } from '@umijs/max';
 import { Button, Card, Result } from 'antd';
 
 export default () => (
@@ -6,11 +6,11 @@ export default () => (
     <Result
       status="403"
       title="403"
-      subTitle="Sorry, you are not authorized to access this page."
+      subTitle="抱歉，你没有权限访问此页面。"
       extra={
-        <Link to="/">
-          <Button type="primary">Back to home</Button>
-        </Link>
+        <Button type="primary" onClick={() => history.push('/')}>
+          返回首页
+        </Button>
       }
     />
   </Card>
