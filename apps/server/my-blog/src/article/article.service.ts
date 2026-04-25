@@ -4,6 +4,7 @@ import {
   NotFoundException,
   Logger,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -27,7 +28,7 @@ import {
 } from './dto';
 import { AiService } from '../ai/ai.service';
 import { WechatService } from '../wechat/wechat.service';
-import { Article, Category, Tag, ArticleTag } from '@prisma/client';
+import { Article, Category, Tag, ArticleTag, Prisma } from '@prisma/client';
 
 /** Article with category and tags relations included */
 type ArticleWithRelations = Article & {
@@ -57,26 +58,40 @@ export class ArticleService {
   async create(params: CreateArticleParams): Promise<ArticleResponseDto> {
     await this.validateSlugUnique(params.slug);
 
-    const article = await this.prisma.article.create({
-      data: {
-        title: params.title,
-        slug: params.slug,
-        summary: params.summary ?? null,
-        content: params.content ?? null,
-        coverImage: params.coverImage ?? null,
-        seoTitle: params.seoTitle ?? null,
-        seoDescription: params.seoDescription ?? null,
-        categoryId: params.categoryId ?? null,
-        isPublished: false,
-        tags: params.tagIds?.length
-          ? { create: params.tagIds.map((tagId) => ({ tagId })) }
-          : undefined,
-      },
-      include: ARTICLE_INCLUDE,
-    });
+    if (params.categoryId) {
+      await this.validateCategoryExists(params.categoryId);
+    }
 
-    this.logger.log(`文章创建成功: ${article.id}`);
-    return this.toResponseDto(article);
+    if (params.tagIds?.length) {
+      await this.validateTagsExist(params.tagIds);
+    }
+
+    try {
+      const article = await this.prisma.article.create({
+        data: {
+          title: params.title,
+          slug: params.slug,
+          summary: params.summary ?? null,
+          content: params.content ?? null,
+          coverImage: params.coverImage ?? null,
+          seoTitle: params.seoTitle ?? null,
+          seoDescription: params.seoDescription ?? null,
+          locale: params.locale ?? 'zh-CN',
+          translationGroupId: params.translationGroupId ?? null,
+          categoryId: params.categoryId ?? null,
+          isPublished: false,
+          tags: params.tagIds?.length
+            ? { create: params.tagIds.map((tagId) => ({ tagId })) }
+            : undefined,
+        },
+        include: ARTICLE_INCLUDE,
+      });
+
+      this.logger.log(`文章创建成功: ${article.id}`);
+      return this.toResponseDto(article);
+    } catch (err) {
+      throw this.handlePrismaError(err, params.slug);
+    }
   }
 
   /**
@@ -380,6 +395,61 @@ export class ArticleService {
       page: params.page,
       limit: params.limit,
     });
+  }
+
+  /**
+   * 验证分类是否存在
+   */
+  private async validateCategoryExists(categoryId: string): Promise<void> {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    });
+    if (!category) {
+      throw new BadRequestException(`分类不存在: ${categoryId}`);
+    }
+  }
+
+  /**
+   * 验证标签是否全部存在
+   */
+  private async validateTagsExist(tagIds: string[]): Promise<void> {
+    const existingTags = await this.prisma.tag.findMany({
+      where: { id: { in: tagIds } },
+      select: { id: true },
+    });
+    if (existingTags.length !== tagIds.length) {
+      const existingIds = new Set(existingTags.map((t) => t.id));
+      const missingIds = tagIds.filter((id) => !existingIds.has(id));
+      throw new BadRequestException(`以下标签不存在: ${missingIds.join(', ')}`);
+    }
+  }
+
+  /**
+   * 处理 Prisma 错误，转换为业务友好的 HTTP 异常
+   */
+  private handlePrismaError(err: unknown, slug?: string): Error {
+    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+      switch (err.code) {
+        case 'P2002':
+          return new ConflictException(`slug "${slug}" 已被使用`);
+        case 'P2003':
+          return new BadRequestException('关联的分类或标签不存在');
+        case 'P2025':
+          return new NotFoundException('关联记录不存在');
+        default:
+          this.logger.error(`Prisma 错误 [${err.code}]: ${err.message}`);
+          return new InternalServerErrorException('数据库操作失败，请稍后重试');
+      }
+    }
+
+    if (err instanceof Prisma.PrismaClientValidationError) {
+      this.logger.error(`Prisma 验证错误: ${err.message}`);
+      return new BadRequestException('请求数据格式不正确');
+    }
+
+    this.logger.error('文章创建失败', err instanceof Error ? err.stack : String(err));
+    return new InternalServerErrorException('服务器内部错误，请稍后重试');
   }
 
   /**

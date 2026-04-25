@@ -28,6 +28,8 @@ export interface CreateArticleParams {
   coverImage?: string;
   seoTitle?: string;
   seoDescription?: string;
+  locale?: string;
+  translationGroupId?: string;
   categoryId?: string;
   tagIds?: string[];
 }

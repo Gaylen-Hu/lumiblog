@@ -109,10 +109,31 @@ export class PublicService {
       where,
       include: ARTICLE_INCLUDE,
     });
+
     if (!article) {
-      throw new NotFoundException('文章不存在');
+      // 如果指定了 locale 但没找到，尝试不限 locale 查找
+      if (locale) {
+        const fallback = await this.prisma.article.findFirst({
+          where: { slug, isPublished: true },
+          include: ARTICLE_INCLUDE,
+        });
+        if (!fallback) {
+          throw new NotFoundException(`文章不存在: ${slug}`);
+        }
+        return this.buildArticleDetail(fallback);
+      }
+      throw new NotFoundException(`文章不存在: ${slug}`);
     }
 
+    return this.buildArticleDetail(article);
+  }
+
+  /**
+   * 构建文章详情响应（含上下篇导航和异步阅读量递增）
+   */
+  private async buildArticleDetail(
+    article: ArticleWithRelations,
+  ): Promise<PublicArticleDetailDto> {
     // 异步递增阅读量，不阻塞响应
     this.prisma.article
       .update({
@@ -126,11 +147,13 @@ export class PublicService {
       ...(article.locale ? { locale: article.locale } : {}),
     };
 
+    const publishedAt = article.publishedAt ?? article.createdAt;
+
     const [prev, next] = await Promise.all([
       this.prisma.article.findFirst({
         where: {
           ...navWhere,
-          publishedAt: { not: null, lt: article.publishedAt ?? new Date() },
+          publishedAt: { not: null, lt: publishedAt },
         },
         orderBy: { publishedAt: 'desc' },
         select: { slug: true, title: true, publishedAt: true },
@@ -138,15 +161,19 @@ export class PublicService {
       this.prisma.article.findFirst({
         where: {
           ...navWhere,
-          publishedAt: { not: null, gt: article.publishedAt ?? new Date() },
+          publishedAt: { not: null, gt: publishedAt },
         },
         orderBy: { publishedAt: 'asc' },
         select: { slug: true, title: true, publishedAt: true },
       }),
     ]);
 
-    const prevArticle = prev ? new ArticleNavItemDto({ slug: prev.slug, title: prev.title, publishedAt: prev.publishedAt! }) : null;
-    const nextArticle = next ? new ArticleNavItemDto({ slug: next.slug, title: next.title, publishedAt: next.publishedAt! }) : null;
+    const prevArticle = prev
+      ? new ArticleNavItemDto({ slug: prev.slug, title: prev.title, publishedAt: prev.publishedAt! })
+      : null;
+    const nextArticle = next
+      ? new ArticleNavItemDto({ slug: next.slug, title: next.title, publishedAt: next.publishedAt! })
+      : null;
 
     return this.toArticleDetail(article, prevArticle, nextArticle);
   }
@@ -397,7 +424,7 @@ export class PublicService {
       title: article.title,
       excerpt: article.summary,
       author: new AuthorDto({ name: DEFAULT_AUTHOR_NAME, avatar: null }),
-      publishedAt: article.publishedAt!,
+      publishedAt: article.publishedAt ?? article.createdAt,
       readTime: this.calculateReadTime(article.content),
       category: article.category
         ? new CategoryBriefDto(article.category)
@@ -422,7 +449,7 @@ export class PublicService {
       excerpt: article.summary,
       content: article.content ?? '',
       author: new AuthorDto({ name: DEFAULT_AUTHOR_NAME, avatar: null }),
-      publishedAt: article.publishedAt!,
+      publishedAt: article.publishedAt ?? article.createdAt,
       updatedAt: article.updatedAt,
       readTime: this.calculateReadTime(article.content),
       category: article.category
@@ -456,7 +483,7 @@ export class PublicService {
       excerpt: article.summary,
       highlight: this.generateHighlight(article.content, keyword),
       category: article.category?.name ?? null,
-      publishedAt: article.publishedAt!,
+      publishedAt: article.publishedAt ?? article.createdAt,
     });
   }
 }

@@ -104,7 +104,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const logMessage = `${request.method} ${request.url} - ${statusCode}`;
 
     if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(logMessage, exception instanceof Error ? exception.stack : '');
+      if (exception instanceof Error) {
+        this.logger.error(
+          `${logMessage} | ${exception.name}: ${exception.message}`,
+          exception.stack,
+        );
+      } else {
+        this.logger.error(`${logMessage} | ${String(exception)}`);
+      }
     } else if (statusCode >= HttpStatus.BAD_REQUEST) {
       this.logger.warn(logMessage);
     }
