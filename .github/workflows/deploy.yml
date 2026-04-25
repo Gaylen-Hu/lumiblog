@@ -56,8 +56,6 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec prisma generate
           NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
-
-          # 验证构建产物
           ls dist/src/main.js
 
       # ── 构建管理后台 (Ant Design Pro) ──
@@ -78,15 +76,11 @@ jobs:
         working-directory: apps/blog-web/blog_web
         run: |
           mkdir -p _deploy
-
-          # Next.js standalone 产物路径（可能是根目录或嵌套路径）
           STANDALONE_DIR=".next/standalone"
 
-          # 检查 standalone 目录结构，找到 server.js 所在位置
           if [ -f "$STANDALONE_DIR/server.js" ]; then
             cp -r $STANDALONE_DIR/. _deploy/
           elif [ -f "$STANDALONE_DIR/apps/blog-web/blog_web/server.js" ]; then
-            # monorepo 场景下 standalone 可能嵌套
             cp -r $STANDALONE_DIR/. _deploy/
           else
             echo "=== standalone 目录结构 ==="
@@ -96,14 +90,12 @@ jobs:
             exit 1
           fi
 
-          # standalone 模式需要 static 和 public 资源
           mkdir -p _deploy/.next/static
           cp -r .next/static/. _deploy/.next/static/
           if [ -d "public" ]; then
             cp -r public _deploy/public
           fi
 
-          # 验证关键文件存在
           echo "=== 验证 standalone 产物 ==="
           ls -la _deploy/server.js 2>/dev/null || ls -la _deploy/apps/blog-web/blog_web/server.js 2>/dev/null || echo "WARN: server.js 位置待确认"
 
@@ -112,18 +104,14 @@ jobs:
         run: |
           mkdir -p _artifacts
 
-          # 后端产物（只打包构建产物和配置，不含 node_modules）
           tar -czf _artifacts/server.tar.gz \
             -C apps/server/my-blog \
             dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc
 
-          # 管理后台产物（纯静态）
           tar -czf _artifacts/admin.tar.gz -C apps/admin-web/myapp dist
 
-          # 博客前端产物（standalone）
           tar -czf _artifacts/blog.tar.gz -C apps/blog-web/blog_web/_deploy .
 
-          # 部署脚本
           cp deploy-remote.sh _artifacts/
 
           echo "=== 产物大小 ==="
@@ -142,14 +130,11 @@ jobs:
           SCP_OPTS="-i ~/.ssh/deploy_key -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
           SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
 
-          # 在服务器上创建临时目录
           ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /tmp/blog-deploy"
-
-          # 上传所有产物（scp 用大写 -P 指定端口）
           scp $SCP_OPTS _artifacts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/blog-deploy/
 
       - name: Deploy on server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -157,6 +142,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script_stop: true
           request_pty: true
+          command_timeout: 15m
           script: |
             set -e
             chmod +x /tmp/blog-deploy/deploy-remote.sh
