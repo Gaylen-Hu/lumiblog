@@ -1,5 +1,6 @@
 import {
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
   UnauthorizedException,
@@ -32,7 +33,15 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string): Promise<SafeUser | null> {
-    const user = await this.userService.findByEmail(email);
+    let user: PrismaUser | null;
+    try {
+      user = await this.userService.findByEmail(email);
+    } catch (err) {
+      this.logger.error(
+        `用户查询失败: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new InternalServerErrorException('登录服务异常，请稍后重试');
+    }
 
     if (!user) {
       return null;
@@ -50,10 +59,28 @@ export class AuthService {
 
   async login(user: SafeUser): Promise<TokenPairResponse> {
     const payload: JwtPayload = { sub: user.id, email: user.email };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = await this.refreshTokenService.createRefreshToken(
-      user.id,
-    );
+
+    let accessToken: string;
+    try {
+      accessToken = this.jwtService.sign(payload);
+    } catch (err) {
+      this.logger.error(
+        `JWT 签名失败: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new InternalServerErrorException('登录服务异常，请稍后重试');
+    }
+
+    let refreshToken: string;
+    try {
+      refreshToken = await this.refreshTokenService.createRefreshToken(
+        user.id,
+      );
+    } catch (err) {
+      this.logger.error(
+        `Refresh token 创建失败: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new InternalServerErrorException('登录服务异常，请稍后重试');
+    }
 
     return {
       access_token: accessToken,
