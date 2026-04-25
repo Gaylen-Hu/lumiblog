@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import '../globals.css'
+import Script from 'next/script'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
@@ -57,6 +58,8 @@ export default async function LocaleLayout({
 
   const [messages, config] = await Promise.all([getMessages(), getSiteConfig()])
 
+  const GA_ID = config.analyticsGoogle || process.env.NEXT_PUBLIC_GA_ID || ''
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
@@ -66,13 +69,21 @@ export default async function LocaleLayout({
             __html: `(function(){try{var t=localStorage.getItem('theme');var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||((t==='system'||!t)&&prefersDark)){document.documentElement.classList.add('dark');}}catch(e){}})()`,
           }}
         />
-        {config.analyticsGoogle ? (
-          <script dangerouslySetInnerHTML={{ __html: config.analyticsGoogle }} />
-        ) : null}
         {config.analyticsBaidu ? (
           <script dangerouslySetInnerHTML={{ __html: config.analyticsBaidu }} />
         ) : null}
       </head>
+      {GA_ID ? (
+        <>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            strategy="afterInteractive"
+          />
+          <Script id="google-analytics" strategy="afterInteractive">
+            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
+          </Script>
+        </>
+      ) : null}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white dark:bg-slate-950`}
       >
