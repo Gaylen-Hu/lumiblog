@@ -36,6 +36,9 @@ export async function generateMetadata({
       },
       types: { 'application/rss+xml': `/${locale}/feed.xml` },
     },
+    verification: {
+      google: '7U2ecxnFXB_TBWt1YymA6odAvoozyQ-CTxJg-P7D_44',
+    },
   }
 }
 
