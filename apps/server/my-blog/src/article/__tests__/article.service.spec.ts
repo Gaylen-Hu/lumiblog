@@ -67,6 +67,12 @@ describe('ArticleService', () => {
     articleTag: {
       deleteMany: jest.Mock;
     };
+    category: {
+      findUnique: jest.Mock;
+    };
+    tag: {
+      findMany: jest.Mock;
+    };
     $transaction: jest.Mock;
   };
 
@@ -83,6 +89,12 @@ describe('ArticleService', () => {
       },
       articleTag: {
         deleteMany: jest.fn(),
+      },
+      category: {
+        findUnique: jest.fn(),
+      },
+      tag: {
+        findMany: jest.fn(),
       },
       $transaction: jest.fn(async (fn: (prisma: unknown) => Promise<unknown>) => fn(prisma)),
     };
@@ -152,6 +164,7 @@ describe('ArticleService', () => {
         category: { id: categoryId, name: '技术', slug: 'tech' },
       });
       prisma.article.findFirst.mockResolvedValue(null);
+      prisma.category.findUnique.mockResolvedValue({ id: categoryId });
       prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
@@ -186,6 +199,7 @@ describe('ArticleService', () => {
         })),
       });
       prisma.article.findFirst.mockResolvedValue(null);
+      prisma.tag.findMany.mockResolvedValue(tagIds.map((id) => ({ id })));
       prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
@@ -226,6 +240,8 @@ describe('ArticleService', () => {
         })),
       });
       prisma.article.findFirst.mockResolvedValue(null);
+      prisma.category.findUnique.mockResolvedValue({ id: categoryId });
+      prisma.tag.findMany.mockResolvedValue(tagIds.map((id) => ({ id })));
       prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
@@ -380,6 +396,7 @@ describe('ArticleService', () => {
               tags: [],
             });
             prisma.article.findFirst.mockResolvedValue(null);
+            prisma.category.findUnique.mockResolvedValue({ id: categoryId });
             prisma.article.create.mockResolvedValue(mockArticle);
 
             // Act
@@ -422,6 +439,7 @@ describe('ArticleService', () => {
               })),
             });
             prisma.article.findFirst.mockResolvedValue(null);
+            prisma.tag.findMany.mockResolvedValue(tagIds.map((id) => ({ id })));
             prisma.article.create.mockResolvedValue(mockArticle);
 
             // Act
