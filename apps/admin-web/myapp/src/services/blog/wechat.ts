@@ -69,3 +69,22 @@ export async function getWechatPublishStatus(publishId: string) {
     params: { publishId },
   });
 }
+
+/** 上传图片到微信素材库 POST /api/wechat/material/upload-image */
+export async function uploadWechatImage(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request<{ media_id: string; url: string }>('/api/wechat/material/upload-image', {
+    method: 'POST',
+    data: formData,
+  });
+}
+
+/** 通过 URL 下载图片并上传到微信素材库 POST /api/wechat/material/upload-image */
+export async function uploadWechatImageFromUrl(imageUrl: string) {
+  const response = await fetch(imageUrl);
+  const blob = await response.blob();
+  const filename = imageUrl.split('/').pop() || 'cover.jpg';
+  const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+  return uploadWechatImage(file);
+}

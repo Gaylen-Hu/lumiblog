@@ -7,6 +7,9 @@ import {
   Query,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,7 +17,9 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WechatService } from './wechat.service';
 import { DateRangeDto } from './dto/date-range.dto';
@@ -62,6 +67,23 @@ export class WechatController {
   async deleteMaterial(@Param('mediaId') mediaId: string) {
     await this.wechatService.deleteMaterial(mediaId);
     return { success: true };
+  }
+
+  @ApiOperation({ summary: '上传图片素材', description: '上传图片到微信永久素材库，返回 media_id' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: '上传成功' })
+  @Post('material/upload-image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImageMaterial(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传图片文件');
+    }
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('仅支持图片文件');
+    }
+    return this.wechatService.uploadImageMaterial(file.buffer, file.originalname);
   }
 
   // ============ 草稿箱 ============

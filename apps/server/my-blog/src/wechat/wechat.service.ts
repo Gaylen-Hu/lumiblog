@@ -166,6 +166,53 @@ export class WechatService {
     );
   }
 
+  /**
+   * 上传永久图片素材到微信
+   * 微信要求 multipart/form-data，不能用 callApi
+   */
+  async uploadImageMaterial(
+    imageBuffer: Buffer,
+    filename: string,
+  ): Promise<{ media_id: string; url: string }> {
+    const accessToken = await this.getAccessToken();
+    const url = `${WECHAT_API_BASE_URL}${WECHAT_API_ENDPOINTS.MATERIAL_ADD}?access_token=${accessToken}&type=image`;
+
+    const boundary = `----FormBoundary${Date.now()}`;
+    const crlf = '\r\n';
+
+    const header = [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="media"; filename="${filename}"`,
+      `Content-Type: image/jpeg`,
+      '',
+    ].join(crlf);
+
+    const footer = `${crlf}--${boundary}--${crlf}`;
+
+    const headerBuffer = Buffer.from(header + crlf, 'utf-8');
+    const footerBuffer = Buffer.from(footer, 'utf-8');
+    const body = Buffer.concat([headerBuffer, imageBuffer, footerBuffer]);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body,
+    });
+
+    const data = (await response.json()) as
+      | { media_id: string; url: string }
+      | WechatErrorResponse;
+
+    if ('errcode' in data && (data as WechatErrorResponse).errcode !== 0) {
+      const err = data as WechatErrorResponse;
+      this.logger.error(`上传微信素材失败: ${err.errmsg}`);
+      throw new BadRequestException(`微信素材上传失败: ${err.errmsg}`);
+    }
+
+    this.logger.log(`微信素材上传成功: ${(data as { media_id: string }).media_id}`);
+    return data as { media_id: string; url: string };
+  }
+
   // ============ 草稿箱 ============
 
   async createDraft(articles: DraftArticleDto[]): Promise<DraftAddResponse> {
