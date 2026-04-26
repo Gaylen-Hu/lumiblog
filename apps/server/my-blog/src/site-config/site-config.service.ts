@@ -14,33 +14,39 @@ export class SiteConfigService {
 
   /**
    * 获取网站配置（单例模式，自动创建默认配置）
-   * 使用 wrap 模式缓存，防止缓存击穿
+   * 使用手动 get/set 缓存，避免 wrap 内部多层缓存导致 del 后仍返回旧值
    */
   async getConfig(): Promise<SiteConfigResponseDto> {
-    return this.blogCacheService.wrap<SiteConfigResponseDto>(
+    const cached =
+      await this.blogCacheService.get<SiteConfigResponseDto>(
+        CacheKeyRegistry.SITE_CONFIG,
+      );
+    if (cached) return cached;
+
+    let config = await this.prisma.siteConfig.findFirst();
+
+    if (!config) {
+      this.logger.log('Creating default site config');
+      config = await this.prisma.siteConfig.create({
+        data: {
+          title: 'My Blog',
+          description: '欢迎来到我的博客',
+        },
+      });
+    }
+
+    const dto = this.mapToDto(config);
+    await this.blogCacheService.set(
       CacheKeyRegistry.SITE_CONFIG,
-      async () => {
-        let config = await this.prisma.siteConfig.findFirst();
-
-        if (!config) {
-          this.logger.log('Creating default site config');
-          config = await this.prisma.siteConfig.create({
-            data: {
-              title: 'My Blog',
-              description: '欢迎来到我的博客',
-            },
-          });
-        }
-
-        return this.mapToDto(config);
-      },
+      dto,
       CacheKeyRegistry.SITE_CONFIG_TTL,
     );
+    return dto;
   }
 
   /**
    * 更新网站配置
-   * 更新 DB 后立即清除缓存
+   * 更新 DB 后清除旧缓存并写入新值
    */
   async updateConfig(dto: UpdateSiteConfigDto): Promise<SiteConfigResponseDto> {
     const existing = await this.getConfig();
@@ -50,10 +56,18 @@ export class SiteConfigService {
       data: dto,
     });
 
+    const result = this.mapToDto(updated);
+
+    // 先删再写，确保缓存与 DB 一致
     await this.blogCacheService.del(CacheKeyRegistry.SITE_CONFIG);
+    await this.blogCacheService.set(
+      CacheKeyRegistry.SITE_CONFIG,
+      result,
+      CacheKeyRegistry.SITE_CONFIG_TTL,
+    );
 
     this.logger.log(`Site config updated: ${updated.id}`);
-    return this.mapToDto(updated);
+    return result;
   }
 
   private mapToDto(config: any): SiteConfigResponseDto {

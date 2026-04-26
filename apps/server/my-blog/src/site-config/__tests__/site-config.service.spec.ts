@@ -53,8 +53,10 @@ describe('SiteConfigService', () => {
     };
 
     blogCacheService = {
-      wrap: jest.fn((_key: string, fn: () => Promise<unknown>, _ttl: number) => fn()),
+      get: jest.fn().mockResolvedValue(undefined),
+      set: jest.fn().mockResolvedValue(undefined),
       del: jest.fn().mockResolvedValue(undefined),
+      wrap: jest.fn((_key: string, fn: () => Promise<unknown>, _ttl: number) => fn()),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -250,6 +252,8 @@ describe('SiteConfigService', () => {
           async (aboutImage1: string | null, aboutImage2: string | null) => {
             // Arrange
             prisma.siteConfig.findFirst.mockReset();
+            blogCacheService.get.mockResolvedValue(undefined);
+            blogCacheService.set.mockResolvedValue(undefined);
             const configRecord = {
               ...mockSiteConfig,
               aboutImage1,
@@ -284,26 +288,28 @@ describe('SiteConfigService', () => {
   // **Validates: Requirements 2.1, 2.2, 2.5**
 
   describe('缓存集成', () => {
-    it('getConfig 应使用 blogCacheService.wrap 包裹数据库查询', async () => {
-      // Arrange
+    it('getConfig 应先查缓存，缓存 miss 时查数据库并写入缓存', async () => {
+      // Arrange — cache miss
+      blogCacheService.get.mockResolvedValue(undefined);
       prisma.siteConfig.findFirst.mockResolvedValue(mockSiteConfig);
 
       // Act
       await service.getConfig();
 
       // Assert
-      expect(blogCacheService.wrap).toHaveBeenCalledTimes(1);
-      expect(blogCacheService.wrap).toHaveBeenCalledWith(
+      expect(blogCacheService.get).toHaveBeenCalledWith('blog:site-config');
+      expect(prisma.siteConfig.findFirst).toHaveBeenCalledTimes(1);
+      expect(blogCacheService.set).toHaveBeenCalledWith(
         'blog:site-config',
-        expect.any(Function),
+        expect.objectContaining({ id: mockConfigId }),
         3600,
       );
     });
 
     it('getConfig 缓存命中时不应查询数据库', async () => {
-      // Arrange — wrap 直接返回缓存数据，不调用 fn
+      // Arrange — cache hit
       const cachedData = { ...mockSiteConfig, title: 'Cached Title' };
-      blogCacheService.wrap.mockResolvedValue(cachedData);
+      blogCacheService.get.mockResolvedValue(cachedData);
 
       // Act
       const result = await service.getConfig();
@@ -314,10 +320,11 @@ describe('SiteConfigService', () => {
       expect(prisma.siteConfig.create).not.toHaveBeenCalled();
     });
 
-    it('updateConfig 应在更新后清除缓存', async () => {
+    it('updateConfig 应在更新后清除旧缓存并写入新值', async () => {
       // Arrange
       const updateDto = { title: 'Updated Title' };
       const updatedConfig = { ...mockSiteConfig, ...updateDto };
+      blogCacheService.get.mockResolvedValue(undefined);
       prisma.siteConfig.findFirst.mockResolvedValue(mockSiteConfig);
       prisma.siteConfig.update.mockResolvedValue(updatedConfig);
 
@@ -326,7 +333,11 @@ describe('SiteConfigService', () => {
 
       // Assert
       expect(blogCacheService.del).toHaveBeenCalledWith('blog:site-config');
-      expect(blogCacheService.del).toHaveBeenCalledTimes(1);
+      expect(blogCacheService.set).toHaveBeenCalledWith(
+        'blog:site-config',
+        expect.objectContaining({ title: 'Updated Title' }),
+        3600,
+      );
     });
   });
 
@@ -358,6 +369,9 @@ describe('SiteConfigService', () => {
             prisma.siteConfig.findFirst.mockReset();
             prisma.siteConfig.create.mockReset();
             prisma.siteConfig.update.mockReset();
+            blogCacheService.get.mockResolvedValue(undefined);
+            blogCacheService.set.mockResolvedValue(undefined);
+            blogCacheService.del.mockResolvedValue(undefined);
 
             // Track: create should be called at most once (singleton)
             let createCallCount = 0;
