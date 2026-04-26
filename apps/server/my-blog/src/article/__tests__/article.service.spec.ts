@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { ArticleService } from '../article.service';
@@ -112,21 +111,21 @@ describe('ArticleService', () => {
   });
 
   describe('create', () => {
-    it('应该成功创建文章草稿', async () => {
+    it('应该成功创建文章草稿并自动生成 slug', async () => {
       // Arrange
       const inputParams: CreateArticleParams = {
         title: '测试文章',
-        slug: 'test-article',
         summary: '这是摘要',
         content: '这是内容',
       };
       const mockArticle = buildMockArticle({
         title: inputParams.title,
-        slug: inputParams.slug,
+        slug: 'ce-shi-wen-zhang',
         summary: inputParams.summary!,
         content: inputParams.content!,
       });
-      prisma.article.findFirst.mockResolvedValue(null);
+      // generateUniqueSlug: findMany returns empty (no duplicates)
+      prisma.article.findMany.mockResolvedValue([]);
       prisma.article.create.mockResolvedValue(mockArticle);
 
       // Act
@@ -135,18 +134,28 @@ describe('ArticleService', () => {
       // Assert
       expect(actual.id).toBeDefined();
       expect(actual.title).toBe(inputParams.title);
-      expect(actual.slug).toBe(inputParams.slug);
+      expect(actual.slug).toBe('ce-shi-wen-zhang');
       expect(actual.isPublished).toBe(false);
     });
 
-    it('应该在 slug 重复时抛出 ConflictException', async () => {
+    it('应该在 slug 重复时自动追加编号', async () => {
       // Arrange
-      prisma.article.findFirst.mockResolvedValue({ id: 'existing', slug: 'dup' });
+      const inputParams: CreateArticleParams = {
+        title: '测试文章',
+      };
+      // Simulate existing slug
+      prisma.article.findMany.mockResolvedValue([{ slug: 'ce-shi-wen-zhang' }]);
+      const mockArticle = buildMockArticle({
+        title: inputParams.title,
+        slug: 'ce-shi-wen-zhang-1',
+      });
+      prisma.article.create.mockResolvedValue(mockArticle);
 
-      // Act & Assert
-      await expect(
-        service.create({ title: '文章', slug: 'dup' }),
-      ).rejects.toThrow(ConflictException);
+      // Act
+      const actual = await service.create(inputParams);
+
+      // Assert
+      expect(actual.slug).toBe('ce-shi-wen-zhang-1');
     });
 
     it('应该创建带分类关联的文章', async () => {
@@ -154,16 +163,15 @@ describe('ArticleService', () => {
       const categoryId = 'cat-1';
       const inputParams: CreateArticleParams = {
         title: '分类文章',
-        slug: 'cat-article',
         categoryId,
       };
       const mockArticle = buildMockArticle({
         title: inputParams.title,
-        slug: inputParams.slug,
+        slug: 'fen-lei-wen-zhang',
         categoryId,
         category: { id: categoryId, name: '技术', slug: 'tech' },
       });
-      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.findMany.mockResolvedValue([]);
       prisma.category.findUnique.mockResolvedValue({ id: categoryId });
       prisma.article.create.mockResolvedValue(mockArticle);
 
@@ -185,12 +193,11 @@ describe('ArticleService', () => {
       const tagIds = ['tag-1', 'tag-2'];
       const inputParams: CreateArticleParams = {
         title: '标签文章',
-        slug: 'tag-article',
         tagIds,
       };
       const mockArticle = buildMockArticle({
         title: inputParams.title,
-        slug: inputParams.slug,
+        slug: 'biao-qian-wen-zhang',
         tags: tagIds.map((tagId) => ({
           id: `at-${tagId}`,
           articleId: 'article-1',
@@ -198,7 +205,7 @@ describe('ArticleService', () => {
           tag: { id: tagId, name: `标签${tagId}`, slug: `tag-${tagId}` },
         })),
       });
-      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.findMany.mockResolvedValue([]);
       prisma.tag.findMany.mockResolvedValue(tagIds.map((id) => ({ id })));
       prisma.article.create.mockResolvedValue(mockArticle);
 
@@ -223,13 +230,12 @@ describe('ArticleService', () => {
       const tagIds = ['tag-1', 'tag-2', 'tag-3'];
       const inputParams: CreateArticleParams = {
         title: '完整文章',
-        slug: 'full-article',
         categoryId,
         tagIds,
       };
       const mockArticle = buildMockArticle({
         title: inputParams.title,
-        slug: inputParams.slug,
+        slug: 'wan-zheng-wen-zhang',
         categoryId,
         category: { id: categoryId, name: '技术', slug: 'tech' },
         tags: tagIds.map((tagId) => ({
@@ -239,7 +245,7 @@ describe('ArticleService', () => {
           tag: { id: tagId, name: `标签${tagId}`, slug: `tag-${tagId}` },
         })),
       });
-      prisma.article.findFirst.mockResolvedValue(null);
+      prisma.article.findMany.mockResolvedValue([]);
       prisma.category.findUnique.mockResolvedValue({ id: categoryId });
       prisma.tag.findMany.mockResolvedValue(tagIds.map((id) => ({ id })));
       prisma.article.create.mockResolvedValue(mockArticle);
@@ -255,11 +261,40 @@ describe('ArticleService', () => {
   });
 
   describe('update', () => {
+    it('应该在标题变更时自动重新生成 slug', async () => {
+      // Arrange
+      const articleId = 'article-1';
+      prisma.article.findUnique.mockResolvedValue({
+        id: articleId,
+        title: '旧标题',
+        slug: 'jiu-biao-ti',
+      });
+      prisma.article.findMany.mockResolvedValue([]);
+      prisma.article.update.mockResolvedValue(
+        buildMockArticle({
+          id: articleId,
+          title: '新标题',
+          slug: 'xin-biao-ti',
+        }),
+      );
+
+      // Act
+      const actual = await service.update(articleId, { title: '新标题' });
+
+      // Assert
+      expect(actual.slug).toBe('xin-biao-ti');
+      expect(prisma.article.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ slug: 'xin-biao-ti' }),
+        }),
+      );
+    });
+
     it('应该使用 deleteMany + create 策略更新标签', async () => {
       // Arrange
       const articleId = 'article-1';
       const newTagIds = ['tag-3', 'tag-4'];
-      prisma.article.findUnique.mockResolvedValue({ id: articleId, slug: 'old-slug' });
+      prisma.article.findUnique.mockResolvedValue({ id: articleId, title: '标题', slug: 'old-slug' });
       prisma.articleTag.deleteMany.mockResolvedValue({ count: 2 });
       prisma.article.update.mockResolvedValue(
         buildMockArticle({
@@ -294,7 +329,7 @@ describe('ArticleService', () => {
       // Arrange
       const articleId = 'article-1';
       const newCategoryId = 'cat-2';
-      prisma.article.findUnique.mockResolvedValue({ id: articleId, slug: 'slug' });
+      prisma.article.findUnique.mockResolvedValue({ id: articleId, title: '标题', slug: 'slug' });
       prisma.article.update.mockResolvedValue(
         buildMockArticle({
           id: articleId,
@@ -379,7 +414,6 @@ describe('ArticleService', () => {
   /**
    * 属性 1: 文章-分类一致性
    * 创建文章时指定 categoryId，返回的 category 对象 id 匹配
-   * Validates: Requirements 1.2
    */
   describe('Property 1: 文章-分类一致性', () => {
     it('创建文章时指定 categoryId，返回的 category.id 应匹配', async () => {
@@ -388,21 +422,19 @@ describe('ArticleService', () => {
           fc.uuid(),
           async (categoryId) => {
             // Arrange
-            const slug = `article-${categoryId}`;
             const mockArticle = buildMockArticle({
-              slug,
+              slug: 'shu-xing-ce-shi-wen-zhang',
               categoryId,
               category: { id: categoryId, name: 'Cat', slug: 'cat' },
               tags: [],
             });
-            prisma.article.findFirst.mockResolvedValue(null);
+            prisma.article.findMany.mockResolvedValue([]);
             prisma.category.findUnique.mockResolvedValue({ id: categoryId });
             prisma.article.create.mockResolvedValue(mockArticle);
 
             // Act
             const result = await service.create({
               title: '属性测试文章',
-              slug,
               categoryId,
             });
 
@@ -419,7 +451,6 @@ describe('ArticleService', () => {
   /**
    * 属性 2: 文章-标签一致性
    * 创建文章时指定 tagIds，返回的 tags 数组长度和 id 匹配
-   * Validates: Requirements 1.2
    */
   describe('Property 2: 文章-标签一致性', () => {
     it('创建文章时指定 tagIds，返回的 tags 长度和 id 应匹配', async () => {
@@ -428,9 +459,8 @@ describe('ArticleService', () => {
           fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 10 }),
           async (tagIds) => {
             // Arrange
-            const slug = `article-tags-${tagIds.length}`;
             const mockArticle = buildMockArticle({
-              slug,
+              slug: 'biao-qian-shu-xing-ce-shi',
               tags: tagIds.map((tagId) => ({
                 id: `at-${tagId}`,
                 articleId: 'article-1',
@@ -438,14 +468,13 @@ describe('ArticleService', () => {
                 tag: { id: tagId, name: `Tag-${tagId}`, slug: `tag-${tagId}` },
               })),
             });
-            prisma.article.findFirst.mockResolvedValue(null);
+            prisma.article.findMany.mockResolvedValue([]);
             prisma.tag.findMany.mockResolvedValue(tagIds.map((id) => ({ id })));
             prisma.article.create.mockResolvedValue(mockArticle);
 
             // Act
             const result = await service.create({
               title: '标签属性测试',
-              slug,
               tagIds,
             });
 

@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsArray,
   MaxLength,
-  Matches,
   IsIn,
   IsUUID,
 } from 'class-validator';
@@ -13,6 +12,7 @@ import {
 /**
  * 创建文章 DTO
  * 用于管理端创建文章草稿
+ * slug 由后端根据标题自动生成，无需前端传入
  */
 export class CreateArticleDto {
   @ApiProperty({
@@ -24,20 +24,6 @@ export class CreateArticleDto {
   @IsNotEmpty({ message: '标题不能为空' })
   @MaxLength(200, { message: '标题长度不能超过200字符' })
   title: string;
-
-  @ApiProperty({
-    description: '文章 URL 别名',
-    example: 'how-to-build-restful-api-with-nestjs',
-    maxLength: 200,
-    pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$',
-  })
-  @IsString()
-  @IsNotEmpty({ message: 'slug 不能为空' })
-  @MaxLength(200, { message: 'slug 长度不能超过200字符' })
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
-    message: 'slug 只能包含小写字母、数字和连字符',
-  })
-  slug: string;
 
   @ApiPropertyOptional({
     description: '文章摘要',

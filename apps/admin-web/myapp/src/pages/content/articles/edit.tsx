@@ -114,15 +114,6 @@ const ArticleEdit: React.FC = () => {
               { max: 200, message: '标题不能超过200个字符' },
             ]}
           />
-          <ProFormText
-            name="slug"
-            label="Slug"
-            placeholder="请输入URL标识（小写字母、数字、连字符）"
-            rules={[
-              { required: true, message: '请输入Slug' },
-              { pattern: /^[a-z0-9-]+$/, message: '只能包含小写字母、数字和连字符' },
-            ]}
-          />
           <ProFormTreeSelect
             name="categoryId"
             label="分类"

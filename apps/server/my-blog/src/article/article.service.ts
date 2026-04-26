@@ -29,6 +29,7 @@ import {
 import { AiService } from '../ai/ai.service';
 import { WechatService } from '../wechat/wechat.service';
 import { Article, Category, Tag, ArticleTag, Prisma } from '@prisma/client';
+import { createSlug, shortId } from '../common/slug.util';
 
 /** Article with category and tags relations included */
 type ArticleWithRelations = Article & {
@@ -54,10 +55,9 @@ export class ArticleService {
 
   /**
    * 创建文章草稿
+   * slug 根据标题自动生成，保证唯一性
    */
   async create(params: CreateArticleParams): Promise<ArticleResponseDto> {
-    await this.validateSlugUnique(params.slug);
-
     if (params.categoryId) {
       await this.validateCategoryExists(params.categoryId);
     }
@@ -66,11 +66,13 @@ export class ArticleService {
       await this.validateTagsExist(params.tagIds);
     }
 
+    const slug = await this.generateUniqueSlug(params.title);
+
     try {
       const article = await this.prisma.article.create({
         data: {
           title: params.title,
-          slug: params.slug,
+          slug,
           summary: params.summary ?? null,
           content: params.content ?? null,
           coverImage: params.coverImage ?? null,
@@ -90,7 +92,7 @@ export class ArticleService {
       this.logger.log(`文章创建成功: ${article.id}`);
       return this.toResponseDto(article);
     } catch (err) {
-      throw this.handlePrismaError(err, params.slug);
+      throw this.handlePrismaError(err, slug);
     }
   }
 
@@ -144,6 +146,7 @@ export class ArticleService {
 
   /**
    * 更新文章
+   * 标题变更时自动重新生成 slug
    */
   async update(
     id: string,
@@ -154,8 +157,10 @@ export class ArticleService {
       throw new NotFoundException('文章不存在');
     }
 
-    if (params.slug && params.slug !== existing.slug) {
-      await this.validateSlugUnique(params.slug, id);
+    // 标题变更时重新生成 slug
+    let newSlug: string | undefined;
+    if (params.title && params.title !== existing.title) {
+      newSlug = await this.generateUniqueSlug(params.title);
     }
 
     const article = await this.prisma.$transaction(async (tx) => {
@@ -168,7 +173,7 @@ export class ArticleService {
         where: { id },
         data: {
           title: params.title,
-          slug: params.slug,
+          slug: newSlug,
           summary: params.summary,
           content: params.content,
           coverImage: params.coverImage,
@@ -266,10 +271,8 @@ export class ArticleService {
     let newArticleId: string | undefined;
 
     if (params.createNewArticle) {
-      const newSlug = `${article.slug}-en`;
       const newArticle = await this.create({
         title: translated.title,
-        slug: newSlug,
         content: translated.content,
         summary: translated.summary ?? undefined,
         coverImage: article.coverImage ?? undefined,
@@ -398,6 +401,33 @@ export class ArticleService {
   }
 
   /**
+   * 根据标题生成唯一 slug
+   *
+   * 策略：一次查询所有同前缀 slug，在内存中找到可用编号，
+   * 避免循环查库。最终依赖数据库唯一约束兜底。
+   */
+  private async generateUniqueSlug(title: string): Promise<string> {
+    const baseSlug = createSlug(title);
+
+    const existing = await this.prisma.article.findMany({
+      where: { slug: { startsWith: baseSlug } },
+      select: { slug: true },
+    });
+
+    const taken = new Set(existing.map((a) => a.slug));
+
+    if (!taken.has(baseSlug)) return baseSlug;
+
+    for (let i = 1; i <= 10; i++) {
+      const candidate = `${baseSlug}-${i}`;
+      if (!taken.has(candidate)) return candidate;
+    }
+
+    // 兜底：追加随机后缀
+    return `${baseSlug}-${shortId()}`;
+  }
+
+  /**
    * 验证分类是否存在
    */
   private async validateCategoryExists(categoryId: string): Promise<void> {
@@ -450,24 +480,6 @@ export class ArticleService {
 
     this.logger.error('文章创建失败', err instanceof Error ? err.stack : String(err));
     return new InternalServerErrorException('服务器内部错误，请稍后重试');
-  }
-
-  /**
-   * 验证 slug 唯一性
-   */
-  private async validateSlugUnique(
-    slug: string,
-    excludeId?: string,
-  ): Promise<void> {
-    const existing = await this.prisma.article.findFirst({
-      where: {
-        slug,
-        id: excludeId ? { not: excludeId } : undefined,
-      },
-    });
-    if (existing) {
-      throw new ConflictException('该 slug 已被使用');
-    }
   }
 
   private toResponseDto(article: ArticleWithRelations): ArticleResponseDto {

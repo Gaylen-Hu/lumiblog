@@ -178,7 +178,6 @@ declare namespace BlogAPI {
 
   interface CreateArticleParams {
     title: string;
-    slug: string;
     summary?: string;
     content?: string;
     coverImage?: string;
@@ -190,7 +189,6 @@ declare namespace BlogAPI {
 
   interface UpdateArticleParams {
     title?: string;
-    slug?: string;
     summary?: string;
     content?: string;
     coverImage?: string;

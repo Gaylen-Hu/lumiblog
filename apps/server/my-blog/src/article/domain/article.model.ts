@@ -19,10 +19,10 @@ export interface Article {
 
 /**
  * 创建文章参数
+ * slug 由 Service 层根据 title 自动生成
  */
 export interface CreateArticleParams {
   title: string;
-  slug: string;
   summary?: string;
   content?: string;
   coverImage?: string;
@@ -36,10 +36,10 @@ export interface CreateArticleParams {
 
 /**
  * 更新文章参数
+ * slug 不可手动修改，标题变更时自动重新生成
  */
 export interface UpdateArticleParams {
   title?: string;
-  slug?: string;
   summary?: string;
   content?: string;
   coverImage?: string;

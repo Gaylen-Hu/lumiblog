@@ -45,10 +45,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class AdminArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
-  @ApiOperation({ summary: '创建文章草稿', description: '创建新的文章草稿' })
+  @ApiOperation({ summary: '创建文章草稿', description: '创建新的文章草稿，slug 根据标题自动生成' })
   @ApiResponse({ status: 201, description: '创建成功', type: ArticleResponseDto })
   @ApiResponse({ status: 400, description: '参数错误' })
-  @ApiResponse({ status: 409, description: 'slug 已存在' })
   @Post()
   async create(
     @Body() createArticleDto: CreateArticleDto,
