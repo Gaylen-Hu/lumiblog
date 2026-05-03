@@ -343,13 +343,20 @@ export class ArticleService {
       throw new BadRequestException('文章内容为空，无法发布');
     }
 
+    // 验证封面图 mediaId（必填）
+    if (!params.thumbMediaId) {
+      throw new BadRequestException(
+        '封面图不能为空，请先上传封面图片或从素材库选择',
+      );
+    }
+
     const draftResult = await this.wechatService.createDraft([
       {
         title: article.title,
         content: article.content,
         digest: article.summary ?? article.title,
         author: params.author,
-        thumbMediaId: params.thumbMediaId ?? '',
+        thumbMediaId: params.thumbMediaId,
         needOpenComment: params.needOpenComment ? 1 : 0,
         onlyFansCanComment: params.onlyFansCanComment ? 1 : 0,
       },

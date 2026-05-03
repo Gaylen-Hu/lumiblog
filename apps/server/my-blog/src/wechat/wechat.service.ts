@@ -139,6 +139,59 @@ export class WechatService {
   }
 
 
+  // ============ 图片验证 ============
+
+  /**
+   * 验证图片格式和大小
+   * @param file 文件对象
+   * @param type 'cover' | 'content' - 封面图或正文图
+   * @throws BadRequestException 验证失败时抛出
+   */
+  private validateImage(
+    file: Express.Multer.File,
+    type: 'cover' | 'content' = 'content',
+  ): void {
+    const { mimetype, size, originalname } = file;
+
+    // 格式验证：仅支持 jpg/png
+    const allowedFormats = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedFormats.includes(mimetype)) {
+      throw new BadRequestException(
+        `图片格式不支持：${mimetype}。仅支持 JPG/PNG 格式`,
+      );
+    }
+
+    // 大小验证
+    const maxSize = type === 'content' ? 1 * 1024 * 1024 : 2 * 1024 * 1024; // 正文1MB，封面2MB
+    const maxSizeMB = type === 'content' ? 1 : 2;
+
+    if (size > maxSize) {
+      throw new BadRequestException(
+        `图片大小超过限制：${(size / 1024 / 1024).toFixed(2)}MB。最大允许 ${maxSizeMB}MB`,
+      );
+    }
+
+    this.logger.log(
+      `图片验证通过: ${originalname}, 格式: ${mimetype}, 大小: ${(size / 1024).toFixed(2)}KB`,
+    );
+  }
+
+  /**
+   * 获取图片的 MIME 类型
+   */
+  private getImageMimeType(filename: string): string {
+    const ext = filename.toLowerCase().split('.').pop();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'image/jpeg';
+    }
+  }
+
   // ============ 素材管理 ============
 
   async getMaterialCount(): Promise<MaterialCountResponse> {
@@ -167,23 +220,26 @@ export class WechatService {
   }
 
   /**
-   * 上传永久图片素材到微信
+   * 上传永久图片素材到微信（用于封面图）
    * 微信要求 multipart/form-data，不能用 callApi
    */
   async uploadImageMaterial(
-    imageBuffer: Buffer,
-    filename: string,
+    file: Express.Multer.File,
   ): Promise<{ media_id: string; url: string }> {
+    // 验证图片格式和大小
+    this.validateImage(file, 'cover');
+
     const accessToken = await this.getAccessToken();
     const url = `${WECHAT_API_BASE_URL}${WECHAT_API_ENDPOINTS.MATERIAL_ADD}?access_token=${accessToken}&type=image`;
 
     const boundary = `----FormBoundary${Date.now()}`;
     const crlf = '\r\n';
+    const contentType = this.getImageMimeType(file.originalname);
 
     const header = [
       `--${boundary}`,
-      `Content-Disposition: form-data; name="media"; filename="${filename}"`,
-      `Content-Type: image/jpeg`,
+      `Content-Disposition: form-data; name="media"; filename="${file.originalname}"`,
+      `Content-Type: ${contentType}`,
       '',
     ].join(crlf);
 
@@ -191,7 +247,7 @@ export class WechatService {
 
     const headerBuffer = Buffer.from(header + crlf, 'utf-8');
     const footerBuffer = Buffer.from(footer, 'utf-8');
-    const body = Buffer.concat([headerBuffer, imageBuffer, footerBuffer]);
+    const body = Buffer.concat([headerBuffer, file.buffer, footerBuffer]);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -211,6 +267,56 @@ export class WechatService {
 
     this.logger.log(`微信素材上传成功: ${(data as { media_id: string }).media_id}`);
     return data as { media_id: string; url: string };
+  }
+
+  /**
+   * 上传正文图片到微信（用于文章内容中的图片）
+   * 返回图片 URL，用于插入文章正文
+   *
+   * 微信文档：https://developers.weixin.qq.com/doc/subscription/api/notify/message/api_uploadimage.html
+   * 注意：该接口上传的图片不占用素材库限制，仅支持 jpg/png，大小 < 1MB
+   */
+  async uploadContentImage(file: Express.Multer.File): Promise<{ url: string }> {
+    // 验证图片格式和大小
+    this.validateImage(file, 'content');
+
+    const accessToken = await this.getAccessToken();
+    const url = `${WECHAT_API_BASE_URL}${WECHAT_API_ENDPOINTS.MEDIA_UPLOADIMG}?access_token=${accessToken}`;
+
+    const boundary = `----FormBoundary${Date.now()}`;
+    const crlf = '\r\n';
+    const contentType = this.getImageMimeType(file.originalname);
+
+    const header = [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="media"; filename="${file.originalname}"`,
+      `Content-Type: ${contentType}`,
+      '',
+    ].join(crlf);
+
+    const footer = `${crlf}--${boundary}--${crlf}`;
+
+    const headerBuffer = Buffer.from(header + crlf, 'utf-8');
+    const footerBuffer = Buffer.from(footer, 'utf-8');
+    const body = Buffer.concat([headerBuffer, file.buffer, footerBuffer]);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body,
+    });
+
+    const data = (await response.json()) as
+      | { url: string }
+      | { errcode: number; errmsg: string };
+
+    if ('errcode' in data && data.errcode !== 0) {
+      this.logger.error(`上传正文图片失败: ${data.errmsg}`);
+      throw new BadRequestException(`正文图片上传失败: ${data.errmsg}`);
+    }
+
+    this.logger.log(`正文图片上传成功: ${(data as { url: string }).url}`);
+    return data as { url: string };
   }
 
   // ============ 草稿箱 ============

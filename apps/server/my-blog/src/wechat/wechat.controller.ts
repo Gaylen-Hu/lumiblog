@@ -69,7 +69,7 @@ export class WechatController {
     return { success: true };
   }
 
-  @ApiOperation({ summary: '上传图片素材', description: '上传图片到微信永久素材库，返回 media_id' })
+  @ApiOperation({ summary: '上传封面图片素材', description: '上传图片到微信永久素材库，返回 media_id（用于文章封面图）' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: '上传成功' })
   @Post('material/upload-image')
@@ -83,7 +83,24 @@ export class WechatController {
     if (!file.mimetype.startsWith('image/')) {
       throw new BadRequestException('仅支持图片文件');
     }
-    return this.wechatService.uploadImageMaterial(file.buffer, file.originalname);
+    return this.wechatService.uploadImageMaterial(file);
+  }
+
+  @ApiOperation({ summary: '上传正文图片', description: '上传文章正文中的图片，返回图片 URL（不占用素材库限制）' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: '上传成功，返回图片URL' })
+  @Post('content/upload-image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadContentImage(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('请上传图片文件');
+    }
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('仅支持图片文件');
+    }
+    return this.wechatService.uploadContentImage(file);
   }
 
   // ============ 草稿箱 ============
