@@ -6,6 +6,7 @@ import { ArticleService } from '../article.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiService } from '../../ai/ai.service';
 import { WechatService } from '../../wechat/wechat.service';
+import { ColumnService } from '../../column/column.service';
 import { CreateArticleParams } from '../domain/article.model';
 import * as fc from 'fast-check';
 
@@ -104,6 +105,7 @@ describe('ArticleService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: AiService, useValue: { translate: jest.fn(), optimizeSeo: jest.fn() } },
         { provide: WechatService, useValue: { createDraft: jest.fn(), publishDraft: jest.fn() } },
+        { provide: ColumnService, useValue: { invalidateCacheByArticleId: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 
