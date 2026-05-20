@@ -137,6 +137,8 @@ fi
 # 从统一 .env 分发（NestJS 生产环境读 .env.prod）
 log_info "分发环境变量 → .env.prod"
 cp "$ENV_FILE" "$SERVER_DIR/.env.prod"
+# prisma.config.ts 使用 dotenv/config 默认读 .env，需要同步一份
+cp "$ENV_FILE" "$SERVER_DIR/.env"
 
 # 安装依赖（不做编译，只下载和链接，对服务器压力很小）
 log_info "安装后端依赖..."
