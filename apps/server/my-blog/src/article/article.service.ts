@@ -28,6 +28,7 @@ import {
 } from './dto';
 import { AiService } from '../ai/ai.service';
 import { WechatService } from '../wechat/wechat.service';
+import { ColumnService } from '../column/column.service';
 import { Article, Category, Tag, ArticleTag, Prisma } from '@prisma/client';
 import { createSlug, shortId } from '../common/slug.util';
 
@@ -51,6 +52,7 @@ export class ArticleService {
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly wechatService: WechatService,
+    private readonly columnService: ColumnService,
   ) {}
 
   /**
@@ -224,6 +226,7 @@ export class ArticleService {
     });
 
     this.logger.log(`文章发布成功: ${id}`);
+    await this.columnService.invalidateCacheByArticleId(id);
     return this.toResponseDto(article);
   }
 
@@ -243,6 +246,7 @@ export class ArticleService {
     });
 
     this.logger.log(`文章取消发布成功: ${id}`);
+    await this.columnService.invalidateCacheByArticleId(id);
     return this.toResponseDto(article);
   }
 

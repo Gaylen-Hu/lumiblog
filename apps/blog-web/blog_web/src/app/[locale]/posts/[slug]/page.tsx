@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/navigation'
 import { getArticleBySlug, getArticleSlugs, toApiLocale } from '@/lib/api'
@@ -9,6 +10,7 @@ import ReadingProgress from '@/components/ReadingProgress'
 import ArticleToc from '@/components/ArticleToc'
 import Comments from '@/components/Comments'
 import PrevNextNav from '@/components/PrevNextNav'
+import ColumnNavigation from '@/components/ColumnNavigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -151,6 +153,10 @@ export default async function PostPage({ params }: PostPageProps) {
             </div>
           </div>
         )}
+
+        <Suspense fallback={null}>
+          <ColumnNavigation articleId={post.id} />
+        </Suspense>
 
         <PrevNextNav prevArticle={post.prevArticle} nextArticle={post.nextArticle} />
 

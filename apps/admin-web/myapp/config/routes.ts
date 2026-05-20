@@ -99,6 +99,18 @@ export default [
         path: '/content/timeline',
         component: './content/timeline',
       },
+      {
+        name: 'columns',
+        icon: 'book',
+        path: '/content/columns',
+        component: './content/columns',
+      },
+      {
+        name: 'column-edit',
+        path: '/content/columns/edit/:id?',
+        component: './content/columns/edit',
+        hideInMenu: true,
+      },
     ],
   },
 
