@@ -342,6 +342,67 @@ declare namespace BlogAPI {
     order?: number;
     isVisible?: boolean;
   }
+
+  // 专栏
+  interface Column {
+    id: string;
+    title: string;
+    slug: string;
+    description: string | null;
+    coverImage: string | null;
+    sortOrder: number;
+    status: 'draft' | 'published';
+    articleCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface ColumnArticleItem {
+    id: string;
+    title: string;
+    slug: string;
+    isPublished: boolean;
+    publishedAt: string | null;
+    sortOrder: number;
+  }
+
+  interface ColumnDetail extends Column {
+    articles: ColumnArticleItem[];
+  }
+
+  interface CreateColumnParams {
+    title: string;
+    slug: string;
+    description?: string;
+    coverImage?: string;
+    sortOrder?: number;
+    status?: 'draft' | 'published';
+  }
+
+  interface UpdateColumnParams {
+    title?: string;
+    slug?: string;
+    description?: string;
+    coverImage?: string;
+    sortOrder?: number;
+    status?: 'draft' | 'published';
+  }
+
+  interface QueryColumnParams {
+    page?: number;
+    limit?: number;
+    keyword?: string;
+    status?: 'draft' | 'published';
+  }
+
+  interface AddColumnArticleParams {
+    articleId: string;
+    sortOrder?: number;
+  }
+
+  interface ReorderColumnArticlesParams {
+    articleIds: string[];
+  }
 }
 
 // 微信公众号类型定义

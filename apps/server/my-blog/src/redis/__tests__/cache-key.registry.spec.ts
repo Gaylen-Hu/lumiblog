@@ -11,10 +11,13 @@ describe('CacheKeyRegistry - Property 2: 键注册表不变量', () => {
     (key) => !['length', 'name', 'prototype'].includes(key),
   );
 
-  /** 缓存键属性（排除 TTL、PREFIX、THROTTLER_PREFIX） */
+  /** 缓存键属性（排除 TTL、PREFIX、THROTTLER_PREFIX 和方法） */
   const cacheKeys = allKeys.filter(
     (key) =>
-      !key.endsWith('_TTL') && key !== 'PREFIX' && key !== 'THROTTLER_PREFIX',
+      !key.endsWith('_TTL') &&
+      key !== 'PREFIX' &&
+      key !== 'THROTTLER_PREFIX' &&
+      typeof (CacheKeyRegistry as unknown as Record<string, unknown>)[key] !== 'function',
   );
 
   /** 所有键值（string 类型的静态属性） */

@@ -3,9 +3,10 @@ import { AdminArticleController, ArticleController } from './article.controller'
 import { ArticleService } from './article.service';
 import { AiModule } from '../ai/ai.module';
 import { WechatModule } from '../wechat/wechat.module';
+import { ColumnModule } from '../column/column.module';
 
 @Module({
-  imports: [AiModule, forwardRef(() => WechatModule)],
+  imports: [AiModule, forwardRef(() => WechatModule), ColumnModule],
   controllers: [AdminArticleController, ArticleController],
   providers: [ArticleService],
   exports: [ArticleService],

@@ -2,7 +2,13 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { PublicService } from './public.service';
 import { TimelineService } from '../timeline/timeline.service';
+import { ColumnPublicService } from '../column/column-public.service';
 import { PublicTimelineResponseDto } from '../timeline/dto';
+import {
+  PublicColumnListItem,
+  PublicColumnDetail,
+  ColumnArticleNav,
+} from '../column/domain/column.model';
 import {
   PublicArticleQueryDto,
   PublicArticleDetailDto,
@@ -28,6 +34,7 @@ export class PublicController {
   constructor(
     private readonly publicService: PublicService,
     private readonly timelineService: TimelineService,
+    private readonly columnPublicService: ColumnPublicService,
   ) {}
 
   // ==================== 文章接口 ====================
@@ -129,5 +136,36 @@ export class PublicController {
   @Get('timeline')
   async getTimeline(): Promise<PublicTimelineResponseDto[]> {
     return this.timelineService.findPublished();
+  }
+
+  // ==================== 专栏接口 ====================
+
+  @ApiOperation({ summary: '获取已发布专栏列表', description: '返回所有已发布专栏，按 sortOrder 升序排列' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @Get('columns')
+  async getPublishedColumns(): Promise<PublicColumnListItem[]> {
+    return this.columnPublicService.getPublishedColumns();
+  }
+
+  @ApiOperation({ summary: '获取专栏详情', description: '根据 slug 获取专栏详情及其已发布文章列表' })
+  @ApiParam({ name: 'slug', description: '专栏 slug' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '专栏不存在或未发布' })
+  @Get('columns/:slug')
+  async getColumnBySlug(@Param('slug') slug: string): Promise<PublicColumnDetail> {
+    return this.columnPublicService.getColumnBySlug(slug);
+  }
+
+  @ApiOperation({ summary: '获取专栏内文章导航', description: '获取文章在指定专栏中的前后导航信息' })
+  @ApiParam({ name: 'slug', description: '专栏 slug' })
+  @ApiParam({ name: 'articleId', description: '文章 ID' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '专栏不存在或文章不属于该专栏' })
+  @Get('columns/:slug/nav/:articleId')
+  async getColumnArticleNav(
+    @Param('slug') slug: string,
+    @Param('articleId') articleId: string,
+  ): Promise<ColumnArticleNav> {
+    return this.columnPublicService.getArticleNav(slug, articleId);
   }
 }

@@ -76,24 +76,25 @@ model Tag {
 }
 
 model Article {
-  id                 String       @id @default(uuid())
+  id                 String          @id @default(uuid())
   title              String
-  slug               String       @unique
-  summary            String?      @db.Text
-  content            String?      @db.Text
+  slug               String          @unique
+  summary            String?         @db.Text
+  content            String?         @db.Text
   coverImage         String?
-  isPublished        Boolean      @default(false)
+  isPublished        Boolean         @default(false)
   publishedAt        DateTime?
   seoTitle           String?
-  seoDescription     String?      @db.Text
-  locale             String       @default("zh-CN") // 语言标识: zh-CN, en-US
-  translationGroupId String?      // 翻译组ID，同组文章互为翻译版本
+  seoDescription     String?         @db.Text
+  locale             String          @default("zh-CN") // 语言标识: zh-CN, en-US
+  translationGroupId String?         // 翻译组ID，同组文章互为翻译版本
   categoryId         String?
-  category           Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category           Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   tags               ArticleTag[]
-  viewCount          Int          @default(0)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  columns            ColumnArticle[]
+  viewCount          Int             @default(0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   @@map("articles")
   @@index([isPublished])
@@ -213,4 +214,39 @@ model TimelineEntry {
   @@index([order])
   @@index([isVisible])
   @@map("timeline_entries")
+}
+
+enum ColumnStatus {
+  draft
+  published
+}
+
+model Column {
+  id          String         @id @default(uuid())
+  title       String         @db.VarChar(100)
+  slug        String         @unique
+  description String?        @db.VarChar(500)
+  coverImage  String?
+  sortOrder   Int            @default(0)
+  status      ColumnStatus   @default(draft)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  articles    ColumnArticle[]
+
+  @@index([status])
+  @@index([sortOrder])
+  @@map("columns")
+}
+
+model ColumnArticle {
+  id        String   @id @default(uuid())
+  columnId  String
+  articleId String
+  sortOrder Int      @default(0)
+  column    Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([columnId, articleId])
+  @@index([columnId, sortOrder])
+  @@map("column_articles")
 }
