@@ -214,6 +214,21 @@ async function publishArticle(baseUrl, apiKey, articleId) {
   });
 }
 
+/**
+ * 将文章添加到专栏
+ */
+async function addArticleToColumn(baseUrl, apiKey, columnId, articleId, sortOrder) {
+  const body = { articleId };
+  if (sortOrder !== undefined && sortOrder !== "") {
+    body.sortOrder = parseInt(sortOrder, 10);
+  }
+  return request(`${baseUrl}/admin/columns/${columnId}/articles`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 // ─── 主流程 ───
 
 async function main() {
@@ -229,6 +244,8 @@ async function main() {
   const seoTitle = getArg("--seo-title");
   const seoDescription = getArg("--seo-description");
   const summary = getArg("--summary");
+  const columnId = getArg("--column");
+  const columnSort = getArg("--column-sort");
 
   if (!file) { console.error("用法: node publish.js --file \"文章.md\" [--cover \"封面.png\"] [--no-publish] [--seo-title \"...\"] [--seo-description \"...\"] [--summary \"...\"]"); process.exit(1); }
   if (!fs.existsSync(file)) { console.error(`❌ 文件不存在: ${file}`); process.exit(1); }
@@ -284,6 +301,17 @@ async function main() {
     console.log(`📋 草稿已创建，未发布 | ID: ${articleId}`);
   }
 
+  // 加入专栏
+  if (columnId) {
+    console.log(`📚 添加文章到专栏 (${columnId})...`);
+    try {
+      await addArticleToColumn(baseUrl, apiKey, columnId, articleId, columnSort || undefined);
+      console.log(`✅ 文章已加入专栏`);
+    } catch (e) {
+      console.error(`⚠️  加入专栏失败: ${e.message}`);
+    }
+  }
+
   // 输出结果 JSON
   const output = {
     success: true,
@@ -294,6 +322,7 @@ async function main() {
     cover_url: coverUrl,
     seo_title: articleData.seoTitle || "",
     seo_description: articleData.seoDescription || "",
+    column_id: columnId || "",
   };
   console.log(`\n📊 结果: ${JSON.stringify(output)}`);
 }

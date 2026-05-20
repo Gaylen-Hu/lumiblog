@@ -95,6 +95,8 @@ node publish.js \
 | --summary | ✅ | 文章摘要，Agent 必须根据文章内容生成 |
 | --category | ✅ | 分类 ID，Agent 必须查询后选择 |
 | --tags | ✅ | 标签 ID（逗号分隔），Agent 必须查询后选择 |
+| --column | ❌ | 专栏 ID，传入后文章发布成功会自动加入该专栏 |
+| --column-sort | ❌ | 文章在专栏中的排序位置（不传则追加到末尾） |
 | --no-publish | ❌ | 加此 flag 只创建草稿不发布（默认直接发布） |
 
 ## 图片上传方式
@@ -108,13 +110,31 @@ node publish.js \
 
 - 基础地址：`https://badmin.new-universe.cn/api`
 - 认证方式：`Authorization: Bearer {API_KEY}`
+
+### 文章相关
 - 创建文章：`POST /admin/articles`
 - 发布文章：`POST /admin/articles/{id}/publish`
-- OSS 签名：`POST /oss/signature`
-- 媒体记录：`POST /admin/media/oss-record`
+- 取消发布：`POST /admin/articles/{id}/unpublish`
+- 文章列表：`GET /admin/articles?keyword=xxx&limit=20`
+
+### 分类 & 标签
 - 分类树：`GET /admin/categories/tree`
 - 标签列表：`GET /admin/tags`
 - 创建标签：`POST /admin/tags`
+
+### 媒体 & OSS
+- OSS 签名：`POST /oss/signature`
+- 媒体记录：`POST /admin/media/oss-record`
+
+### 专栏（Column）
+- 专栏列表：`GET /admin/columns`
+- 创建专栏：`POST /admin/columns`（body: `{ title, slug, description?, coverImage?, sortOrder?, status? }`）
+- 获取专栏详情：`GET /admin/columns/{id}`
+- 更新专栏：`PATCH /admin/columns/{id}`
+- 删除专栏：`DELETE /admin/columns/{id}`
+- 添加文章到专栏：`POST /admin/columns/{id}/articles`（body: `{ articleId, sortOrder? }`）
+- 从专栏移除文章：`DELETE /admin/columns/{id}/articles/{articleId}`
+- 重排序专栏文章：`PATCH /admin/columns/{id}/articles/reorder`（body: `{ articleIds: [...] }`）
 
 ## 配置
 
@@ -125,3 +145,68 @@ node publish.js \
 - 镜微审校通过（70分以上）后执行
 - 默认直接发布
 - Boss 说"先不发"时加 `--no-publish` 只创建草稿
+
+---
+
+## 专栏管理
+
+专栏（Column）用于将文章按主题组织为有序系列。发布文章后可以将其加入专栏。
+
+### 发布文章到专栏
+
+在文章发布成功后，如果 Boss 指定了专栏，或文章明显属于某个系列，执行以下步骤：
+
+1. **查询已有专栏**：`GET /admin/columns` 获取专栏列表
+2. **匹配或创建专栏**：
+   - 已有匹配的专栏 → 使用其 ID
+   - 没有匹配的 → 调用 `POST /admin/columns` 创建新专栏（需提供 title、slug、description、status）
+3. **添加文章到专栏**：`POST /admin/columns/{columnId}/articles`，body: `{ "articleId": "文章ID" }`
+   - 不传 sortOrder 时自动追加到末尾
+
+### 调用示例
+
+```bash
+# 发布文章后，将其加入专栏
+node publish.js \
+  --file "文章.md" \
+  --cover "封面.png" \
+  --seo-title "SEO标题" \
+  --seo-description "SEO描述" \
+  --summary "摘要" \
+  --category "分类ID" \
+  --tags "标签ID1,标签ID2" \
+  --column "专栏ID"
+```
+
+### 专栏参数
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| --column | ❌ | 专栏 ID，传入后文章发布成功会自动加入该专栏 |
+| --column-sort | ❌ | 文章在专栏中的排序位置（不传则追加到末尾） |
+
+### 专栏管理操作（Agent 可直接调用 API）
+
+```bash
+# 查询所有专栏
+curl -H "Authorization: Bearer $API_KEY" \
+  "https://badmin.new-universe.cn/api/admin/columns"
+
+# 创建新专栏
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Flutter 系列","slug":"flutter-series","description":"Flutter 学习系列","status":"published"}' \
+  "https://badmin.new-universe.cn/api/admin/columns"
+
+# 添加文章到专栏
+curl -X POST -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"articleId":"文章ID"}' \
+  "https://badmin.new-universe.cn/api/admin/columns/{columnId}/articles"
+
+# 重排序专栏文章
+curl -X PATCH -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"articleIds":["id1","id2","id3"]}' \
+  "https://badmin.new-universe.cn/api/admin/columns/{columnId}/articles/reorder"
+```
