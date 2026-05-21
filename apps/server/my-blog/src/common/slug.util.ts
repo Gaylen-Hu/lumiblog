@@ -24,14 +24,23 @@ const TRIM_HYPHEN_REGEX = /^-|-$/g;
  *
  * - 中文标题自动转拼音
  * - 英文标题直接 slugify
- * - 混合内容逐段处理
+ * - 混合内容：英文保留原样，中文转拼音
  */
 export function createSlug(text: string): string {
   let processed = text.trim().toLowerCase();
 
-  // 中文转拼音（空格分隔）
+  // 混合内容处理：逐段拆分中文和非中文，中文转拼音，英文保留
   if (CHINESE_CHAR_REGEX.test(processed)) {
-    processed = pinyin(processed, { toneType: 'none', type: 'array' }).join(' ');
+    // 按中文/非中文边界拆分
+    const segments = processed.split(/([\u4e00-\u9fa5]+)/g);
+    processed = segments
+      .map((seg) => {
+        if (CHINESE_CHAR_REGEX.test(seg)) {
+          return pinyin(seg, { toneType: 'none', type: 'array' }).join(' ');
+        }
+        return seg;
+      })
+      .join(' ');
   }
 
   const slug = processed

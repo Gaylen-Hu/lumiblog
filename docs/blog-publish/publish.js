@@ -115,7 +115,9 @@ const MIME_MAP = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jp
 function parseMarkdown(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
   const titleMatch = content.match(/^#\s+(.+)$/m);
-  const title = titleMatch ? titleMatch[1].trim() : path.basename(filePath, ".md");
+  let title = titleMatch ? titleMatch[1].trim() : path.basename(filePath, ".md");
+  // 去掉编号前缀（如 "01. "）和星星/难度标记
+  title = title.replace(/^\d+\.\s*/, "").replace(/\s*[⭐★☆]+\s*$/, "").replace(/\s*\(.*?\)\s*$/, "").trim();
 
   // 正文：跳过第一个 --- 分隔符之前的 frontmatter（如果有）
   const lines = content.split("\n");
@@ -125,7 +127,10 @@ function parseMarkdown(filePath) {
       if (lines[i].trim() === "---") { bodyStart = i + 1; break; }
     }
   }
-  const body = bodyStart > 0 ? lines.slice(bodyStart).join("\n").trim() : content;
+  let body = bodyStart > 0 ? lines.slice(bodyStart).join("\n").trim() : content;
+
+  // ── 正文清洗：让内容更正式 ──
+  body = cleanContentForPublish(body, title);
 
   // 摘要：取正文前 200 字（去掉 Markdown 标记）
   const clean = body.replace(/[#*_\[\]()!>|`~]/g, "").replace(/\n+/g, " ").trim();
@@ -141,6 +146,31 @@ function parseMarkdown(filePath) {
     || `article-${Date.now()}`;
 
   return { title, content: body, summary, slug };
+}
+
+/**
+ * 清洗正文内容，使其更适合正式发布
+ */
+function cleanContentForPublish(body, title) {
+  // 1. 替换第一个标题行（去掉编号、星星、英文括号后缀）
+  body = body.replace(/^#\s+\d+\.\s*(.+?)(?:\s*[⭐★☆]+)?\s*$/m, `# ${title}`);
+
+  // 2. 去掉所有标题中的星星/难度标记
+  body = body.replace(/^(#{1,6}\s+.*?)\s*[⭐★☆]+\s*$/gm, "$1");
+
+  // 3. 去掉"核心摘要"段落标题（通常是冗余的，正文已有内容）
+  body = body.replace(/^##\s*核心摘要\s*\n+/m, "");
+
+  // 4. 去掉文末的发布时间、难度等级、阅读时间等元信息
+  body = body.replace(/\n---\s*\n\*\*本文发布时间[：:].+$/s, "");
+
+  // 5. 去掉文末的"进阶阅读"之后的元信息（保留进阶阅读本身）
+  body = body.replace(/(\n---\s*\n\*\*本文发布时间.*$)/s, "");
+
+  // 6. 清理多余的连续空行（最多保留2个）
+  body = body.replace(/\n{4,}/g, "\n\n\n");
+
+  return body.trim();
 }
 
 /**
@@ -270,7 +300,6 @@ async function main() {
   // 组装数据 — 尽可能完整
   const articleData = {
     title: article.title,
-    slug: article.slug,
     content: article.content,
     summary: summary || article.summary,
   };
@@ -278,12 +307,11 @@ async function main() {
   if (seoTitle) articleData.seoTitle = seoTitle;
   if (seoDescription) articleData.seoDescription = seoDescription;
   if (category || config.default_category_id) articleData.categoryId = category || config.default_category_id;
-  if (tags) articleData.tagIds = tags.split(",").map((t) => t.trim());
+  if (tags && tags.trim()) articleData.tagIds = tags.split(",").map((t) => t.trim()).filter(Boolean);
 
   // 创建草稿
   console.log("📝 创建文章草稿...");
   console.log(`  标题: ${articleData.title}`);
-  console.log(`  slug: ${articleData.slug}`);
   console.log(`  摘要: ${(articleData.summary || "").slice(0, 60)}...`);
   if (articleData.seoTitle) console.log(`  SEO标题: ${articleData.seoTitle}`);
   if (articleData.seoDescription) console.log(`  SEO描述: ${articleData.seoDescription}`);
