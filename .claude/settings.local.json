@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(npx:*)",
+      "Bash(command -v nvm)",
+      "Bash(command -v nvmd)",
+      "Bash(echo:*)",
+      "Bash(nvm list:*)",
+      "Bash(nvmd list:*)",
+      "Bash(nvm current:*)",
+      "Bash(nvm use:*)",
+      "Bash(tasklist)",
+      "Bash(npm --version)"
+    ]
+  }
+}
