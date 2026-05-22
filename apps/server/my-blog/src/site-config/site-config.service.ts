@@ -46,13 +46,21 @@ export class SiteConfigService {
 
   /**
    * 更新网站配置
-   * 更新 DB 后清除旧缓存并写入新值
+   * 直接从数据库获取记录 ID（绕过缓存），确保始终更新同一条记录
    */
   async updateConfig(dto: UpdateSiteConfigDto): Promise<SiteConfigResponseDto> {
-    const existing = await this.getConfig();
+    // 直接从 DB 获取，不走缓存，避免缓存中旧 id 导致重复记录
+    let config = await this.prisma.siteConfig.findFirst();
+
+    if (!config) {
+      this.logger.log('Creating default site config');
+      config = await this.prisma.siteConfig.create({
+        data: { title: 'My Blog', description: '欢迎来到我的博客' },
+      });
+    }
 
     const updated = await this.prisma.siteConfig.update({
-      where: { id: existing.id },
+      where: { id: config.id },
       data: dto,
     });
 
