@@ -13,6 +13,7 @@ import {
   AuthorDto,
   CategoryBriefDto,
   TagBriefDto,
+  ColumnBriefDto,
   SeoInfoDto,
   PublicProjectQueryDto,
   PublicProjectDto,
@@ -38,10 +39,15 @@ const WORDS_PER_MINUTE = 200;
 /** 默认作者信息（站点配置未设置时使用） */
 const DEFAULT_AUTHOR_NAME = 'Site Owner';
 
-/** 文章查询的 category/tags include 配置 */
+/** 文章查询的 category/tags/columns include 配置 */
 const ARTICLE_INCLUDE = {
   category: { select: { id: true, name: true, slug: true } },
   tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
+  columns: {
+    include: {
+      column: { select: { id: true, title: true, slug: true, sortOrder: true, status: true } },
+    },
+  },
 } as const;
 
 /** Prisma 文章查询结果类型（含关联） */
@@ -418,6 +424,16 @@ export class PublicService {
    * 转换为文章列表项 DTO
    */
   private toArticleListItem(article: ArticleWithRelations): PublicArticleListItemDto {
+    // 筛选已发布专栏，按 sortOrder 升序取第一个
+    const publishedColumns = article.columns
+      .filter((ca) => ca.column.status === 'published')
+      .sort((a, b) => a.column.sortOrder - b.column.sortOrder);
+
+    const firstColumn = publishedColumns[0]?.column ?? null;
+    const column = firstColumn
+      ? new ColumnBriefDto({ id: firstColumn.id, title: firstColumn.title, slug: firstColumn.slug })
+      : null;
+
     return new PublicArticleListItemDto({
       id: article.id,
       slug: article.slug,
@@ -431,6 +447,7 @@ export class PublicService {
         : null,
       coverImage: article.coverImage,
       tags: article.tags.map((at) => new TagBriefDto(at.tag)),
+      column,
     });
   }
 
@@ -442,6 +459,18 @@ export class PublicService {
     prevArticle: ArticleNavItemDto | null,
     nextArticle: ArticleNavItemDto | null,
   ): PublicArticleDetailDto {
+    // 筛选已发布专栏，按 sortOrder 升序排序，返回所有
+    const publishedColumns = article.columns
+      .filter((ca) => ca.column.status === 'published')
+      .sort((a, b) => a.column.sortOrder - b.column.sortOrder);
+
+    const columns = publishedColumns.map(
+      (ca) => new ColumnBriefDto({ id: ca.column.id, title: ca.column.title, slug: ca.column.slug }),
+    );
+
+    // 列表项的 column 取第一个已发布专栏
+    const column = columns[0] ?? null;
+
     return new PublicArticleDetailDto({
       id: article.id,
       slug: article.slug,
@@ -464,6 +493,8 @@ export class PublicService {
       }),
       prevArticle,
       nextArticle,
+      column,
+      columns,
     });
   }
 

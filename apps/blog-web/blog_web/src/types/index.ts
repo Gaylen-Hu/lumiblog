@@ -17,6 +17,7 @@ export interface Post {
   readTime: string;
   category: { id: string; name: string; slug: string } | null;
   tags: { id: string; name: string; slug: string }[];
+  column: { id: string; title: string; slug: string } | null;
 }
 
 // 文章详情类型 — 对齐后端 PublicArticleDetailDto
@@ -30,6 +31,7 @@ export interface PostDetail extends Post {
   };
   prevArticle?: ArticleNavItem | null;
   nextArticle?: ArticleNavItem | null;
+  columns: { id: string; title: string; slug: string }[];
 }
 
 // 项目类型 — 对齐后端 PublicProjectDto

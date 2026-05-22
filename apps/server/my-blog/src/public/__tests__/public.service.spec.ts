@@ -32,6 +32,13 @@ function buildMockArticle(overrides: Partial<{
     tagId: string;
     tag: { id: string; name: string; slug: string };
   }>;
+  columns: Array<{
+    id: string;
+    columnId: string;
+    articleId: string;
+    sortOrder: number;
+    column: { id: string; title: string; slug: string; sortOrder: number; status: string };
+  }>;
 }> = {}) {
   const now = new Date();
   return {
@@ -53,6 +60,7 @@ function buildMockArticle(overrides: Partial<{
     translationGroupId: overrides.translationGroupId ?? null,
     category: overrides.category ?? null,
     tags: overrides.tags ?? [],
+    columns: overrides.columns ?? [],
   };
 }
 
@@ -338,6 +346,254 @@ describe('PublicService', () => {
       // Assert
       expect(result.prevArticle).toBeNull();
       expect(result.nextArticle).toBeNull();
+    });
+  });
+
+  // ─── 专栏映射：文章列表 column 字段 ─────────────────────────────
+
+  describe('toArticleListItem - 专栏映射', () => {
+    it('无专栏关联时 column 应为 null', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({ columns: [] });
+      prisma.article.findMany.mockResolvedValue([mockArticle]);
+      prisma.article.count.mockResolvedValue(1);
+
+      // Act
+      const result = await service.getArticles({ page: 1, pageSize: 10 });
+
+      // Assert
+      expect(result.data[0].column).toBeNull();
+    });
+
+    it('单个已发布专栏时应正确返回 column', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({
+        columns: [
+          {
+            id: 'ca-1',
+            columnId: 'col-1',
+            articleId: 'article-1',
+            sortOrder: 1,
+            column: { id: 'col-1', title: 'NestJS 实战', slug: 'nestjs-in-action', sortOrder: 1, status: 'published' },
+          },
+        ],
+      });
+      prisma.article.findMany.mockResolvedValue([mockArticle]);
+      prisma.article.count.mockResolvedValue(1);
+
+      // Act
+      const result = await service.getArticles({ page: 1, pageSize: 10 });
+
+      // Assert
+      expect(result.data[0].column).toEqual({
+        id: 'col-1',
+        title: 'NestJS 实战',
+        slug: 'nestjs-in-action',
+      });
+    });
+
+    it('多个专栏含 draft 时应返回 sortOrder 最小的已发布专栏', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({
+        columns: [
+          {
+            id: 'ca-1',
+            columnId: 'col-1',
+            articleId: 'article-1',
+            sortOrder: 1,
+            column: { id: 'col-1', title: 'Draft 专栏', slug: 'draft-col', sortOrder: 1, status: 'draft' },
+          },
+          {
+            id: 'ca-2',
+            columnId: 'col-2',
+            articleId: 'article-1',
+            sortOrder: 2,
+            column: { id: 'col-2', title: '高级专栏', slug: 'advanced-col', sortOrder: 10, status: 'published' },
+          },
+          {
+            id: 'ca-3',
+            columnId: 'col-3',
+            articleId: 'article-1',
+            sortOrder: 3,
+            column: { id: 'col-3', title: '入门专栏', slug: 'beginner-col', sortOrder: 5, status: 'published' },
+          },
+        ],
+      });
+      prisma.article.findMany.mockResolvedValue([mockArticle]);
+      prisma.article.count.mockResolvedValue(1);
+
+      // Act
+      const result = await service.getArticles({ page: 1, pageSize: 10 });
+
+      // Assert — sortOrder 最小的已发布专栏是 '入门专栏'（sortOrder=5）
+      expect(result.data[0].column).toEqual({
+        id: 'col-3',
+        title: '入门专栏',
+        slug: 'beginner-col',
+      });
+    });
+
+    it('全部为 draft 专栏时 column 应为 null', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({
+        columns: [
+          {
+            id: 'ca-1',
+            columnId: 'col-1',
+            articleId: 'article-1',
+            sortOrder: 1,
+            column: { id: 'col-1', title: 'Draft A', slug: 'draft-a', sortOrder: 1, status: 'draft' },
+          },
+          {
+            id: 'ca-2',
+            columnId: 'col-2',
+            articleId: 'article-1',
+            sortOrder: 2,
+            column: { id: 'col-2', title: 'Draft B', slug: 'draft-b', sortOrder: 2, status: 'draft' },
+          },
+        ],
+      });
+      prisma.article.findMany.mockResolvedValue([mockArticle]);
+      prisma.article.count.mockResolvedValue(1);
+
+      // Act
+      const result = await service.getArticles({ page: 1, pageSize: 10 });
+
+      // Assert
+      expect(result.data[0].column).toBeNull();
+    });
+  });
+
+  // ─── 专栏映射：文章详情 columns 字段 ──────────────────────────────
+
+  describe('toArticleDetail - 专栏映射', () => {
+    it('无专栏关联时 columns 应为空数组', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({ slug: 'no-col', columns: [] });
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+
+      // Act
+      const result = await service.getArticleBySlug('no-col');
+
+      // Assert
+      expect(result.columns).toEqual([]);
+    });
+
+    it('单个已发布专栏时 columns 应包含 1 个元素', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({
+        slug: 'single-col',
+        columns: [
+          {
+            id: 'ca-1',
+            columnId: 'col-1',
+            articleId: 'article-1',
+            sortOrder: 1,
+            column: { id: 'col-1', title: 'React 进阶', slug: 'react-advanced', sortOrder: 3, status: 'published' },
+          },
+        ],
+      });
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+
+      // Act
+      const result = await service.getArticleBySlug('single-col');
+
+      // Assert
+      expect(result.columns).toHaveLength(1);
+      expect(result.columns[0]).toEqual({
+        id: 'col-1',
+        title: 'React 进阶',
+        slug: 'react-advanced',
+      });
+    });
+
+    it('多个专栏含 draft 时应仅返回已发布专栏并按 sortOrder 升序排序', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({
+        slug: 'multi-col',
+        columns: [
+          {
+            id: 'ca-1',
+            columnId: 'col-1',
+            articleId: 'article-1',
+            sortOrder: 1,
+            column: { id: 'col-1', title: 'Draft 专栏', slug: 'draft-col', sortOrder: 1, status: 'draft' },
+          },
+          {
+            id: 'ca-2',
+            columnId: 'col-2',
+            articleId: 'article-1',
+            sortOrder: 2,
+            column: { id: 'col-2', title: '高级专栏', slug: 'advanced-col', sortOrder: 10, status: 'published' },
+          },
+          {
+            id: 'ca-3',
+            columnId: 'col-3',
+            articleId: 'article-1',
+            sortOrder: 3,
+            column: { id: 'col-3', title: '入门专栏', slug: 'beginner-col', sortOrder: 5, status: 'published' },
+          },
+        ],
+      });
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+
+      // Act
+      const result = await service.getArticleBySlug('multi-col');
+
+      // Assert — 仅返回 published，按 sortOrder 升序
+      expect(result.columns).toHaveLength(2);
+      expect(result.columns[0]).toEqual({
+        id: 'col-3',
+        title: '入门专栏',
+        slug: 'beginner-col',
+      });
+      expect(result.columns[1]).toEqual({
+        id: 'col-2',
+        title: '高级专栏',
+        slug: 'advanced-col',
+      });
+    });
+
+    it('全部为 draft 专栏时 columns 应为空数组', async () => {
+      // Arrange
+      const mockArticle = buildMockArticle({
+        slug: 'all-draft',
+        columns: [
+          {
+            id: 'ca-1',
+            columnId: 'col-1',
+            articleId: 'article-1',
+            sortOrder: 1,
+            column: { id: 'col-1', title: 'Draft A', slug: 'draft-a', sortOrder: 1, status: 'draft' },
+          },
+          {
+            id: 'ca-2',
+            columnId: 'col-2',
+            articleId: 'article-1',
+            sortOrder: 2,
+            column: { id: 'col-2', title: 'Draft B', slug: 'draft-b', sortOrder: 2, status: 'draft' },
+          },
+        ],
+      });
+      prisma.article.findFirst
+        .mockResolvedValueOnce(mockArticle)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+
+      // Act
+      const result = await service.getArticleBySlug('all-draft');
+
+      // Assert
+      expect(result.columns).toEqual([]);
     });
   });
 

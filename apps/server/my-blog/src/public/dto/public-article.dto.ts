@@ -107,6 +107,26 @@ export class TagBriefDto {
   }
 }
 
+/**
+ * 专栏简要信息 DTO
+ */
+export class ColumnBriefDto {
+  @ApiProperty({ description: '专栏 ID' })
+  readonly id: string;
+
+  @ApiProperty({ description: '专栏标题', example: 'NestJS 实战' })
+  readonly title: string;
+
+  @ApiProperty({ description: '专栏 slug', example: 'nestjs-in-action' })
+  readonly slug: string;
+
+  constructor(params: { id: string; title: string; slug: string }) {
+    this.id = params.id;
+    this.title = params.title;
+    this.slug = params.slug;
+  }
+}
+
 
 /**
  * 公开文章列表项 DTO
@@ -142,6 +162,9 @@ export class PublicArticleListItemDto {
   @ApiProperty({ description: '标签列表', type: [TagBriefDto] })
   readonly tags: TagBriefDto[];
 
+  @ApiPropertyOptional({ description: '所属专栏（sortOrder 最小的已发布专栏）', type: ColumnBriefDto })
+  readonly column: ColumnBriefDto | null;
+
   constructor(params: {
     id: string;
     slug: string;
@@ -153,6 +176,7 @@ export class PublicArticleListItemDto {
     category: CategoryBriefDto | null;
     coverImage: string | null;
     tags: TagBriefDto[];
+    column: ColumnBriefDto | null;
   }) {
     this.id = params.id;
     this.slug = params.slug;
@@ -164,6 +188,7 @@ export class PublicArticleListItemDto {
     this.category = params.category;
     this.coverImage = params.coverImage;
     this.tags = params.tags;
+    this.column = params.column;
   }
 }
 
@@ -230,6 +255,9 @@ export class PublicArticleDetailDto extends PublicArticleListItemDto {
   @ApiPropertyOptional({ description: '下一篇文章（更晚发布）', type: ArticleNavItemDto })
   readonly nextArticle: ArticleNavItemDto | null;
 
+  @ApiProperty({ description: '所属专栏列表（所有已发布专栏）', type: [ColumnBriefDto] })
+  readonly columns: ColumnBriefDto[];
+
   constructor(
     params: ConstructorParameters<typeof PublicArticleListItemDto>[0] & {
       content: string;
@@ -237,6 +265,7 @@ export class PublicArticleDetailDto extends PublicArticleListItemDto {
       seo: SeoInfoDto;
       prevArticle: ArticleNavItemDto | null;
       nextArticle: ArticleNavItemDto | null;
+      columns: ColumnBriefDto[];
     },
   ) {
     super(params);
@@ -245,6 +274,7 @@ export class PublicArticleDetailDto extends PublicArticleListItemDto {
     this.seo = params.seo;
     this.prevArticle = params.prevArticle;
     this.nextArticle = params.nextArticle;
+    this.columns = params.columns;
   }
 }
 

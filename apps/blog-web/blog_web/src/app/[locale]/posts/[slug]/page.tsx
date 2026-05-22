@@ -11,6 +11,7 @@ import ArticleToc from '@/components/ArticleToc'
 import Comments from '@/components/Comments'
 import PrevNextNav from '@/components/PrevNextNav'
 import ColumnNavigation from '@/components/ColumnNavigation'
+import { ColumnAttribution } from '@/components/ColumnAttribution'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -92,6 +93,8 @@ export default async function PostPage({ params }: PostPageProps) {
           {post.title}
         </h1>
 
+        {post.columns.length > 0 && <ColumnAttribution columns={post.columns} />}
+
         <div className="flex items-center justify-between border-y border-gray-100 dark:border-slate-800 py-6 mb-16">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 overflow-hidden">
@@ -155,7 +158,7 @@ export default async function PostPage({ params }: PostPageProps) {
         )}
 
         <Suspense fallback={null}>
-          <ColumnNavigation articleId={post.id} />
+          <ColumnNavigation articleId={post.id} columns={post.columns} />
         </Suspense>
 
         <PrevNextNav prevArticle={post.prevArticle} nextArticle={post.nextArticle} />

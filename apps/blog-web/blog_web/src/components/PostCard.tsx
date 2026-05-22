@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import type { Post } from '@/types';
 import TiltCard from './ui/TiltCard';
 import SpotlightCard from './ui/SpotlightCard';
+import { ColumnBadge } from '@/components/ColumnBadge';
 
 interface PostCardProps {
   post: Post;
@@ -33,6 +34,7 @@ export default function PostCard({ post }: PostCardProps) {
             <span className="px-3 py-1 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 text-xs font-semibold rounded-full group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               {categoryName}
             </span>
+            {post.column ? <ColumnBadge column={post.column} /> : null}
             <span className="text-xs text-gray-400 font-medium">{displayDate}</span>
           </div>
 

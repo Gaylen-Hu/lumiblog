@@ -1,21 +1,21 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { useEffect, useState } from 'react'
 import type { ColumnArticleNavDto } from '@/types/column'
 
 interface ColumnNavigationProps {
   articleId: string
+  columns: { id: string; title: string; slug: string }[]
 }
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1/public'
 
-export default function ColumnNavigation({ articleId }: ColumnNavigationProps) {
-  const searchParams = useSearchParams()
-  const columnSlug = searchParams.get('column')
+export default function ColumnNavigation({ articleId, columns }: ColumnNavigationProps) {
   const [navData, setNavData] = useState<ColumnArticleNavDto | null>(null)
+
+  const columnSlug = columns.length > 0 ? columns[0].slug : null
 
   useEffect(() => {
     if (!columnSlug) return
@@ -70,7 +70,7 @@ export default function ColumnNavigation({ articleId }: ColumnNavigationProps) {
         <div>
           {navData.prev ? (
             <Link
-              href={`/posts/${navData.prev.slug}?column=${columnSlug}`}
+              href={`/posts/${navData.prev.slug}`}
               className="group flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors"
             >
               <svg
@@ -112,7 +112,7 @@ export default function ColumnNavigation({ articleId }: ColumnNavigationProps) {
         <div className="text-right">
           {navData.next ? (
             <Link
-              href={`/posts/${navData.next.slug}?column=${columnSlug}`}
+              href={`/posts/${navData.next.slug}`}
               className="group inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors"
             >
               <span className="line-clamp-1">{navData.next.title}</span>
