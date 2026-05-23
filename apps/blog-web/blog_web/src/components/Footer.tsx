@@ -88,7 +88,7 @@ export default function Footer({
           </div>
 
           <div className="flex flex-col items-start md:items-end">
-            {(socialItems.length > 0 || true) ? (
+            {(socialItems.length > 0) ? (
               <div className="flex gap-4 mb-8">
                 {socialItems.map((social) => (
                   <a
@@ -112,20 +112,30 @@ export default function Footer({
                     {WECHAT_ICON}
                   </button>
                   {showWechat && (
-                    <div className="absolute bottom-14 right-0 md:left-1/2 md:-translate-x-1/2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                      <div className="w-40 h-40 relative">
-                        <Image
-                          src="/wechatQrcode.jpg"
-                          alt="WeChat QR Code"
-                          width={160}
-                          height={160}
-                          className="rounded-lg"
-                        />
+                    <>
+                      {/* 点击外部关闭 */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowWechat(false)}
+                      />
+                      {/* 弹出卡片 */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50">
+                        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 p-3 w-[148px]">
+                          <Image
+                            src="/wechatQrcode.jpg"
+                            alt="WeChat QR Code"
+                            width={124}
+                            height={124}
+                            className="rounded-lg w-full h-auto"
+                          />
+                          <p className="text-[11px] text-center text-gray-400 dark:text-gray-500 mt-2 leading-tight">
+                            {t('scanWechat')}
+                          </p>
+                        </div>
+                        {/* 小三角 */}
+                        <div className="absolute left-1/2 -translate-x-1/2 -bottom-[6px] w-3 h-3 rotate-45 bg-white dark:bg-slate-800 border-r border-b border-gray-100 dark:border-slate-700" />
                       </div>
-                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-                        {t('scanWechat')}
-                      </p>
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
