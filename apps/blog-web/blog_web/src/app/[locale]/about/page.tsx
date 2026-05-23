@@ -1,7 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
-import { getSiteConfig, getTimeline } from '@/lib/api'
-import type { TimelineEntry } from '@/lib/api'
+import { getSiteConfig } from '@/lib/api'
 import BlurText from '@/components/ui/BlurText'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import IconCloud from '@/components/IconCloud'
@@ -27,24 +26,18 @@ const FALLBACK_TIMELINE = [
 
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
-  const [config, t, apiTimeline] = await Promise.all([getSiteConfig(), getTranslations('about'), getTimeline()])
+  const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])
   const { owner } = config
   const { aboutImage1, aboutImage2 } = config
   const techStack = owner.techStack.length > 0 ? owner.techStack : FALLBACK_TECH_STACK
 
-  // API 数据优先，降级使用 i18n fallback
-  const useApiData = apiTimeline.length > 0
-  const timelineItems: { year: string; title: string; desc: string }[] = useApiData
-    ? apiTimeline.map((entry: TimelineEntry) => ({
-        year: entry.year,
-        title: locale === 'zh' ? entry.titleZh : entry.titleEn,
-        desc: locale === 'zh' ? entry.descZh : entry.descEn,
-      }))
-    : FALLBACK_TIMELINE.map(({ year, titleKey, descKey }) => ({
-        year,
-        title: t(titleKey),
-        desc: t(descKey),
-      }))
+  // 始终使用 i18n 数据展示职业成长路径
+  const timelineItems: { year: string; title: string; desc: string }[] =
+    FALLBACK_TIMELINE.map(({ year, titleKey, descKey }) => ({
+      year,
+      title: t(titleKey),
+      desc: t(descKey),
+    }))
 
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900 min-h-screen animate-page-fade">
