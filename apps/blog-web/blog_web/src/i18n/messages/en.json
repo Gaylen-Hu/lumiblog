@@ -67,7 +67,8 @@
     "about": "About",
     "rss": "RSS",
     "copyright": "All rights reserved",
-    "defaultDescription": "Exploring the frontier of technology, design, and human potential through a minimalist lens."
+    "defaultDescription": "Exploring the frontier of technology, design, and human potential through a minimalist lens.",
+    "scanWechat": "Scan to add WeChat"
   },
   "theme": {
     "toggle": "Toggle theme",

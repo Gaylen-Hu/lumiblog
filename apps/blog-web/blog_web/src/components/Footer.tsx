@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 interface SocialLinks {
@@ -21,6 +23,7 @@ interface FooterProps {
   siteDescription?: string;
   socialLinks?: SocialLinks;
   filing?: FilingInfo;
+  email?: string | null;
 }
 
 const GITHUB_ICON = (
@@ -35,19 +38,34 @@ const TWITTER_ICON = (
   </svg>
 );
 
+const EMAIL_ICON = (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+  </svg>
+);
+
+const WECHAT_ICON = (
+  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 01.598.082l1.584.926a.272.272 0 00.14.045c.134 0 .24-.11.24-.245 0-.06-.024-.12-.04-.178l-.325-1.233a.492.492 0 01.177-.554C23.028 18.553 24 16.803 24 14.86c0-3.09-2.72-5.864-7.062-6.001zm-2.18 2.769c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982z" />
+  </svg>
+);
+
 export default function Footer({
   siteName,
   siteDescription,
   socialLinks = {},
   filing = { icp: null, gongan: null, copyright: null },
+  email,
 }: FooterProps) {
   const t = useTranslations('footer');
   const tRoot = useTranslations();
+  const [showWechat, setShowWechat] = useState(false);
   const displayName = siteName || tRoot('siteName');
   const resolvedDescription = siteDescription || t('defaultDescription');
   const socialItems = [
     socialLinks.github ? { name: 'GitHub', href: socialLinks.github, icon: GITHUB_ICON } : null,
     socialLinks.twitter ? { name: 'Twitter', href: socialLinks.twitter, icon: TWITTER_ICON } : null,
+    email ? { name: 'Email', href: `mailto:${email}`, icon: EMAIL_ICON } : null,
   ].filter(Boolean) as { name: string; href: string; icon: React.ReactNode }[];
 
   const currentYear = new Date().getFullYear();
@@ -70,7 +88,7 @@ export default function Footer({
           </div>
 
           <div className="flex flex-col items-start md:items-end">
-            {socialItems.length > 0 ? (
+            {(socialItems.length > 0 || true) ? (
               <div className="flex gap-4 mb-8">
                 {socialItems.map((social) => (
                   <a
@@ -84,6 +102,32 @@ export default function Footer({
                     {social.icon}
                   </a>
                 ))}
+                {/* WeChat button with QR popup */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowWechat(!showWechat)}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 dark:bg-slate-800 text-gray-400 hover:bg-[#07c160] hover:text-white transition-all duration-300"
+                    aria-label="WeChat"
+                  >
+                    {WECHAT_ICON}
+                  </button>
+                  {showWechat && (
+                    <div className="absolute bottom-14 right-0 md:left-1/2 md:-translate-x-1/2 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="w-40 h-40 relative">
+                        <Image
+                          src="/wechatQrcode.jpg"
+                          alt="WeChat QR Code"
+                          width={160}
+                          height={160}
+                          className="rounded-lg"
+                        />
+                      </div>
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                        {t('scanWechat')}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : null}
             <div className="text-sm font-medium text-gray-400 flex flex-wrap gap-6">

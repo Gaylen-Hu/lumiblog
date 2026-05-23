@@ -67,7 +67,8 @@
     "about": "关于",
     "rss": "RSS",
     "copyright": "保留所有权利",
-    "defaultDescription": "探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。"
+    "defaultDescription": "探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。",
+    "scanWechat": "扫码添加微信"
   },
   "theme": {
     "toggle": "切换主题",

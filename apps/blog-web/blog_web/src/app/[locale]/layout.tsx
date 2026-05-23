@@ -96,6 +96,7 @@ export default async function LocaleLayout({
               siteDescription={config.siteDescription}
               socialLinks={config.socialLinks}
               filing={config.filing}
+              email={config.owner.email}
             />
           </NextIntlClientProvider>
         </ThemeProvider>
