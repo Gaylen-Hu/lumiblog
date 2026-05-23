@@ -317,6 +317,7 @@ declare namespace BlogAPI {
     titleEn: string;
     descZh: string;
     descEn: string;
+    images: string[];
     order: number;
     isVisible: boolean;
     createdAt: string;
@@ -329,6 +330,7 @@ declare namespace BlogAPI {
     titleEn: string;
     descZh: string;
     descEn: string;
+    images?: string[];
     order: number;
     isVisible: boolean;
   }
@@ -339,6 +341,7 @@ declare namespace BlogAPI {
     titleEn?: string;
     descZh?: string;
     descEn?: string;
+    images?: string[];
     order?: number;
     isVisible?: boolean;
   }

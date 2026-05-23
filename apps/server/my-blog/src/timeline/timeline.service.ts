@@ -14,6 +14,7 @@ interface CreateTimelineParams {
   titleEn: string;
   descZh: string;
   descEn: string;
+  images?: string[];
   order: number;
   isVisible: boolean;
 }
@@ -25,6 +26,7 @@ interface UpdateTimelineParams {
   titleEn?: string;
   descZh?: string;
   descEn?: string;
+  images?: string[];
   order?: number;
   isVisible?: boolean;
 }
@@ -49,6 +51,7 @@ export class TimelineService {
         titleEn: params.titleEn,
         descZh: params.descZh,
         descEn: params.descEn,
+        images: params.images ?? [],
         order: params.order,
         isVisible: params.isVisible,
       },
@@ -101,6 +104,7 @@ export class TimelineService {
         titleEn: params.titleEn,
         descZh: params.descZh,
         descEn: params.descEn,
+        images: params.images,
         order: params.order,
         isVisible: params.isVisible,
       },
@@ -137,6 +141,7 @@ export class TimelineService {
       titleEn: entry.titleEn,
       descZh: entry.descZh,
       descEn: entry.descEn,
+      images: entry.images,
       order: entry.order,
       isVisible: entry.isVisible,
       createdAt: entry.createdAt,
@@ -152,6 +157,7 @@ export class TimelineService {
       titleEn: entry.titleEn,
       descZh: entry.descZh,
       descEn: entry.descEn,
+      images: entry.images,
       order: entry.order,
     });
   }

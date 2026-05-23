@@ -1,247 +1,529 @@
-import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import {
-  PageContainer,
-  ProTable,
-  ModalForm,
-  ProFormText,
-  ProFormTextArea,
-  ProFormDigit,
-  ProFormSwitch,
-} from '@ant-design/pro-components';
-import { App, Button, Popconfirm, Space, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+  CloseOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  PictureOutlined,
+  PlusOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
+import { PageContainer } from '@ant-design/pro-components';
+import {
+  App,
+  Button,
+  Card,
+  Empty,
+  Image,
+  Input,
+  Popconfirm,
+  Space,
+  Spin,
+  Tag,
+  Upload,
+} from 'antd';
+import type { RcFile, UploadFile } from 'antd/es/upload';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   getTimelines,
   createTimeline,
   updateTimeline,
   deleteTimeline,
 } from '@/services/blog/timeline';
+import { getOssSignature, recordOssUpload } from '@/services/blog/media';
+import styles from './index.less';
 
-const TimelineList: React.FC = () => {
-  const actionRef = useRef<ActionType>(null);
+/** 最大图片数量 */
+const MAX_IMAGES = 9;
+/** 最大文件大小 10MB */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+/** 接受的图片类型 */
+const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+const TimelinePage: React.FC = () => {
   const { message } = App.useApp();
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [currentRow, setCurrentRow] = useState<BlogAPI.Timeline>();
 
+  // 列表状态
+  const [entries, setEntries] = useState<BlogAPI.Timeline[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
+  // 发布表单状态
+  const [content, setContent] = useState('');
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // 编辑状态
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [editImages, setEditImages] = useState<string[]>([]);
+
+  /** 加载时间轴列表 */
+  const loadEntries = useCallback(async (pageNum: number, append = false) => {
+    setLoading(true);
+    try {
+      const res = await getTimelines({ page: pageNum, limit: 10 });
+      if (append) {
+        setEntries((prev) => [...prev, ...res.data]);
+      } else {
+        setEntries(res.data);
+      }
+      setTotal(res.total);
+      setHasMore(res.data.length === 10 && pageNum * 10 < res.total);
+    } catch {
+      message.error('加载失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [message]);
+
+  useEffect(() => {
+    loadEntries(1);
+  }, [loadEntries]);
+
+  /** 加载更多 */
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    loadEntries(nextPage, true);
+  };
+
+  /** 上传图片到 OSS */
+  const handleUpload = async (file: RcFile): Promise<string | null> => {
+    if (!ACCEPT_TYPES.includes(file.type)) {
+      message.error('仅支持 JPG、PNG、GIF、WebP 格式');
+      return null;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      message.error('图片大小不能超过 10MB');
+      return null;
+    }
+
+    try {
+      const signatureData = await getOssSignature({
+        filename: file.name,
+        mimeType: file.type,
+        size: file.size,
+        category: 'image',
+      });
+
+      const formData = new FormData();
+      formData.append('key', signatureData.key);
+      formData.append('policy', signatureData.policy);
+      formData.append('OSSAccessKeyId', signatureData.accessKeyId);
+      formData.append('signature', signatureData.signature);
+      if (signatureData.callback) {
+        formData.append('callback', signatureData.callback);
+        formData.append('x:originalName', file.name);
+      }
+      formData.append('file', file);
+
+      const response = await fetch(signatureData.host, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('上传失败');
+      }
+
+      if (!signatureData.callback) {
+        await recordOssUpload({
+          object: signatureData.key,
+          originalName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          url: signatureData.url,
+        });
+      }
+
+      return signatureData.url;
+    } catch {
+      message.error(`${file.name} 上传失败`);
+      return null;
+    }
+  };
+
+  /** 发布新想法 */
+  const handlePublish = async () => {
+    const trimmed = content.trim();
+    if (!trimmed && imageUrls.length === 0) {
+      message.warning('请输入想法或添加图片');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const year = new Date().getFullYear().toString();
+      await createTimeline({
+        year,
+        titleZh: trimmed || '想法',
+        titleEn: trimmed || 'Thought',
+        descZh: trimmed,
+        descEn: trimmed,
+        images: imageUrls,
+        order: 0,
+        isVisible: true,
+      });
+      message.success('发布成功');
+      setContent('');
+      setImageUrls([]);
+      setPage(1);
+      loadEntries(1);
+    } catch {
+      message.error('发布失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /** 删除条目 */
   const handleDelete = async (id: string) => {
     try {
       await deleteTimeline(id);
-      message.success('删除成功');
-      actionRef.current?.reload();
+      message.success('已删除');
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+      setTotal((prev) => prev - 1);
     } catch {
       message.error('删除失败');
     }
   };
 
-  const columns: ProColumns<BlogAPI.Timeline>[] = [
-    {
-      title: '年份',
-      dataIndex: 'year',
-      width: 80,
-      search: false,
-    },
-    {
-      title: '中文标题',
-      dataIndex: 'titleZh',
-      width: 180,
-      search: false,
-    },
-    {
-      title: '中文描述',
-      dataIndex: 'descZh',
-      ellipsis: true,
-      search: false,
-    },
-    {
-      title: '排序',
-      dataIndex: 'order',
-      width: 80,
-      search: false,
-    },
-    {
-      title: '是否可见',
-      dataIndex: 'isVisible',
-      width: 100,
-      search: false,
-      render: (_, record) =>
-        record.isVisible ? (
-          <Tag color="green">可见</Tag>
-        ) : (
-          <Tag color="default">隐藏</Tag>
+  /** 切换可见性 */
+  const handleToggleVisibility = async (entry: BlogAPI.Timeline) => {
+    try {
+      await updateTimeline(entry.id, { isVisible: !entry.isVisible });
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === entry.id ? { ...e, isVisible: !e.isVisible } : e,
         ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdAt',
-      valueType: 'dateTime',
-      search: false,
-      width: 180,
-    },
-    {
-      title: '操作',
-      valueType: 'option',
-      width: 150,
-      render: (_, record) => (
-        <Space>
-          <a
-            onClick={() => {
-              setCurrentRow(record);
-              setEditModalOpen(true);
-            }}
-          >
-            编辑
-          </a>
-          <Popconfirm
-            title="确定删除此条目？"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <a style={{ color: '#ff4d4f' }}>删除</a>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+      );
+    } catch {
+      message.error('操作失败');
+    }
+  };
 
-  const formFields = (
-    <>
-      <ProFormText
-        name="year"
-        label="年份"
-        placeholder="请输入4位年份，如 2017"
-        rules={[
-          { required: true, message: '请输入年份' },
-          { pattern: /^\d{4}$/, message: '年份必须为4位数字' },
-        ]}
-      />
-      <ProFormText
-        name="titleZh"
-        label="中文标题"
-        placeholder="请输入中文标题"
-        rules={[
-          { required: true, message: '请输入中文标题' },
-          { max: 100, message: '中文标题不能超过100个字符' },
-        ]}
-      />
-      <ProFormText
-        name="titleEn"
-        label="英文标题"
-        placeholder="Please enter English title"
-        rules={[
-          { required: true, message: '请输入英文标题' },
-          { max: 100, message: '英文标题不能超过100个字符' },
-        ]}
-      />
-      <ProFormTextArea
-        name="descZh"
-        label="中文描述"
-        placeholder="请输入中文描述"
-        rules={[
-          { required: true, message: '请输入中文描述' },
-          { max: 500, message: '中文描述不能超过500个字符' },
-        ]}
-      />
-      <ProFormTextArea
-        name="descEn"
-        label="英文描述"
-        placeholder="Please enter English description"
-        rules={[
-          { required: true, message: '请输入英文描述' },
-          { max: 500, message: '英文描述不能超过500个字符' },
-        ]}
-      />
-      <ProFormDigit
-        name="order"
-        label="排序"
-        placeholder="数字越小越靠前"
-        min={0}
-        max={9999}
-        fieldProps={{ precision: 0 }}
-      />
-      <ProFormSwitch name="isVisible" label="是否可见" />
-    </>
-  );
+  /** 进入编辑模式 */
+  const handleStartEdit = (entry: BlogAPI.Timeline) => {
+    setEditingId(entry.id);
+    setEditContent(entry.descZh);
+    setEditImages(entry.images || []);
+  };
+
+  /** 保存编辑 */
+  const handleSaveEdit = async (entry: BlogAPI.Timeline) => {
+    const trimmed = editContent.trim();
+    if (!trimmed && editImages.length === 0) {
+      message.warning('内容不能为空');
+      return;
+    }
+
+    try {
+      await updateTimeline(entry.id, {
+        titleZh: trimmed || '想法',
+        titleEn: trimmed || 'Thought',
+        descZh: trimmed,
+        descEn: trimmed,
+        images: editImages,
+      });
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === entry.id
+            ? { ...e, descZh: trimmed, titleZh: trimmed || '想法', images: editImages }
+            : e,
+        ),
+      );
+      setEditingId(null);
+      message.success('已更新');
+    } catch {
+      message.error('更新失败');
+    }
+  };
+
+  /** 发布区域图片上传处理 */
+  const handleComposeUpload = async (file: RcFile) => {
+    if (imageUrls.length >= MAX_IMAGES) {
+      message.warning(`最多上传 ${MAX_IMAGES} 张图片`);
+      return false;
+    }
+    setUploading(true);
+    const url = await handleUpload(file);
+    if (url) {
+      setImageUrls((prev) => [...prev, url]);
+    }
+    setUploading(false);
+    return false;
+  };
+
+  /** 编辑区域图片上传处理 */
+  const handleEditUpload = async (file: RcFile) => {
+    if (editImages.length >= MAX_IMAGES) {
+      message.warning(`最多上传 ${MAX_IMAGES} 张图片`);
+      return false;
+    }
+    setUploading(true);
+    const url = await handleUpload(file);
+    if (url) {
+      setEditImages((prev) => [...prev, url]);
+    }
+    setUploading(false);
+    return false;
+  };
 
   return (
-    <PageContainer>
-      <ProTable<BlogAPI.Timeline>
-        headerTitle="时间轴列表"
-        actionRef={actionRef}
-        rowKey="id"
-        search={false}
-        toolBarRender={() => [
+    <PageContainer title={false} className={styles.container}>
+      {/* 发布区域 */}
+      <Card className={styles.composeCard} bordered={false}>
+        <Input.TextArea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="记录一个想法..."
+          autoSize={{ minRows: 2, maxRows: 6 }}
+          maxLength={500}
+          showCount
+          className={styles.composeInput}
+        />
+
+        {/* 已上传图片预览 */}
+        {imageUrls.length > 0 && (
+          <div className={styles.imageGrid}>
+            {imageUrls.map((url, idx) => (
+              <div key={url} className={styles.imageItem}>
+                <Image
+                  src={url}
+                  width="100%"
+                  height="100%"
+                  style={{ objectFit: 'cover', borderRadius: 8 }}
+                  preview={{ mask: false }}
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CloseOutlined />}
+                  className={styles.removeBtn}
+                  onClick={() =>
+                    setImageUrls((prev) => prev.filter((_, i) => i !== idx))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 底部操作栏 */}
+        <div className={styles.composeActions}>
+          <Upload
+            accept={ACCEPT_TYPES.join(',')}
+            showUploadList={false}
+            multiple
+            beforeUpload={handleComposeUpload}
+            disabled={uploading || imageUrls.length >= MAX_IMAGES}
+          >
+            <Button
+              type="text"
+              icon={<PictureOutlined />}
+              loading={uploading}
+              disabled={imageUrls.length >= MAX_IMAGES}
+            >
+              图片{imageUrls.length > 0 ? ` ${imageUrls.length}/${MAX_IMAGES}` : ''}
+            </Button>
+          </Upload>
           <Button
             type="primary"
-            key="create"
-            onClick={() => setCreateModalOpen(true)}
+            icon={<SendOutlined />}
+            onClick={handlePublish}
+            loading={submitting}
+            disabled={!content.trim() && imageUrls.length === 0}
           >
-            <PlusOutlined /> 新建条目
-          </Button>,
-        ]}
-        request={async (params) => {
-          const res = await getTimelines({
-            page: params.current,
-            limit: params.pageSize,
-          });
-          return {
-            data: res.data,
-            success: true,
-            total: res.total,
-          };
-        }}
-        columns={columns}
-        pagination={{ defaultPageSize: 10 }}
-      />
+            发布
+          </Button>
+        </div>
+      </Card>
 
-      <ModalForm
-        title="新建条目"
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
-        initialValues={{ order: 0, isVisible: true }}
-        onFinish={async (values) => {
-          try {
-            await createTimeline(values as BlogAPI.CreateTimelineParams);
-            message.success('创建成功');
-            setCreateModalOpen(false);
-            actionRef.current?.reload();
-            return true;
-          } catch {
-            message.error('创建失败');
-            return false;
-          }
-        }}
-      >
-        {formFields}
-      </ModalForm>
+      {/* 时间轴列表 */}
+      <div className={styles.feedList}>
+        {entries.map((entry) => (
+          <Card
+            key={entry.id}
+            className={styles.feedCard}
+            bordered={false}
+          >
+            {editingId === entry.id ? (
+              /* 编辑模式 */
+              <div className={styles.editMode}>
+                <Input.TextArea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  autoSize={{ minRows: 2, maxRows: 6 }}
+                  maxLength={500}
+                  showCount
+                />
+                {editImages.length > 0 && (
+                  <div className={styles.imageGrid}>
+                    {editImages.map((url, idx) => (
+                      <div key={url} className={styles.imageItem}>
+                        <Image
+                          src={url}
+                          width="100%"
+                          height="100%"
+                          style={{ objectFit: 'cover', borderRadius: 8 }}
+                          preview={{ mask: false }}
+                        />
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<CloseOutlined />}
+                          className={styles.removeBtn}
+                          onClick={() =>
+                            setEditImages((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.editActions}>
+                  <Upload
+                    accept={ACCEPT_TYPES.join(',')}
+                    showUploadList={false}
+                    multiple
+                    beforeUpload={handleEditUpload}
+                    disabled={uploading || editImages.length >= MAX_IMAGES}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<PictureOutlined />}
+                      loading={uploading}
+                    >
+                      添加图片
+                    </Button>
+                  </Upload>
+                  <Space>
+                    <Button size="small" onClick={() => setEditingId(null)}>
+                      取消
+                    </Button>
+                    <Button
+                      type="primary"
+                      size="small"
+                      onClick={() => handleSaveEdit(entry)}
+                    >
+                      保存
+                    </Button>
+                  </Space>
+                </div>
+              </div>
+            ) : (
+              /* 展示模式 */
+              <>
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardMeta}>
+                    <span className={styles.cardYear}>{entry.year}</span>
+                    {!entry.isVisible && (
+                      <Tag color="default" className={styles.hiddenTag}>
+                        <EyeInvisibleOutlined /> 隐藏
+                      </Tag>
+                    )}
+                  </div>
+                  <Space size={4}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={
+                        entry.isVisible ? (
+                          <EyeOutlined />
+                        ) : (
+                          <EyeInvisibleOutlined />
+                        )
+                      }
+                      onClick={() => handleToggleVisibility(entry)}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => handleStartEdit(entry)}
+                    />
+                    <Popconfirm
+                      title="确定删除？"
+                      onConfirm={() => handleDelete(entry.id)}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                      />
+                    </Popconfirm>
+                  </Space>
+                </div>
 
-      <ModalForm
-        title="编辑条目"
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
-        initialValues={currentRow}
-        modalProps={{ destroyOnClose: true }}
-        onFinish={async (values) => {
-          if (!currentRow) return false;
-          try {
-            await updateTimeline(
-              currentRow.id,
-              values as BlogAPI.UpdateTimelineParams,
-            );
-            message.success('更新成功');
-            setEditModalOpen(false);
-            actionRef.current?.reload();
-            return true;
-          } catch {
-            message.error('更新失败');
-            return false;
-          }
-        }}
-      >
-        {formFields}
-      </ModalForm>
+                {entry.descZh && (
+                  <p className={styles.cardContent}>{entry.descZh}</p>
+                )}
+
+                {entry.images && entry.images.length > 0 && (
+                  <div className={styles.imageGrid}>
+                    <Image.PreviewGroup>
+                      {entry.images.map((url) => (
+                        <div key={url} className={styles.imageItem}>
+                          <Image
+                            src={url}
+                            width="100%"
+                            height="100%"
+                            style={{ objectFit: 'cover', borderRadius: 8 }}
+                          />
+                        </div>
+                      ))}
+                    </Image.PreviewGroup>
+                  </div>
+                )}
+
+                <div className={styles.cardFooter}>
+                  <span className={styles.cardTime}>
+                    {new Date(entry.createdAt).toLocaleString('zh-CN')}
+                  </span>
+                </div>
+              </>
+            )}
+          </Card>
+        ))}
+
+        {/* 加载状态 */}
+        {loading && (
+          <div className={styles.loadingWrap}>
+            <Spin />
+          </div>
+        )}
+
+        {/* 空状态 */}
+        {!loading && entries.length === 0 && (
+          <Empty description="还没有想法，发布第一条吧" />
+        )}
+
+        {/* 加载更多 */}
+        {!loading && hasMore && entries.length > 0 && (
+          <div className={styles.loadMoreWrap}>
+            <Button type="link" onClick={handleLoadMore}>
+              加载更多
+            </Button>
+          </div>
+        )}
+
+        {/* 到底了 */}
+        {!loading && !hasMore && entries.length > 0 && (
+          <div className={styles.endWrap}>
+            <span>— 已经到底了 —</span>
+          </div>
+        )}
+      </div>
     </PageContainer>
   );
 };
 
-export default TimelineList;
+export default TimelinePage;

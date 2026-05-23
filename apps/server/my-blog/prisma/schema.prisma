@@ -206,6 +206,7 @@ model TimelineEntry {
   titleEn   String   @db.VarChar(100)
   descZh    String   @db.VarChar(500)
   descEn    String   @db.VarChar(500)
+  images    String[] @default([])
   order     Int      @default(0)
   isVisible Boolean  @default(true)
   createdAt DateTime @default(now())

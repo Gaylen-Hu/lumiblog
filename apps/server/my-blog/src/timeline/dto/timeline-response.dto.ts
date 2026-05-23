@@ -22,6 +22,9 @@ export class TimelineResponseDto {
   @ApiProperty({ description: '英文描述' })
   readonly descEn: string;
 
+  @ApiProperty({ description: '关联图片 URL 列表', type: [String] })
+  readonly images: string[];
+
   @ApiProperty({ description: '排序权重' })
   readonly order: number;
 
@@ -41,6 +44,7 @@ export class TimelineResponseDto {
     titleEn: string;
     descZh: string;
     descEn: string;
+    images: string[];
     order: number;
     isVisible: boolean;
     createdAt: Date;
@@ -52,6 +56,7 @@ export class TimelineResponseDto {
     this.titleEn = params.titleEn;
     this.descZh = params.descZh;
     this.descEn = params.descEn;
+    this.images = params.images;
     this.order = params.order;
     this.isVisible = params.isVisible;
     this.createdAt = params.createdAt;
@@ -81,6 +86,9 @@ export class PublicTimelineResponseDto {
   @ApiProperty({ description: '英文描述' })
   readonly descEn: string;
 
+  @ApiProperty({ description: '关联图片 URL 列表', type: [String] })
+  readonly images: string[];
+
   @ApiProperty({ description: '排序权重' })
   readonly order: number;
 
@@ -91,6 +99,7 @@ export class PublicTimelineResponseDto {
     titleEn: string;
     descZh: string;
     descEn: string;
+    images: string[];
     order: number;
   }) {
     this.id = params.id;
@@ -99,6 +108,7 @@ export class PublicTimelineResponseDto {
     this.titleEn = params.titleEn;
     this.descZh = params.descZh;
     this.descEn = params.descEn;
+    this.images = params.images;
     this.order = params.order;
   }
 }

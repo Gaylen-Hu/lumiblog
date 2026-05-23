@@ -1,9 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
   IsBoolean,
   IsInt,
+  IsOptional,
+  IsArray,
+  ArrayMaxSize,
   MaxLength,
   Length,
   Matches,
@@ -19,6 +22,10 @@ const TITLE_MAX_LENGTH = 100;
 const DESC_MAX_LENGTH = 500;
 /** 排序最大值 */
 const ORDER_MAX = 9999;
+/** 图片最大数量 */
+const IMAGES_MAX_COUNT = 9;
+/** 图片 URL 最大长度 */
+const IMAGE_URL_MAX_LENGTH = 2048;
 
 /**
  * 创建 Timeline 条目 DTO
@@ -94,4 +101,17 @@ export class CreateTimelineDto {
   })
   @IsBoolean({ message: 'isVisible 必须是布尔值' })
   isVisible: boolean;
+
+  @ApiPropertyOptional({
+    description: '关联图片 URL 列表',
+    example: ['https://example.com/img1.jpg'],
+    type: [String],
+    maxItems: IMAGES_MAX_COUNT,
+  })
+  @IsOptional()
+  @IsArray({ message: 'images 必须是数组' })
+  @ArrayMaxSize(IMAGES_MAX_COUNT, { message: `最多关联 ${IMAGES_MAX_COUNT} 张图片` })
+  @IsString({ each: true, message: '每个图片 URL 必须是字符串' })
+  @MaxLength(IMAGE_URL_MAX_LENGTH, { each: true, message: `图片 URL 长度不能超过 ${IMAGE_URL_MAX_LENGTH} 字符` })
+  images?: string[];
 }
