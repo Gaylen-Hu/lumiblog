@@ -1,0 +1,60 @@
+# 墨千 (Byte&Beyond)
+
+> 一个聚焦 AI、前端工程与软件架构的中英双语技术博客。内容涵盖 AI Agent、MCP 协议、Context Engineering、Flutter、JavaScript 深度解析、软件设计模式等前沿技术话题。
+
+网站地址: https://www.new-universe.cn
+语言: 中文 (zh-CN) / English (en-US)
+RSS: https://www.new-universe.cn/zh/feed.xml
+Sitemap: https://www.new-universe.cn/sitemap.xml
+
+## AI Agent & LLM
+
+- [Context Engineering: AI Agent 时代最重要的工程能力](https://www.new-universe.cn/zh/posts/c-o-n-t-e-x-t-e-n-g-i-n-e-e-r-i-n-g-a-i-a-g-e-n-t-shi-dai-zui-zhong-yao-de-gong-cheng-neng-li): 深入解析上下文工程如何成为 AI 开发者的核心技能
+- [AI Agent 记忆架构](https://www.new-universe.cn/zh/posts/agent-memory-architecture-2026): AI Agent 记忆系统的架构设计与实现
+- [AI Agent 从工具到伙伴的范式转变](https://www.new-universe.cn/zh/posts/a-i-a-g-e-n-t-cong-gong-ju-dao-huo-ban-de-fan-shi-zhuan-bian): Agentic AI 如何重塑人机协作
+- [推理时间算力 Scaling: AI 竞争的新战场](https://www.new-universe.cn/zh/posts/tui-li-shi-jian-suan-li-s-c-a-l-i-n-g-a-i-jing-zheng-de-xin-zhan-chang): 推理 Scaling Law 与下一代 AI 架构
+- [Context Engineering: The Discipline Behind AI That Actually Works](https://www.new-universe.cn/en/posts/context-engineering-the-discipline-behind-ai-that-actually-works): How context engineering is reshaping AI development
+- [AI Demo vs Production: Agent Reliability](https://www.new-universe.cn/zh/posts/ai-demo-vs-production-agent-reliability): 为什么 Demo 惊艳上线就崩的可靠性陷阱
+
+## MCP 协议
+
+- [MCP: AI 时代的 USB-C 接口时刻](https://www.new-universe.cn/zh/posts/mcp-the-usb-c-moment-for-ai-agents): MCP 协议如何统一 AI 工具生态
+- [MCP 协议: AI 应用的 USB-C 接口时刻](https://www.new-universe.cn/zh/posts/m-c-p-xie-yi-a-i-ying-yong-de-u-s-b-c-jie-kou-shi-ke): 深入理解 Model Context Protocol
+- [MCP 正在成为 AI 时代的事实标准](https://www.new-universe.cn/zh/posts/mcp-de-facto-standard-ai-era): MCP 生态发展与标准化进程
+- [MCP 一周年: 协议很美但工具箱里还是乱成一锅粥](https://www.new-universe.cn/zh/posts/m-c-p-yi-zhou-nian-xie-yi-hen-mei-dan-wo-de-gong-ju-xiang-li-hai-shi-luan-cheng-yi-guo-zhou): MCP 实践中的挑战与反思
+
+## AI 编程 & Vibe Coding
+
+- [Agentic Coding: AI Agent 如何重写软件开发规则](https://www.new-universe.cn/zh/posts/agentic-coding-how-ai-agents-are-rewriting-the-rules-of-software-development): AI 编程工具的演进与实践
+- [Vibe Coding: 传统编程的终结还是新对话的开始](https://www.new-universe.cn/zh/posts/vibe-coding-is-not-the-end-of-programming-its-the-beginning-of-a-harder-conversation): Vibe Coding 的本质与边界
+- [AI 编程工具: Hype vs Reality](https://www.new-universe.cn/zh/posts/ai-coding-tools-hype-vs-reality): AI 编码工具的真实体验与局限
+- [How to Use Rules for AI Coding](https://www.new-universe.cn/zh/posts/how-to-use-rules-for-ai-coding): 使用规则文件提升 AI 编程质量
+
+## Flutter
+
+- [Flutter 应用架构模式](https://www.new-universe.cn/zh/posts/flutter-ying-yong-jia-gou-mo-shi): Flutter 架构设计最佳实践
+- [Flutter Riverpod 深入解析](https://www.new-universe.cn/zh/posts/flutter-riverpod-shen-ru-jie-xi): 状态管理方案深度对比
+- [Flutter 渲染性能分析](https://www.new-universe.cn/zh/posts/flutter-xuan-ran-xing-neng-fen-xi): 渲染管线与性能优化
+- [Flutter CI/CD 与发布流程](https://www.new-universe.cn/zh/posts/flutter-cicd-yu-fa-bu-liu-cheng): 持续集成与自动化发布
+- [Flutter 自定义绘制与 Canvas 深度解析](https://www.new-universe.cn/zh/posts/flutter-zi-ding-yi-hui-zhi-yu-canvas-shen-du-jie-xi): CustomPainter 与 Canvas API
+
+## JavaScript & 前端
+
+- [JavaScript 设计模式精要](https://www.new-universe.cn/zh/posts/javascript-she-ji-mo-shi-jing-yao): 前端常用设计模式实战
+- [虚拟 DOM 与 Diff 算法](https://www.new-universe.cn/zh/posts/xu-ni-dom-yu-diff-suan-fa): React/Vue 核心渲染机制解析
+- [ES2020-ES2024 核心特性](https://www.new-universe.cn/zh/posts/es2020-es2024-he-xin-te-xing): 现代 JavaScript 新特性总结
+- [Web Workers 与多线程并发](https://www.new-universe.cn/zh/posts/web-workers-yu-duo-xian-cheng-bing-fa): 浏览器多线程编程实践
+- [Promise A+ 规范实现](https://www.new-universe.cn/zh/posts/promise-a-gui-fan-shi-xian): 手写 Promise 深入理解异步
+
+## 软件架构
+
+- [架构决策的生死局](https://www.new-universe.cn/zh/posts/jia-gou-jue-ce-de-sheng-si-ju-wei-shen-me-ni-de-xi-tong-zong-zai-zui-guan-jian-de-shi-ke-diao-lian-zi): 为什么你的系统总在关键时刻掉链子
+- [云原生架构不是搬家是重构](https://www.new-universe.cn/zh/posts/yun-yuan-sheng-jia-gou-bu-shi-ban-jia-shi-zhong-gou): 云原生迁移的本质与陷阱
+- [微服务不是银弹](https://www.new-universe.cn/zh/posts/wei-fu-wu-bu-shi-yin-tan-na-xie-nian-wo-men-cai-guo-de-keng): 微服务架构的真实代价
+- [REST 是什么: 为什么它让系统活得更久](https://www.new-universe.cn/zh/posts/r-e-s-t-shi-shen-me-wei-shen-me-ta-rang-xi-tong-huo-de-geng-jiu): RESTful 设计原则深度解读
+
+## Optional
+
+- [关于页面](https://www.new-universe.cn/zh/about): 博主介绍与技术栈
+- [项目展示](https://www.new-universe.cn/zh/projects): 开源项目与作品集
+- [时间线](https://www.new-universe.cn/zh/timeline): 技术成长历程
