@@ -12,7 +12,7 @@ export interface RSSConfig {
 const DEFAULT_CONFIG: RSSConfig = {
   title: 'Byte&Beyond - 探索技术与设计的前沿',
   description: '以极简主义的视角，探索技术、设计与人类潜能的前沿。',
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://nova.blog',
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn',
   language: 'zh-CN',
   author: 'NOVA',
 }

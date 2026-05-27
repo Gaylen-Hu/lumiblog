@@ -3,7 +3,7 @@ import { getArticleSlugs } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.example.com'
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 const LOCALES = ['zh', 'en'] as const
 
 /** 静态页面路径 */

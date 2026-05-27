@@ -68,6 +68,10 @@ jobs:
       # ── 构建博客前端 (Next.js standalone) ──
       - name: Build blog
         working-directory: apps/blog-web/blog_web
+        env:
+          NEXT_PUBLIC_SITE_URL: https://www.new-universe.cn
+          NEXT_PUBLIC_API_URL: http://localhost:3000/v1/public
+          NEXT_PUBLIC_GA_ID: G-Q018EMFR1V
         run: |
           pnpm install --frozen-lockfile
           NODE_OPTIONS="--max-old-space-size=4096" pnpm run build

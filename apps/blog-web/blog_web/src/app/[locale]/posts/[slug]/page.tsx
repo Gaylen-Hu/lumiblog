@@ -15,6 +15,7 @@ import { ColumnAttribution } from '@/components/ColumnAttribution'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
@@ -40,14 +41,45 @@ export async function generateStaticParams() {
   }
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug, locale } = await params
   const post = await getArticleBySlug(slug, toApiLocale(locale))
   if (!post) return { title: 'Post not found' }
+
+  const title = post.seo.metaTitle || `${post.title} - 墨千`
+  const description = post.seo.metaDescription || post.excerpt || ''
+  const canonical = `${SITE_URL}/${locale}/posts/${slug}`
+  const ogImage = post.seo.ogImage || post.coverImage || undefined
+
   return {
-    title: post.seo.metaTitle || `${post.title} - NOVA`,
-    description: post.seo.metaDescription || post.excerpt || '',
-    openGraph: post.seo.ogImage ? { images: [post.seo.ogImage] } : undefined,
+    title,
+    description,
+    alternates: {
+      canonical,
+      languages: {
+        zh: `${SITE_URL}/zh/posts/${slug}`,
+        en: `${SITE_URL}/en/posts/${slug}`,
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: '墨千',
+      type: 'article',
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt || undefined,
+      authors: [post.author.name],
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: post.title }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   }
 }
 
@@ -61,6 +93,14 @@ export default async function PostPage({ params }: PostPageProps) {
 
   return (
     <article className="min-h-screen bg-white dark:bg-slate-950 pb-32 animate-page-fade">
+      <ArticleJsonLd post={post} locale={locale} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: '首页', url: `${SITE_URL}/${locale}` },
+          { name: '文章', url: `${SITE_URL}/${locale}/posts` },
+          { name: post.title, url: `${SITE_URL}/${locale}/posts/${slug}` },
+        ]}
+      />
       <ReadingProgress />
       <ArticleToc items={tocItems} />
 

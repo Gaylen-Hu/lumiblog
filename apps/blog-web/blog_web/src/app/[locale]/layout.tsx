@@ -10,6 +10,9 @@ import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
 import { getSiteConfig } from '@/lib/api'
 import { routing } from '@/i18n/routing'
+import { WebsiteJsonLd } from '@/components/JsonLd'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
@@ -31,11 +34,38 @@ export async function generateMetadata({
     description: config.seo.defaultDescription || config.siteDescription,
     keywords: config.seo.keywords || undefined,
     alternates: {
+      canonical: `${SITE_URL}/${locale}`,
       languages: {
-        zh: '/zh',
-        en: '/en',
+        zh: `${SITE_URL}/zh`,
+        en: `${SITE_URL}/en`,
       },
       types: { 'application/rss+xml': `/${locale}/feed.xml` },
+    },
+    openGraph: {
+      title: config.seo.defaultTitle || config.siteName,
+      description: config.seo.defaultDescription || config.siteDescription,
+      url: `${SITE_URL}/${locale}`,
+      siteName: config.siteName,
+      type: 'website',
+      locale: locale === 'zh' ? 'zh_CN' : 'en_US',
+      ...(config.seo.defaultOgImage ? { images: [{ url: config.seo.defaultOgImage, width: 1200, height: 630 }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: config.seo.defaultTitle || config.siteName,
+      description: config.seo.defaultDescription || config.siteDescription,
+      ...(config.seo.defaultOgImage ? { images: [config.seo.defaultOgImage] } : {}),
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
     verification: {
       google: '7U2ecxnFXB_TBWt1YymA6odAvoozyQ-CTxJg-P7D_44',
@@ -87,6 +117,7 @@ export default async function LocaleLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white dark:bg-slate-950`}
       >
+        <WebsiteJsonLd siteName={config.siteName} description={config.siteDescription} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
             <Header siteName={config.siteName} />
