@@ -2,6 +2,25 @@ import { getTranslations } from 'next-intl/server'
 import ProjectCard from '@/components/ProjectCard'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getProjects } from '@/lib/api'
+import type { Metadata } from 'next'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: '项目 - 墨千',
+    description: '开源项目与作品集展示',
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/projects`,
+      languages: { zh: `${SITE_URL}/zh/projects`, en: `${SITE_URL}/en/projects` },
+    },
+  }
+}
 
 export default async function ProjectsPage() {
   const [projectsRes, t] = await Promise.all([getProjects(), getTranslations('projects')])

@@ -5,12 +5,22 @@ import BlurText from '@/components/ui/BlurText'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import IconCloud from '@/components/IconCloud'
 
-export async function generateMetadata() {
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
   const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])
   return {
     title: `${t('title')} - ${config.siteName}`,
     description: config.owner.bio || t('bio1'),
-    alternates: { languages: { zh: '/zh/about', en: '/en/about' } },
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/about`,
+      languages: { zh: `${SITE_URL}/zh/about`, en: `${SITE_URL}/en/about` },
+    },
   }
 }
 

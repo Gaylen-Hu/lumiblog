@@ -1,6 +1,25 @@
 import { getTranslations } from 'next-intl/server'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getTimeline } from '@/lib/api'
+import type { Metadata } from 'next'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: '时间线 - 墨千',
+    description: '技术成长历程与里程碑',
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/timeline`,
+      languages: { zh: `${SITE_URL}/zh/timeline`, en: `${SITE_URL}/en/timeline` },
+    },
+  }
+}
 
 export default async function TimelinePage({
   params,

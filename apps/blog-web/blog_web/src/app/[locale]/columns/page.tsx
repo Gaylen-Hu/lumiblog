@@ -3,9 +3,22 @@ import { Link } from '@/i18n/navigation'
 import { getPublicColumns } from '@/lib/columns'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: '专栏',
-  description: '按主题系列浏览文章专栏',
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: '专栏 - 墨千',
+    description: '按主题系列浏览文章专栏',
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/columns`,
+      languages: { zh: `${SITE_URL}/zh/columns`, en: `${SITE_URL}/en/columns` },
+    },
+  }
 }
 
 function truncateDescription(text: string | null, maxLength = 100): string {

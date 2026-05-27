@@ -6,6 +6,23 @@ import PostCard from '@/components/PostCard'
 import ProjectCard from '@/components/ProjectCard'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getArticles, getProjects, getSiteStats, toApiLocale } from '@/lib/api'
+import type { Metadata } from 'next'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    alternates: {
+      canonical: `${SITE_URL}/${locale}`,
+      languages: { zh: `${SITE_URL}/zh`, en: `${SITE_URL}/en` },
+    },
+  }
+}
 
 export default async function Home() {
   const locale = await getLocale()

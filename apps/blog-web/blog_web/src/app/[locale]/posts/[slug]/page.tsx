@@ -19,7 +19,7 @@ import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 interface PostPageProps {
   params: Promise<{ slug: string; locale: string }>

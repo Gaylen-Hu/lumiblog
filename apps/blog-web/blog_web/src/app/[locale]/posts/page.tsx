@@ -3,6 +3,25 @@ import { Link } from '@/i18n/navigation'
 import PostCard from '@/components/PostCard'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getArticles, toApiLocale } from '@/lib/api'
+import type { Metadata } from 'next'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return {
+    title: '文章 - 墨千',
+    description: '探索 AI、前端工程与软件架构的深度技术文章',
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/posts`,
+      languages: { zh: `${SITE_URL}/zh/posts`, en: `${SITE_URL}/en/posts` },
+    },
+  }
+}
 
 const PAGE_SIZE = 9
 

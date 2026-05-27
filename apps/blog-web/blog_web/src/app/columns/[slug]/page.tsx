@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { getPublicColumnBySlug } from '@/lib/columns'
 import type { Metadata } from 'next'
 
@@ -12,18 +12,12 @@ export async function generateMetadata({
   params,
 }: ColumnDetailPageProps): Promise<Metadata> {
   const { slug } = await params
-  const column = await getPublicColumnBySlug(slug)
-
-  if (!column) {
-    return { title: '专栏未找到' }
-  }
-
+  // 标记为 noindex，引导 Google 使用带 locale 的规范 URL
   return {
-    title: column.title,
-    description: column.description || undefined,
-    openGraph: column.coverImage
-      ? { images: [column.coverImage] }
-      : undefined,
+    robots: { index: false, follow: true },
+    alternates: {
+      canonical: `https://www.new-universe.cn/zh/columns/${slug}`,
+    },
   }
 }
 
