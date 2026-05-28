@@ -19,7 +19,7 @@ import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 interface PostPageProps {
   params: Promise<{ slug: string; locale: string }>
@@ -56,6 +56,17 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   return {
     title,
     description,
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
     alternates: {
       canonical,
       languages: {
