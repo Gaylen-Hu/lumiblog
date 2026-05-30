@@ -1,20 +1,31 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export interface VercelAnalyticsData {
-  pageViews: number;
-  visitors: number;
-  topPages: { page: string; views: number }[];
-  topReferrers: { referrer: string; views: number }[];
-  topCountries: { country: string; views: number }[];
-  topDevices: { device: string; views: number }[];
-}
-
 export interface VercelTimeSeriesPoint {
   date: string;
   pageViews: number;
   visitors: number;
+  bounceRate: number;
 }
+
+export interface VercelStatItem {
+  key: string;
+  total: number;
+  devices: number;
+}
+
+type Period = '24h' | '7d' | '30d' | '90d';
+
+/** Vercel Web Analytics stats 支持的维度 */
+type StatType =
+  | 'path'
+  | 'referrer'
+  | 'referrer_hostname'
+  | 'country'
+  | 'client_name'
+  | 'os_name'
+  | 'device_type'
+  | 'route';
 
 @Injectable()
 export class VercelAnalyticsProvider {
@@ -22,12 +33,16 @@ export class VercelAnalyticsProvider {
   private readonly token: string;
   private readonly teamId: string;
   private readonly projectId: string;
-  private readonly baseUrl = 'https://vercel.com/api/web/insights';
+  private readonly baseUrl = 'https://api.vercel.com/web-analytics';
 
   constructor(private readonly configService: ConfigService) {
     this.token = this.configService.get<string>('VERCEL_TOKEN', '');
     this.teamId = this.configService.get<string>('VERCEL_TEAM_ID', '');
     this.projectId = this.configService.get<string>('VERCEL_PROJECT_ID', '');
+  }
+
+  get isConfigured(): boolean {
+    return !!this.token && !!this.projectId;
   }
 
   private get headers(): Record<string, string> {
@@ -37,38 +52,44 @@ export class VercelAnalyticsProvider {
     };
   }
 
-  private buildParams(params: Record<string, string>): URLSearchParams {
-    const sp = new URLSearchParams(params);
+  private buildBaseParams(period: Period): URLSearchParams {
+    const sp = new URLSearchParams({
+      projectId: this.projectId,
+      environment: 'production',
+      from: this.getFromDate(period),
+      to: this.formatDate(new Date()),
+    });
     if (this.teamId) sp.set('teamId', this.teamId);
-    sp.set('projectId', this.projectId);
     return sp;
   }
 
   /**
    * 获取页面浏览量时间序列
    */
-  async getTimeSeries(period: '24h' | '7d' | '30d' | '90d'): Promise<VercelTimeSeriesPoint[]> {
-    if (!this.token) return [];
+  async getTimeSeries(period: Period): Promise<VercelTimeSeriesPoint[]> {
+    if (!this.isConfigured) return [];
 
     try {
-      const params = this.buildParams({
-        environment: 'production',
-        filter: '{}',
-        from: this.getFromDate(period),
-        to: new Date().toISOString(),
-      });
-
-      const res = await fetch(`${this.baseUrl}/stats?${params}`, {
+      const params = this.buildBaseParams(period);
+      const res = await fetch(`${this.baseUrl}/timeseries?${params}`, {
         headers: this.headers,
       });
 
       if (!res.ok) {
-        this.logger.warn(`Vercel API error: ${res.status} ${res.statusText}`);
+        this.logger.warn(`Vercel timeseries error: ${res.status}`);
         return [];
       }
 
       const data = await res.json();
-      return this.mapTimeSeries(data);
+      const series = data?.data?.groups?.all;
+      if (!Array.isArray(series)) return [];
+
+      return series.map((point: { key: string; total: number; devices: number; bounceRate: number }) => ({
+        date: point.key,
+        pageViews: point.total || 0,
+        visitors: point.devices || 0,
+        bounceRate: point.bounceRate || 0,
+      }));
     } catch (err) {
       this.logger.error('Failed to fetch Vercel time series', err);
       return [];
@@ -78,89 +99,75 @@ export class VercelAnalyticsProvider {
   /**
    * 获取热门页面
    */
-  async getTopPages(period: '24h' | '7d' | '30d' | '90d', limit = 10): Promise<{ page: string; views: number }[]> {
-    return this.getInsight('path', period, limit);
+  async getTopPages(period: Period, limit = 10): Promise<{ page: string; views: number }[]> {
+    const items = await this.getStats('path', period, limit);
+    return items.map((item) => ({ page: item.key, views: item.total }));
   }
 
   /**
    * 获取热门来源
    */
-  async getTopReferrers(period: '24h' | '7d' | '30d' | '90d', limit = 10): Promise<{ referrer: string; views: number }[]> {
-    const data = await this.getInsight('referrer', period, limit);
-    return data.map((item) => ({ referrer: item.page, views: item.views }));
+  async getTopReferrers(period: Period, limit = 10): Promise<{ referrer: string; views: number }[]> {
+    const items = await this.getStats('referrer', period, limit);
+    return items.map((item) => ({ referrer: item.key || 'Direct', views: item.total }));
   }
 
   /**
    * 获取设备分布
    */
-  async getDevices(period: '24h' | '7d' | '30d' | '90d'): Promise<{ device: string; views: number }[]> {
-    const data = await this.getInsight('device', period, 5);
-    return data.map((item) => ({ device: item.page, views: item.views }));
+  async getDevices(period: Period, limit = 5): Promise<{ device: string; views: number }[]> {
+    const items = await this.getStats('device_type', period, limit);
+    return items.map((item) => ({ device: item.key || 'Unknown', views: item.total }));
   }
 
   /**
    * 获取国家/地区分布
    */
-  async getCountries(period: '24h' | '7d' | '30d' | '90d', limit = 10): Promise<{ country: string; views: number }[]> {
-    const data = await this.getInsight('country', period, limit);
-    return data.map((item) => ({ country: item.page, views: item.views }));
+  async getCountries(period: Period, limit = 10): Promise<{ country: string; views: number }[]> {
+    const items = await this.getStats('country', period, limit);
+    return items.map((item) => ({ country: item.key || 'Unknown', views: item.total }));
   }
 
-  private async getInsight(
-    type: string,
-    period: '24h' | '7d' | '30d' | '90d',
-    limit: number,
-  ): Promise<{ page: string; views: number }[]> {
-    if (!this.token) return [];
+  /**
+   * 通用维度统计查询
+   */
+  private async getStats(type: StatType, period: Period, limit: number): Promise<VercelStatItem[]> {
+    if (!this.isConfigured) return [];
 
     try {
-      const params = this.buildParams({
-        environment: 'production',
-        filter: '{}',
-        from: this.getFromDate(period),
-        to: new Date().toISOString(),
-        limit: String(limit),
-      });
+      const params = this.buildBaseParams(period);
+      params.set('type', type);
+      params.set('limit', String(limit));
 
-      const res = await fetch(`${this.baseUrl}/${type}?${params}`, {
+      const res = await fetch(`${this.baseUrl}/stats?${params}`, {
         headers: this.headers,
       });
 
       if (!res.ok) {
-        this.logger.warn(`Vercel insight ${type} error: ${res.status}`);
+        this.logger.warn(`Vercel stats[${type}] error: ${res.status}`);
         return [];
       }
 
       const data = await res.json();
-      return (data.data || []).map((item: { key: string; total: number }) => ({
-        page: item.key,
-        views: item.total,
-      }));
+      return Array.isArray(data?.data) ? data.data : [];
     } catch (err) {
-      this.logger.error(`Failed to fetch Vercel ${type}`, err);
+      this.logger.error(`Failed to fetch Vercel stats[${type}]`, err);
       return [];
     }
   }
 
-  private getFromDate(period: '24h' | '7d' | '30d' | '90d'): string {
-    const now = new Date();
-    const msMap: Record<string, number> = {
-      '24h': 24 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000,
-      '30d': 30 * 24 * 60 * 60 * 1000,
-      '90d': 90 * 24 * 60 * 60 * 1000,
+  private getFromDate(period: Period): string {
+    const dayMap: Record<Period, number> = {
+      '24h': 1,
+      '7d': 7,
+      '30d': 30,
+      '90d': 90,
     };
-    return new Date(now.getTime() - msMap[period]).toISOString();
+    const from = new Date(Date.now() - dayMap[period] * 86400000);
+    return this.formatDate(from);
   }
 
-  private mapTimeSeries(data: unknown): VercelTimeSeriesPoint[] {
-    if (!data || typeof data !== 'object') return [];
-    const series = (data as { data?: { key: string; total: number; devices: number }[] }).data;
-    if (!Array.isArray(series)) return [];
-    return series.map((point) => ({
-      date: point.key,
-      pageViews: point.total || 0,
-      visitors: point.devices || 0,
-    }));
+  private formatDate(date: Date): string {
+    return date.toISOString().split('T')[0];
   }
 }
