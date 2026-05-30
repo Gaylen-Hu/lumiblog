@@ -5,9 +5,9 @@ import { AnalyticsService } from './analytics.service';
 import { AnalyticsPeriodDto } from './dto';
 
 @ApiTags('Analytics')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-auth')
+@Controller({ path: 'analytics', version: '1' })
 @UseGuards(JwtAuthGuard)
-@Controller('v1/analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

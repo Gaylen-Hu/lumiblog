@@ -37,3 +37,7 @@ docs/byte&beyond
 docs/react-best-practices
 docs/openclaw
 jsStudy
+
+# 临时脚本（可能含密钥，禁止提交）
+_tmp_*.sh
+_tmp_*.ps1
