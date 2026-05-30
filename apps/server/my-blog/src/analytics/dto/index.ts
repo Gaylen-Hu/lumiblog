@@ -16,11 +16,15 @@ export class AnalyticsOverviewResponseDto {
   @ApiProperty({ description: '独立访客数' })
   visitors: number;
 
+  @ApiProperty({ description: '跳出率（%）' })
+  bounceRate: number;
+
   @ApiProperty({ description: '微信公众号累计关注数' })
   wechatFollowers: number;
 
   @ApiProperty({ description: '数据来源' })
   sources: {
+    selfHosted: boolean;
     vercel: boolean;
     wechat: boolean;
     google: boolean;

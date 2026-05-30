@@ -251,3 +251,46 @@ model ColumnArticle {
   @@index([columnId, sortOrder])
   @@map("column_articles")
 }
+
+// ==================== 自建网站统计（参考 Umami 机制）====================
+
+/// 访客会话：以「每日访客指纹」为单位聚合
+/// visitorId = sha256(salt + date + ip + userAgent)，无 Cookie，隐私友好
+model AnalyticsSession {
+  id         String   @id @default(uuid())
+  visitorId  String   @unique // 每日唯一访客指纹
+  date       String   // 归属日期 YYYY-MM-DD（便于按天去重统计 UV）
+  country    String?  // 国家/地区代码
+  device     String?  // desktop / mobile / tablet
+  os         String?  // 操作系统
+  browser    String?  // 浏览器
+  language   String?  // 浏览器语言
+  referrer   String?  @db.Text // 首次来源
+  createdAt  DateTime @default(now())
+  events     AnalyticsEvent[]
+
+  @@index([date])
+  @@index([createdAt])
+  @@map("analytics_sessions")
+}
+
+/// 事件：页面浏览（pageview）或自定义事件
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  sessionId  String
+  eventType  String   @default("pageview") // pageview | custom
+  eventName  String?  // 自定义事件名
+  urlPath    String   @db.VarChar(2048) // 页面路径
+  urlQuery   String?  @db.VarChar(2048) // 查询字符串
+  pageTitle  String?  @db.VarChar(512)
+  referrer   String?  @db.Text // 本次来源
+  locale     String?  // zh / en
+  createdAt  DateTime @default(now())
+  session    AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([urlPath])
+  @@index([eventType])
+  @@index([sessionId])
+  @@map("analytics_events")
+}

@@ -11,6 +11,9 @@ async function bootstrap() {
   const logger = await app.resolve(StructuredLogger);
   app.useLogger(logger);
 
+  // 信任反向代理（nginx），使 @Ip() 能从 X-Forwarded-For 获取真实客户端 IP
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // 安全头：防 XSS、clickjacking、MIME 嗅探等
   app.use(helmet());
 

@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import '../globals.css'
 import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/react'
+import SiteAnalytics from '@/components/SiteAnalytics'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
@@ -133,6 +134,7 @@ export default async function LocaleLayout({
           </NextIntlClientProvider>
         </ThemeProvider>
         <Analytics />
+        <SiteAnalytics />
       </body>
     </html>
   )
