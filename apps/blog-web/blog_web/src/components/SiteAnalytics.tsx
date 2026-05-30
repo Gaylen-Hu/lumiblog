@@ -3,9 +3,12 @@
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/v1/public'
-/** 采集端点：API_BASE 形如 https://www.new-universe.cn/api/v1/public，取其 /v1 根 */
-const COLLECT_URL = API_BASE.replace(/\/public\/?$/, '').replace(/\/$/, '') + '/collect'
+/**
+ * 采集端点：使用相对路径，浏览器自动用当前域名。
+ * 生产环境经 nginx 将 /api/v1/collect 转发到后端 /v1/collect。
+ * 可用 NEXT_PUBLIC_COLLECT_URL 覆盖（如本地开发指向 localhost:3000）。
+ */
+const COLLECT_URL = process.env.NEXT_PUBLIC_COLLECT_URL || '/api/v1/collect'
 
 interface CollectPayload {
   type: 'pageview'
