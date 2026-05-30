@@ -1,6 +1,3 @@
-﻿-- AlterTable
-ALTER TABLE "timeline_entries" ALTER COLUMN "images" SET DEFAULT ARRAY[]::TEXT[];
-
 -- CreateTable
 CREATE TABLE "analytics_sessions" (
     "id" TEXT NOT NULL,
@@ -56,4 +53,3 @@ CREATE INDEX "analytics_events_sessionId_idx" ON "analytics_events"("sessionId")
 
 -- AddForeignKey
 ALTER TABLE "analytics_events" ADD CONSTRAINT "analytics_events_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "analytics_sessions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
