@@ -406,6 +406,42 @@ declare namespace BlogAPI {
   interface ReorderColumnArticlesParams {
     articleIds: string[];
   }
+
+  // 数据统计（自建埋点）
+  interface AnalyticsOverview {
+    pageViews: number;
+    visitors: number;
+    bounceRate: number;
+    wechatFollowers: number;
+    sources: {
+      selfHosted: boolean;
+      vercel: boolean;
+      wechat: boolean;
+      google: boolean;
+    };
+  }
+
+  interface AnalyticsTimePoint {
+    date: string;
+    pageViews: number;
+    visitors: number;
+  }
+
+  interface AnalyticsTopPage {
+    page: string;
+    views: number;
+  }
+
+  interface AnalyticsTopReferrer {
+    referrer: string;
+    views: number;
+  }
+
+  interface AnalyticsDimension {
+    device?: string;
+    country?: string;
+    views: number;
+  }
 }
 
 // 微信公众号类型定义

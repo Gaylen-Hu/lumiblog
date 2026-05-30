@@ -28,7 +28,7 @@ export default [
     path: '/dashboard',
     name: 'dashboard',
     icon: 'dashboard',
-    component: './Welcome',
+    component: './dashboard',
   },
   {
     path: '/content',
