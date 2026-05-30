@@ -23,6 +23,7 @@ import { ApiKeyModule } from './api-key/api-key.module';
 import { ProjectModule } from './project/project.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { ColumnModule } from './column/column.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { ColumnModule } from './column/column.module';
     ProjectModule,
     TimelineModule,
     ColumnModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
