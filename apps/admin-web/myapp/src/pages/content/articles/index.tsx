@@ -209,6 +209,19 @@ const ArticleList: React.FC = () => {
       ),
     },
     {
+      title: '浏览量',
+      dataIndex: 'viewCount',
+      width: 100,
+      search: false,
+      sorter: true,
+      render: (_, record) => (
+        <span>
+          <EyeOutlined style={{ color: '#1677ff', marginRight: 4 }} />
+          {record.viewCount ?? 0}
+        </span>
+      ),
+    },
+    {
       title: '更新时间',
       dataIndex: 'updatedAt',
       valueType: 'dateTime',
