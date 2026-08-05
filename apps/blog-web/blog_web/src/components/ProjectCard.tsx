@@ -26,7 +26,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           <div className="aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-slate-800 mb-6 transition-transform duration-500">
             <img
               src={project.coverImage || '/placeholder-project.png'}
-              alt={project.title}
+              alt={project.coverImage ? `${project.title} 项目封面` : `${project.title} 项目封面占位图`}
               className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">

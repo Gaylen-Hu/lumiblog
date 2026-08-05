@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import Beams from './ui/Beams';
 import SplitText from './ui/SplitText';
 import GradientText from './ui/GradientText';
@@ -108,7 +108,8 @@ export default function HeroSection() {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-white dark:bg-slate-900 shadow-2xl rounded-3xl -rotate-6 animate-float-delayed flex items-center justify-center border border-gray-50 dark:border-slate-800 overflow-hidden">
             <img
               src="https://picsum.photos/400/400?random=11"
-              alt="Abstract"
+              alt=""
+              aria-hidden="true"
               className="w-full h-full object-cover opacity-80"
             />
           </div>

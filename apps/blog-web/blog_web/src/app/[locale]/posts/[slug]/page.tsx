@@ -19,7 +19,11 @@ import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
-export const revalidate = 60
+// Article data comes from the CMS running alongside the deployed application.
+// Do not try to statically generate article detail pages during CI, where that
+// API is intentionally unavailable; a failed render would otherwise surface as
+// an index-blocking 500 response for crawlers.
+export const dynamic = 'force-dynamic'
 
 interface PostPageProps {
   params: Promise<{ slug: string; locale: string }>

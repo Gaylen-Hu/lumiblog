@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { Link } from '@/i18n/navigation'
 import HeroSection from '@/components/HeroSection'
 import StatsSection from '@/components/StatsSection'
 import PostCard from '@/components/PostCard'
