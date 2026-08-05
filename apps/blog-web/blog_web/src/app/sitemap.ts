@@ -1,5 +1,9 @@
 import type { MetadataRoute } from 'next'
 
+// The CMS API is available only after the web service is deployed. Rendering
+// this route at request time keeps CI builds independent from that API while
+// preserving complete, up-to-date sitemap entries in production.
+export const dynamic = 'force-dynamic'
 export const revalidate = 3600
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
