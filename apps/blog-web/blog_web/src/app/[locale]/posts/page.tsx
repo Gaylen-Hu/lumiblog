@@ -4,6 +4,7 @@ import PostCard from '@/components/PostCard'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getArticles, toApiLocale } from '@/lib/api'
 import type { Metadata } from 'next'
+import { PostsCollectionJsonLd } from '@/components/JsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
@@ -70,6 +71,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade bg-white dark:bg-slate-950 min-h-screen">
+      <PostsCollectionJsonLd posts={posts} locale={locale} />
       <div className="max-w-7xl mx-auto">
         <div className="mb-16">
           <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#111111] dark:text-white">

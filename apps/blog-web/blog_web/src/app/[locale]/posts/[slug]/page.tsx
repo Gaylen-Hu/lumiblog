@@ -19,7 +19,7 @@ import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
-export const dynamic = 'force-dynamic'
+export const revalidate = 60
 
 interface PostPageProps {
   params: Promise<{ slug: string; locale: string }>
@@ -181,7 +181,7 @@ export default async function PostPage({ params }: PostPageProps) {
               rehypePlugins={[rehypeHighlight]}
               components={{
                 h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
-                  <h1 id={slugify(String(children))} {...props}>{children}</h1>
+                  <h2 id={slugify(String(children))} {...props}>{children}</h2>
                 ),
                 h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
                   <h2 id={slugify(String(children))} {...props}>{children}</h2>

@@ -12,7 +12,7 @@ import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
 import { getSiteConfig } from '@/lib/api'
 import { routing } from '@/i18n/routing'
-import { WebsiteJsonLd } from '@/components/JsonLd'
+import { SiteJsonLd } from '@/components/JsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
@@ -119,7 +119,7 @@ export default async function LocaleLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white dark:bg-slate-950`}
       >
-        <WebsiteJsonLd siteName={config.siteName} description={config.siteDescription} />
+        <SiteJsonLd config={config} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
             <Header siteName={config.siteName} />

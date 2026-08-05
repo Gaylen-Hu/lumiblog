@@ -89,7 +89,7 @@ export class PublicService {
       ];
     }
 
-    const [items, total] = await Promise.all([
+    const [items, total, author] = await Promise.all([
       this.prisma.article.findMany({
         where,
         orderBy: { publishedAt: 'desc' },
@@ -98,9 +98,10 @@ export class PublicService {
         include: ARTICLE_INCLUDE,
       }),
       this.prisma.article.count({ where }),
+      this.getSiteAuthor(),
     ]);
 
-    const data = items.map((article) => this.toArticleListItem(article));
+    const data = items.map((article) => this.toArticleListItem(article, author));
     return new PaginatedPublicArticleListDto({ data, total, page, pageSize });
   }
 
@@ -155,7 +156,7 @@ export class PublicService {
 
     const publishedAt = article.publishedAt ?? article.createdAt;
 
-    const [prev, next] = await Promise.all([
+    const [prev, next, author] = await Promise.all([
       this.prisma.article.findFirst({
         where: {
           ...navWhere,
@@ -172,6 +173,7 @@ export class PublicService {
         orderBy: { publishedAt: 'asc' },
         select: { slug: true, title: true, publishedAt: true },
       }),
+      this.getSiteAuthor(),
     ]);
 
     const prevArticle = prev
@@ -181,7 +183,7 @@ export class PublicService {
       ? new ArticleNavItemDto({ slug: next.slug, title: next.title, publishedAt: next.publishedAt! })
       : null;
 
-    return this.toArticleDetail(article, prevArticle, nextArticle);
+    return this.toArticleDetail(article, prevArticle, nextArticle, author);
   }
 
   /**
@@ -423,7 +425,7 @@ export class PublicService {
   /**
    * 转换为文章列表项 DTO
    */
-  private toArticleListItem(article: ArticleWithRelations): PublicArticleListItemDto {
+  private toArticleListItem(article: ArticleWithRelations, author: AuthorDto): PublicArticleListItemDto {
     // 筛选已发布专栏，按 sortOrder 升序取第一个
     const publishedColumns = article.columns
       .filter((ca) => ca.column.status === 'published')
@@ -439,7 +441,7 @@ export class PublicService {
       slug: article.slug,
       title: article.title,
       excerpt: article.summary,
-      author: new AuthorDto({ name: DEFAULT_AUTHOR_NAME, avatar: null }),
+      author,
       publishedAt: article.publishedAt ?? article.createdAt,
       readTime: this.calculateReadTime(article.content),
       category: article.category
@@ -458,6 +460,7 @@ export class PublicService {
     article: ArticleWithRelations,
     prevArticle: ArticleNavItemDto | null,
     nextArticle: ArticleNavItemDto | null,
+    author: AuthorDto,
   ): PublicArticleDetailDto {
     // 筛选已发布专栏，按 sortOrder 升序排序，返回所有
     const publishedColumns = article.columns
@@ -477,7 +480,7 @@ export class PublicService {
       title: article.title,
       excerpt: article.summary,
       content: article.content ?? '',
-      author: new AuthorDto({ name: DEFAULT_AUTHOR_NAME, avatar: null }),
+      author,
       publishedAt: article.publishedAt ?? article.createdAt,
       updatedAt: article.updatedAt,
       readTime: this.calculateReadTime(article.content),
@@ -495,6 +498,14 @@ export class PublicService {
       nextArticle,
       column,
       columns,
+    });
+  }
+
+  private async getSiteAuthor(): Promise<AuthorDto> {
+    const config = await this.siteConfigService.getConfig();
+    return new AuthorDto({
+      name: config.ownerName || DEFAULT_AUTHOR_NAME,
+      avatar: config.ownerAvatar ?? null,
     });
   }
 
