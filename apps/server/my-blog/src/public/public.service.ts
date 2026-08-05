@@ -504,7 +504,12 @@ export class PublicService {
   private async getSiteAuthor(): Promise<AuthorDto> {
     // Author data is optional site configuration. Keep public article endpoints
     // available during configuration bootstrap (and in lightweight test setups).
-    const config = await this.siteConfigService.getConfig().catch(() => undefined);
+    let config: Awaited<ReturnType<SiteConfigService['getConfig']>> | undefined;
+    try {
+      config = await this.siteConfigService.getConfig();
+    } catch {
+      config = undefined;
+    }
     return new AuthorDto({
       name: config?.ownerName || DEFAULT_AUTHOR_NAME,
       avatar: config?.ownerAvatar ?? null,
