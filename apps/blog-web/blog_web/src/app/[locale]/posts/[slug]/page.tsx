@@ -16,6 +16,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
+import ArticleSubscription from '@/components/ArticleSubscription'
 
 // 未预生成的 slug 在运行时按需渲染
 export const dynamicParams = true
@@ -199,6 +200,8 @@ export default async function PostPage({ params }: PostPageProps) {
             </ReactMarkdown>
           </div>
         </div>
+
+        <ArticleSubscription />
 
         {post.tags.length > 0 && (
           <div className="mt-16 pt-8 border-t border-gray-100 dark:border-slate-800">

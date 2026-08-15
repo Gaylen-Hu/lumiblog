@@ -1,120 +1,128 @@
 {
-  "siteName": "Byte&Beyond",
-  "nav": {
-    "home": "Home",
-    "posts": "Posts",
-    "projects": "Projects",
-    "timeline": "Timeline",
-    "about": "About"
-  },
-  "timeline": {
-    "title": "Timeline",
-    "subtitle": "Key milestones along the journey.",
-    "empty": "No timeline entries yet"
-  },
-  "search": {
-    "placeholder": "Search..."
-  },
-  "home": {
-    "latestPosts": "Latest Posts",
-    "allPosts": "All Posts",
-    "featuredProjects": "Featured Projects",
-    "allProjects": "All Projects",
-    "noPosts": "No posts yet"
-  },
-  "about": {
-    "title": "About",
-    "tagline1": "Driven by curiosity,",
-    "tagline2": "guided by",
-    "tagline3": "precision",
-    "tagline4": ".",
-    "techStack": "Tech Stack",
-    "interest": "Interest",
-    "architecture": "Architecture",
-    "daily": "Daily",
-    "morningCoffee": "Morning Coffee",
-    "bio1": "I'm a digital craftsman with 6+ years of experience building products, focused on bridging the gap between human emotion and machine logic.",
-    "bio2": "Currently exploring the intersection of AI-driven interfaces and procedural geometry.",
-    "bio3": "When I'm not at my editor, you'll find me hiking mountain trails, photographing brutalist architecture, or brewing the perfect pour-over.",
-    "techUniverse": "Tech Universe",
-    "timeline": {
-      "title": "The Roadmap",
-      "subtitle": "Key milestones from my 2017 internship to the present.",
-      "y2017": {
-        "title": "First Steps",
-        "desc": "Entered the industry as an intern, witnessing the transition from jQuery to modern frameworks."
-      },
-      "y2019": {
-        "title": "Full-Stack Leap",
-        "desc": "Deepened expertise in React/Vue ecosystems and started Node.js backend development for multi-platform coverage."
-      },
-      "y2022": {
-        "title": "Efficiency Revolution",
-        "desc": "Focused on automation scripts and tooling, optimizing workflows with Python and Node.js."
-      },
-      "y2024": {
-        "title": "AI Lab",
-        "desc": "Fully embraced AI-driven development, exploring prompt engineering and multimodal interaction."
-      },
-      "y2025": {
-        "title": "Intelligent Systems",
-        "desc": "Leading AI projects with deep integration of voice/video communication and digital avatar generation."
-      }
-    }
-  },
-  "footer": {
-    "builtWith": "Built with ❤️",
-    "about": "About",
-    "rss": "RSS",
-    "copyright": "All rights reserved",
-    "defaultDescription": "Exploring the frontier of technology, design, and human potential through a minimalist lens.",
-    "scanWechat": "Scan to add WeChat"
-  },
-  "theme": {
-    "toggle": "Toggle theme",
-    "light": "Light",
-    "dark": "Dark"
-  },
-  "lang": {
-    "toggle": "中文"
-  },
-  "posts": {
-    "title": "All Posts",
-    "readMore": "Read more",
-    "backToList": "Back to list",
-    "publishedAt": "Published on",
-    "readingTime": "min read",
-    "noPostsFound": "No posts found",
-    "clearFilter": "Clear filter",
-    "filterCategory": "Category",
-    "filterTag": "Tag",
-    "filterSearch": "Search",
-    "prevPage": "Previous",
-    "nextPage": "Next",
-    "uncategorized": "Uncategorized",
-    "readArticle": "Read article"
-  },
-  "projects": {
-    "title": "All Projects",
-    "viewProject": "View Project",
-    "noProjects": "No projects yet",
-    "backToList": "Back to list",
-    "techStack": "Tech Stack",
-    "visitSite": "Visit Site"
-  },
-  "stats": {
-    "articles": "Articles",
-    "experience": "Years Exp.",
-    "openSource": "Open Source",
-    "talks": "Talks"
-  },
-  "hero": {
-    "badge": "Exploring the frontier of tech & design",
-    "line1": "Crafting digital",
-    "line2": "masterpieces",
-    "line3": "with code.",
-    "description": "Focused on minimalist design systems and high-performance app development, transforming complex requirements into seamless, intuitive user experiences.",
-    "viewProjects": "View Projects",
-    "readBlog": "Read Blog"
-  }
+    "siteName":  "Byte\u0026Beyond",
+    "nav":  {
+                "home":  "Home",
+                "posts":  "Posts",
+                "projects":  "Projects",
+                "timeline":  "Timeline",
+                "about":  "About"
+            },
+    "timeline":  {
+                     "title":  "Timeline",
+                     "subtitle":  "Key milestones along the journey.",
+                     "empty":  "No timeline entries yet"
+                 },
+    "search":  {
+                   "placeholder":  "Search..."
+               },
+    "home":  {
+                 "latestPosts":  "Latest Posts",
+                 "allPosts":  "All Posts",
+                 "featuredProjects":  "Featured Projects",
+                 "allProjects":  "All Projects",
+                 "noPosts":  "No posts yet"
+             },
+    "about":  {
+                  "title":  "About",
+                  "tagline1":  "Driven by curiosity,",
+                  "tagline2":  "guided by",
+                  "tagline3":  "precision",
+                  "tagline4":  ".",
+                  "techStack":  "Tech Stack",
+                  "interest":  "Interest",
+                  "architecture":  "Architecture",
+                  "daily":  "Daily",
+                  "morningCoffee":  "Morning Coffee",
+                  "bio1":  "I\u0027m a digital craftsman with 6+ years of experience building products, focused on bridging the gap between human emotion and machine logic.",
+                  "bio2":  "Currently exploring the intersection of AI-driven interfaces and procedural geometry.",
+                  "bio3":  "When I\u0027m not at my editor, you\u0027ll find me hiking mountain trails, photographing brutalist architecture, or brewing the perfect pour-over.",
+                  "techUniverse":  "Tech Universe",
+                  "timeline":  {
+                                   "title":  "The Roadmap",
+                                   "subtitle":  "Key milestones from my 2017 internship to the present.",
+                                   "y2017":  {
+                                                 "title":  "First Steps",
+                                                 "desc":  "Entered the industry as an intern, witnessing the transition from jQuery to modern frameworks."
+                                             },
+                                   "y2019":  {
+                                                 "title":  "Full-Stack Leap",
+                                                 "desc":  "Deepened expertise in React/Vue ecosystems and started Node.js backend development for multi-platform coverage."
+                                             },
+                                   "y2022":  {
+                                                 "title":  "Efficiency Revolution",
+                                                 "desc":  "Focused on automation scripts and tooling, optimizing workflows with Python and Node.js."
+                                             },
+                                   "y2024":  {
+                                                 "title":  "AI Lab",
+                                                 "desc":  "Fully embraced AI-driven development, exploring prompt engineering and multimodal interaction."
+                                             },
+                                   "y2025":  {
+                                                 "title":  "Intelligent Systems",
+                                                 "desc":  "Leading AI projects with deep integration of voice/video communication and digital avatar generation."
+                                             }
+                               }
+              },
+    "footer":  {
+                   "builtWith":  "Built with ❤️",
+                   "about":  "About",
+                   "rss":  "RSS",
+                   "copyright":  "All rights reserved",
+                   "defaultDescription":  "Exploring the frontier of technology, design, and human potential through a minimalist lens.",
+                   "scanWechat":  "Scan to add WeChat"
+               },
+    "theme":  {
+                  "toggle":  "Toggle theme",
+                  "light":  "Light",
+                  "dark":  "Dark"
+              },
+    "lang":  {
+                 "toggle":  "中文"
+             },
+    "posts":  {
+                  "title":  "All Posts",
+                  "readMore":  "Read more",
+                  "backToList":  "Back to list",
+                  "publishedAt":  "Published on",
+                  "readingTime":  "min read",
+                  "noPostsFound":  "No posts found",
+                  "clearFilter":  "Clear filter",
+                  "filterCategory":  "Category",
+                  "filterTag":  "Tag",
+                  "filterSearch":  "Search",
+                  "prevPage":  "Previous",
+                  "nextPage":  "Next",
+                  "uncategorized":  "Uncategorized",
+                  "readArticle":  "Read article"
+              },
+    "projects":  {
+                     "title":  "All Projects",
+                     "viewProject":  "View Project",
+                     "noProjects":  "No projects yet",
+                     "backToList":  "Back to list",
+                     "techStack":  "Tech Stack",
+                     "visitSite":  "Visit Site"
+                 },
+    "stats":  {
+                  "articles":  "Articles",
+                  "experience":  "Years Exp.",
+                  "openSource":  "Open Source",
+                  "talks":  "Talks"
+              },
+    "hero":  {
+                 "badge":  "Exploring the frontier of tech \u0026 design",
+                 "line1":  "Crafting digital",
+                 "line2":  "masterpieces",
+                 "line3":  "with code.",
+                 "description":  "Focused on minimalist design systems and high-performance app development, transforming complex requirements into seamless, intuitive user experiences.",
+                 "viewProjects":  "View Projects",
+                 "readBlog":  "Read Blog"
+             },
+    "subscription":  {
+                         "eyebrow":  "BYTE \u0026 BEYOND",
+                         "title":  "Follow Byte \u0026 Beyond",
+                         "description":  "Weekly notes on AI, engineering practice, and the ideas shaping technology.",
+                         "hint":  "Scan with WeChat to subscribe",
+                         "qrAlt":  "Byte \u0026 Beyond WeChat official account QR code",
+                         "qrLabel":  "Scan to follow"
+                     }
 }

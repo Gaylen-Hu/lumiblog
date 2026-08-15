@@ -1,120 +1,128 @@
 {
-  "siteName": "墨千",
-  "nav": {
-    "home": "首页",
-    "posts": "文章",
-    "projects": "项目",
-    "timeline": "时间轴",
-    "about": "关于"
-  },
-  "timeline": {
-    "title": "时间轴",
-    "subtitle": "记录成长路径上的关键节点。",
-    "empty": "暂无时间轴内容"
-  },
-  "search": {
-    "placeholder": "搜索..."
-  },
-  "home": {
-    "latestPosts": "最新文章",
-    "allPosts": "全部文章",
-    "featuredProjects": "精选项目",
-    "allProjects": "全部项目",
-    "noPosts": "暂无文章"
-  },
-  "about": {
-    "title": "关于",
-    "tagline1": "由好奇心驱动，",
-    "tagline2": "以",
-    "tagline3": "精准",
-    "tagline4": "为导向。",
-    "techStack": "技术栈",
-    "interest": "兴趣",
-    "architecture": "建筑",
-    "daily": "日常",
-    "morningCoffee": "晨间咖啡",
-    "bio1": "我是一名数字工匠，拥有超过 6 年的产品构建经验，专注于弥合人类情感与机器逻辑之间的鸿沟。",
-    "bio2": "目前，我正在探索 AI 驱动界面与程序化几何的交叉领域。",
-    "bio3": "当我不在代码编辑器前时，你会发现我在探索山间小径、拍摄粗野主义建筑，或者冲泡一杯完美的手冲咖啡。",
-    "techUniverse": "技术宇宙",
-    "timeline": {
-      "title": "进化路径",
-      "subtitle": "从 2017 年实习到现在的关键成长节点。",
-      "y2017": {
-        "title": "实习启航",
-        "desc": "初入职场，在实习中开启了前端开发的探索之旅，见证了从 JQuery 到现代框架的转型。"
-      },
-      "y2019": {
-        "title": "全栈进阶",
-        "desc": "深耕 React/Vue 生态，开始接触 Node.js 后端开发，实现多端覆盖。"
-      },
-      "y2022": {
-        "title": "效率革命",
-        "desc": "专注于自动化脚本与提效工具，利用 Python 和 Node.js 优化开发流程。"
-      },
-      "y2024": {
-        "title": "AI 实验室",
-        "desc": "全面拥抱 AI 驱动开发，探索提示词工程与多模态交互的深度实践。"
-      },
-      "y2025": {
-        "title": "智能系统",
-        "desc": "主导 AI 项目，实现语音/视频通话与数字分身生成的深度集成。"
-      }
-    }
-  },
-  "footer": {
-    "builtWith": "用 ❤️ 构建",
-    "about": "关于",
-    "rss": "RSS",
-    "copyright": "保留所有权利",
-    "defaultDescription": "探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。",
-    "scanWechat": "扫码添加微信"
-  },
-  "theme": {
-    "toggle": "切换主题",
-    "light": "浅色",
-    "dark": "深色"
-  },
-  "lang": {
-    "toggle": "EN"
-  },
-  "posts": {
-    "title": "全部文章",
-    "readMore": "阅读更多",
-    "backToList": "返回列表",
-    "publishedAt": "发布于",
-    "readingTime": "分钟阅读",
-    "noPostsFound": "暂无文章",
-    "clearFilter": "清除筛选",
-    "filterCategory": "分类",
-    "filterTag": "标签",
-    "filterSearch": "搜索",
-    "prevPage": "上一页",
-    "nextPage": "下一页",
-    "uncategorized": "未分类",
-    "readArticle": "阅读文章"
-  },
-  "projects": {
-    "title": "全部项目",
-    "viewProject": "查看项目",
-    "noProjects": "暂无项目",
-    "backToList": "返回列表",
-    "techStack": "技术栈",
-    "visitSite": "访问站点"
-  },
-  "stats": {
-    "articles": "文章数量",
-    "experience": "项目经验",
-    "openSource": "开源贡献",
-    "talks": "技术分享"
-  },
-  "hero": {
-    "badge": "探索技术与设计的前沿",
-    "line1": "用代码创造",
-    "line2": "数字杰作",
-    "line3": "的艺术。",
-    "description": "专注于极简设计系统和高性能应用开发，将复杂需求转化为无缝、直观的用户体验。",
-    "viewProjects": "查看项目",
-    "readBlog": "阅读博客"
-  }
+    "siteName":  "墨千",
+    "nav":  {
+                "home":  "首页",
+                "posts":  "文章",
+                "projects":  "项目",
+                "timeline":  "时间轴",
+                "about":  "关于"
+            },
+    "timeline":  {
+                     "title":  "时间轴",
+                     "subtitle":  "记录成长路径上的关键节点。",
+                     "empty":  "暂无时间轴内容"
+                 },
+    "search":  {
+                   "placeholder":  "搜索..."
+               },
+    "home":  {
+                 "latestPosts":  "最新文章",
+                 "allPosts":  "全部文章",
+                 "featuredProjects":  "精选项目",
+                 "allProjects":  "全部项目",
+                 "noPosts":  "暂无文章"
+             },
+    "about":  {
+                  "title":  "关于",
+                  "tagline1":  "由好奇心驱动，",
+                  "tagline2":  "以",
+                  "tagline3":  "精准",
+                  "tagline4":  "为导向。",
+                  "techStack":  "技术栈",
+                  "interest":  "兴趣",
+                  "architecture":  "建筑",
+                  "daily":  "日常",
+                  "morningCoffee":  "晨间咖啡",
+                  "bio1":  "我是一名数字工匠，拥有超过 6 年的产品构建经验，专注于弥合人类情感与机器逻辑之间的鸿沟。",
+                  "bio2":  "目前，我正在探索 AI 驱动界面与程序化几何的交叉领域。",
+                  "bio3":  "当我不在代码编辑器前时，你会发现我在探索山间小径、拍摄粗野主义建筑，或者冲泡一杯完美的手冲咖啡。",
+                  "techUniverse":  "技术宇宙",
+                  "timeline":  {
+                                   "title":  "进化路径",
+                                   "subtitle":  "从 2017 年实习到现在的关键成长节点。",
+                                   "y2017":  {
+                                                 "title":  "实习启航",
+                                                 "desc":  "初入职场，在实习中开启了前端开发的探索之旅，见证了从 JQuery 到现代框架的转型。"
+                                             },
+                                   "y2019":  {
+                                                 "title":  "全栈进阶",
+                                                 "desc":  "深耕 React/Vue 生态，开始接触 Node.js 后端开发，实现多端覆盖。"
+                                             },
+                                   "y2022":  {
+                                                 "title":  "效率革命",
+                                                 "desc":  "专注于自动化脚本与提效工具，利用 Python 和 Node.js 优化开发流程。"
+                                             },
+                                   "y2024":  {
+                                                 "title":  "AI 实验室",
+                                                 "desc":  "全面拥抱 AI 驱动开发，探索提示词工程与多模态交互的深度实践。"
+                                             },
+                                   "y2025":  {
+                                                 "title":  "智能系统",
+                                                 "desc":  "主导 AI 项目，实现语音/视频通话与数字分身生成的深度集成。"
+                                             }
+                               }
+              },
+    "footer":  {
+                   "builtWith":  "用 ❤️ 构建",
+                   "about":  "关于",
+                   "rss":  "RSS",
+                   "copyright":  "保留所有权利",
+                   "defaultDescription":  "探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。",
+                   "scanWechat":  "扫码添加微信"
+               },
+    "theme":  {
+                  "toggle":  "切换主题",
+                  "light":  "浅色",
+                  "dark":  "深色"
+              },
+    "lang":  {
+                 "toggle":  "EN"
+             },
+    "posts":  {
+                  "title":  "全部文章",
+                  "readMore":  "阅读更多",
+                  "backToList":  "返回列表",
+                  "publishedAt":  "发布于",
+                  "readingTime":  "分钟阅读",
+                  "noPostsFound":  "暂无文章",
+                  "clearFilter":  "清除筛选",
+                  "filterCategory":  "分类",
+                  "filterTag":  "标签",
+                  "filterSearch":  "搜索",
+                  "prevPage":  "上一页",
+                  "nextPage":  "下一页",
+                  "uncategorized":  "未分类",
+                  "readArticle":  "阅读文章"
+              },
+    "projects":  {
+                     "title":  "全部项目",
+                     "viewProject":  "查看项目",
+                     "noProjects":  "暂无项目",
+                     "backToList":  "返回列表",
+                     "techStack":  "技术栈",
+                     "visitSite":  "访问站点"
+                 },
+    "stats":  {
+                  "articles":  "文章数量",
+                  "experience":  "项目经验",
+                  "openSource":  "开源贡献",
+                  "talks":  "技术分享"
+              },
+    "hero":  {
+                 "badge":  "探索技术与设计的前沿",
+                 "line1":  "用代码创造",
+                 "line2":  "数字杰作",
+                 "line3":  "的艺术。",
+                 "description":  "专注于极简设计系统和高性能应用开发，将复杂需求转化为无缝、直观的用户体验。",
+                 "viewProjects":  "查看项目",
+                 "readBlog":  "阅读博客"
+             },
+    "subscription":  {
+                         "eyebrow":  "BYTE \u0026 BEYOND",
+                         "title":  "关注「墨千 Byte \u0026 Beyond」",
+                         "description":  "每周更新 AI、工程实践与技术观察，和你一起把复杂的技术看得更远。",
+                         "hint":  "微信扫码，订阅后续内容",
+                         "qrAlt":  "墨千 Byte \u0026 Beyond 公众号二维码",
+                         "qrLabel":  "扫码关注公众号"
+                     }
 }
