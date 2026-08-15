@@ -148,6 +148,12 @@ export default function Footer({
                 {t('about')}
               </Link>
               <Link
+                href="/links"
+                className="hover:text-[#111111] dark:hover:text-white transition-colors"
+              >
+                {t('friends')}
+              </Link>
+              <Link
                 href="/rss"
                 className="hover:text-[#111111] dark:hover:text-white transition-colors"
               >

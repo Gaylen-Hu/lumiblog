@@ -68,7 +68,8 @@
                    "rss":  "RSS",
                    "copyright":  "All rights reserved",
                    "defaultDescription":  "Exploring the frontier of technology, design, and human potential through a minimalist lens.",
-                   "scanWechat":  "Scan to add WeChat"
+                   "scanWechat":  "Scan to add WeChat",
+                   "friends":  "Friends"
                },
     "theme":  {
                   "toggle":  "Toggle theme",
@@ -124,5 +125,14 @@
                          "hint":  "Scan with WeChat to subscribe",
                          "qrAlt":  "Byte \u0026 Beyond WeChat official account QR code",
                          "qrLabel":  "Scan to follow"
-                     }
+                     },
+    "friends":  {
+                    "eyebrow":  "THE GOOD INTERNET",
+                    "title":  "Friends",
+                    "description":  "Independent blogs, creators, and products worth returning to.",
+                    "emptyTitle":  "Friends are being curated",
+                    "emptyDescription":  "This space will gradually collect independent blogs, creators, and products worth revisiting.",
+                    "exchangePrompt":  "Interested in exchanging links with Byte \u0026 Beyond?",
+                    "exchangeHint":  "Please use the email in the footer and include your site name, URL, and a short introduction."
+                }
 }

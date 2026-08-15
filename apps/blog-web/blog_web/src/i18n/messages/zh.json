@@ -68,7 +68,8 @@
                    "rss":  "RSS",
                    "copyright":  "保留所有权利",
                    "defaultDescription":  "探索技术、设计与人类潜能的前沿，以极简主义的视角呈现。",
-                   "scanWechat":  "扫码添加微信"
+                   "scanWechat":  "扫码添加微信",
+                   "friends":  "友情链接"
                },
     "theme":  {
                   "toggle":  "切换主题",
@@ -124,5 +125,14 @@
                          "hint":  "微信扫码，订阅后续内容",
                          "qrAlt":  "墨千 Byte \u0026 Beyond 公众号二维码",
                          "qrLabel":  "扫码关注公众号"
-                     }
+                     },
+    "friends":  {
+                    "eyebrow":  "THE GOOD INTERNET",
+                    "title":  "友情链接",
+                    "description":  "记录那些认真构建内容、产品与工具的朋友。",
+                    "emptyTitle":  "友链正在整理",
+                    "emptyDescription":  "这里会逐步收录值得长期访问的独立博客、创作者与产品。",
+                    "exchangePrompt":  "想与墨千交换友链？",
+                    "exchangeHint":  "欢迎通过页脚邮箱联系，附上网站名称、链接和一句简介。"
+                }
 }
