@@ -23,10 +23,11 @@ export class FriendLinkService implements OnModuleInit {
   async apply(dto: CreateFriendLinkDto) {
     await this.assertSafeUrl(dto.siteUrl);
     await this.assertSafeUrl(dto.reciprocalUrl);
+    await Promise.all([dto.logoUrl, dto.rssUrl, dto.githubUrl, dto.socialUrl].filter(Boolean).map((url) => this.assertSafeUrl(url!)));
     const siteUrl = this.normaliseUrl(dto.siteUrl);
     const exists = await this.prisma.friendLink.findUnique({ where: { siteUrl } });
     if (exists) throw new ConflictException('This website has already submitted a friend-link application.');
-    return this.prisma.friendLink.create({ data: { ...dto, siteUrl, reciprocalUrl: this.normaliseUrl(dto.reciprocalUrl) } });
+    return this.prisma.friendLink.create({ data: { ...dto, siteUrl, reciprocalUrl: this.normaliseUrl(dto.reciprocalUrl), logoUrl: dto.logoUrl ? this.normaliseUrl(dto.logoUrl) : undefined, rssUrl: dto.rssUrl ? this.normaliseUrl(dto.rssUrl) : undefined, githubUrl: dto.githubUrl ? this.normaliseUrl(dto.githubUrl) : undefined, socialUrl: dto.socialUrl ? this.normaliseUrl(dto.socialUrl) : undefined } });
   }
 
   async create(dto: CreateFriendLinkDto) { return this.apply(dto); }
@@ -34,7 +35,7 @@ export class FriendLinkService implements OnModuleInit {
   async findApproved() {
     return this.prisma.friendLink.findMany({
       where: { status: FriendLinkStatus.APPROVED },
-      select: { id: true, siteName: true, siteUrl: true, description: true, createdAt: true },
+      select: { id: true, siteName: true, siteUrl: true, logoUrl: true, rssUrl: true, description: true, tags: true, language: true, githubUrl: true, socialUrl: true, createdAt: true },
       orderBy: { approvedAt: 'desc' },
     });
   }
@@ -49,8 +50,9 @@ export class FriendLinkService implements OnModuleInit {
     await this.require(id);
     if (dto.siteUrl) await this.assertSafeUrl(dto.siteUrl);
     if (dto.reciprocalUrl) await this.assertSafeUrl(dto.reciprocalUrl);
-    const { siteUrl, reciprocalUrl, ...rest } = dto;
-    return this.prisma.friendLink.update({ where: { id }, data: { ...rest, ...(siteUrl ? { siteUrl: this.normaliseUrl(siteUrl) } : {}), ...(reciprocalUrl ? { reciprocalUrl: this.normaliseUrl(reciprocalUrl) } : {}) } });
+    await Promise.all([dto.logoUrl, dto.rssUrl, dto.githubUrl, dto.socialUrl].filter(Boolean).map((url) => this.assertSafeUrl(url!)));
+    const { siteUrl, reciprocalUrl, logoUrl, rssUrl, githubUrl, socialUrl, ...rest } = dto;
+    return this.prisma.friendLink.update({ where: { id }, data: { ...rest, ...(siteUrl ? { siteUrl: this.normaliseUrl(siteUrl) } : {}), ...(reciprocalUrl ? { reciprocalUrl: this.normaliseUrl(reciprocalUrl) } : {}), ...(logoUrl ? { logoUrl: this.normaliseUrl(logoUrl) } : {}), ...(rssUrl ? { rssUrl: this.normaliseUrl(rssUrl) } : {}), ...(githubUrl ? { githubUrl: this.normaliseUrl(githubUrl) } : {}), ...(socialUrl ? { socialUrl: this.normaliseUrl(socialUrl) } : {}) } });
   }
 
   async approve(id: string, reviewNote?: string) {
