@@ -1,0 +1,12 @@
+'use client'
+
+import { useState } from 'react'
+
+export function FriendLinkSiteKit({ locale }: { locale: string }) {
+  const zh = locale === 'zh'; const [copied, setCopied] = useState<'profile' | 'html' | null>(null)
+  const url = 'https://www.new-universe.cn'; const rss = `${url}/${locale}/feed.xml`; const name = '墨千 Byte & Beyond'; const description = zh ? '探索技术、设计与人类潜能的前沿。' : 'Exploring the frontier of technology, design, and human potential.'
+  const profile = `${zh ? '网站名称' : 'Site name'}：${name}\n${zh ? '网站地址' : 'Site URL'}：${url}\n${zh ? '网站描述' : 'Description'}：${description}\nRSS：${rss}`
+  const html = `<a href="${url}" target="_blank" rel="noopener noreferrer">${name} · ${description}</a>`
+  async function copy(value: string, kind: 'profile' | 'html') { await navigator.clipboard.writeText(value); setCopied(kind); window.setTimeout(() => setCopied(null), 1800) }
+  return <section className="mt-10 overflow-hidden rounded-3xl border border-blue-100 bg-white/70 shadow-[0_16px_50px_rgba(37,99,235,.08)] backdrop-blur dark:border-blue-900/50 dark:bg-slate-900/60"><div className="border-b border-blue-50 bg-gradient-to-r from-blue-50 to-violet-50 px-5 py-4 dark:border-blue-900/40 dark:from-blue-950/40 dark:to-violet-950/30"><p className="text-xs font-bold uppercase tracking-[.18em] text-blue-600">Link kit</p><h2 className="mt-1 text-base font-bold text-slate-900 dark:text-white">{zh ? '本站友链资料，复制即可添加' : 'Our link kit, ready to copy'}</h2></div><div className="space-y-4 p-5"><div className="whitespace-pre-line rounded-2xl bg-slate-50 p-4 font-mono text-xs leading-6 text-slate-600 dark:bg-slate-950/70 dark:text-slate-300">{profile}</div><button type="button" onClick={() => copy(profile, 'profile')} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-white">{copied === 'profile' ? (zh ? '已复制 ✓' : 'Copied ✓') : (zh ? '复制完整资料' : 'Copy profile')}</button><div className="break-all rounded-2xl bg-slate-950 p-4 font-mono text-[11px] leading-5 text-slate-200">{html}</div><button type="button" onClick={() => copy(html, 'html')} className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500">{copied === 'html' ? (zh ? 'HTML 已复制 ✓' : 'HTML copied ✓') : (zh ? '复制 HTML 友链代码' : 'Copy HTML link')}</button></div></section>
+}
