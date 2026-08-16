@@ -2,7 +2,9 @@
 
 import { FormEvent, useState } from 'react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/v1/public'
+// This component runs in the browser. Use the same-origin reverse proxy instead
+// of a build-time API URL (which may point at localhost in the CI environment).
+const API_URL = '/api/v1/public'
 
 export function FriendLinkApplicationForm({ locale }: { locale: string }) {
   const zh = locale === 'zh'
