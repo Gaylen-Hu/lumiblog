@@ -1,0 +1,10 @@
+import { request } from '@umijs/max';
+const base = '/api/admin/friend-links';
+export const getFriendLinks = (params?: { status?: BlogAPI.FriendLinkStatus }) => request<BlogAPI.FriendLink[]>(base, { params });
+export const createFriendLink = (data: BlogAPI.FriendLinkInput) => request<BlogAPI.FriendLink>(base, { method: 'POST', data });
+export const updateFriendLink = (id: string, data: Partial<BlogAPI.FriendLinkInput>) => request<BlogAPI.FriendLink>(`${base}/${id}`, { method: 'PATCH', data });
+export const reviewFriendLink = (id: string, action: 'approve' | 'reject', reviewNote?: string) => request<BlogAPI.FriendLink>(`${base}/${id}/${action}`, { method: 'POST', data: { reviewNote } });
+export const removeFriendLink = (id: string) => request(`${base}/${id}`, { method: 'DELETE' });
+export const restoreFriendLink = (id: string) => request<BlogAPI.FriendLink>(`${base}/${id}/restore`, { method: 'POST' });
+export const checkFriendLink = (id: string) => request<BlogAPI.FriendLinkCheck>(`${base}/${id}/check`, { method: 'POST' });
+export const getFriendLinkChecks = (id: string) => request<BlogAPI.FriendLinkCheck[]>(`${base}/${id}/checks`);

@@ -1,5 +1,4 @@
 import type { MetadataRoute } from 'next'
-import { FRIEND_LINKS } from '@/config/friends'
 
 // The CMS API is available only after the web service is deployed. Rendering
 // this route at request time keeps CI builds independent from that API while
@@ -14,7 +13,9 @@ const LOCALES = [
   { route: 'en', api: 'en-US' },
 ] as const
 
-const STATIC_ROUTES = ['', '/posts', '/projects', '/about', '/timeline', '/columns', ...(FRIEND_LINKS.length > 0 ? ['/links'] : [])]
+// The friend-links page also accepts applications, so it remains a useful indexed page
+// before the first approved link is published.
+const STATIC_ROUTES = ['', '/posts', '/projects', '/about', '/timeline', '/columns', '/links']
 const PAGE_SIZE = 100
 
 interface SitemapArticle {

@@ -1,6 +1,10 @@
 // 博客系统类型定义
 
 declare namespace BlogAPI {
+  type FriendLinkStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REMOVED';
+  interface FriendLinkInput { siteName: string; siteUrl: string; reciprocalUrl: string; description: string; contactEmail?: string; }
+  interface FriendLinkCheck { id: string; checkedAt: string; passed: boolean; statusCode?: number; message?: string; foundUrl?: string; }
+  interface FriendLink extends FriendLinkInput { id: string; status: FriendLinkStatus; reviewNote?: string; approvedAt?: string; removedAt?: string; lastCheckedAt?: string; lastCheckPassed?: boolean; createdAt: string; updatedAt: string; checks?: FriendLinkCheck[]; }
   // 网站配置
   interface SiteConfig {
     id: string;

@@ -24,6 +24,7 @@ import { ProjectModule } from './project/project.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { ColumnModule } from './column/column.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { FriendLinkModule } from './friend-link/friend-link.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     TimelineModule,
     ColumnModule,
     AnalyticsModule,
+    FriendLinkModule,
   ],
   controllers: [AppController],
   providers: [AppService],
