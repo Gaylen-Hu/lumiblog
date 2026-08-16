@@ -1,13 +1,19 @@
 import { PartialType } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
 import { FriendLinkStatus } from '@prisma/client';
 
 export class CreateFriendLinkDto {
   @IsString() @IsNotEmpty() @MaxLength(120) siteName: string;
   @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(500) siteUrl: string;
+  @IsOptional() @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(500) logoUrl?: string;
   @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(500) reciprocalUrl: string;
+  @IsOptional() @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(500) rssUrl?: string;
   @IsString() @IsNotEmpty() @MaxLength(500) description: string;
   @IsOptional() @IsEmail() @MaxLength(254) contactEmail?: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(5) @IsString({ each: true }) @MaxLength(32, { each: true }) tags?: string[];
+  @IsOptional() @IsString() @MaxLength(32) language?: string;
+  @IsOptional() @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(500) githubUrl?: string;
+  @IsOptional() @IsUrl({ protocols: ['http', 'https'], require_protocol: true }) @MaxLength(500) socialUrl?: string;
 }
 
 export class UpdateFriendLinkDto extends PartialType(CreateFriendLinkDto) {

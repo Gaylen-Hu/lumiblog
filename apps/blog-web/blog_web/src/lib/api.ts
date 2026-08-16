@@ -21,7 +21,7 @@ export function toApiLocale(locale: string): string {
   return LOCALE_MAP[locale] ?? 'zh-CN'
 }
 
-export interface FriendLink { id: string; siteName: string; siteUrl: string; description: string }
+export interface FriendLink { id: string; siteName: string; siteUrl: string; logoUrl?: string | null; rssUrl?: string | null; description: string; tags?: string[]; language?: string | null; githubUrl?: string | null; socialUrl?: string | null }
 export async function getFriendLinks(): Promise<FriendLink[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/friend-links`, { next: { revalidate: 300 } })

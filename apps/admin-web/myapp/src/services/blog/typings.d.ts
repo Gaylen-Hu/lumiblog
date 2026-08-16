@@ -2,7 +2,7 @@
 
 declare namespace BlogAPI {
   type FriendLinkStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'REMOVED';
-  interface FriendLinkInput { siteName: string; siteUrl: string; reciprocalUrl: string; description: string; contactEmail?: string; }
+  interface FriendLinkInput { siteName: string; siteUrl: string; reciprocalUrl: string; description: string; contactEmail?: string; logoUrl?: string; rssUrl?: string; tags?: string[]; language?: string; githubUrl?: string; socialUrl?: string; }
   interface FriendLinkCheck { id: string; checkedAt: string; passed: boolean; statusCode?: number; message?: string; foundUrl?: string; }
   interface FriendLink extends FriendLinkInput { id: string; status: FriendLinkStatus; reviewNote?: string; approvedAt?: string; removedAt?: string; lastCheckedAt?: string; lastCheckPassed?: boolean; createdAt: string; updatedAt: string; checks?: FriendLinkCheck[]; }
   // 网站配置

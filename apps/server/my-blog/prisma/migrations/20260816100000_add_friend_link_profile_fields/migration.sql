@@ -1,0 +1,7 @@
+ALTER TABLE "friend_links"
+  ADD COLUMN "logoUrl" VARCHAR(500),
+  ADD COLUMN "rssUrl" VARCHAR(500),
+  ADD COLUMN "tags" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN "language" VARCHAR(32),
+  ADD COLUMN "githubUrl" VARCHAR(500),
+  ADD COLUMN "socialUrl" VARCHAR(500);
