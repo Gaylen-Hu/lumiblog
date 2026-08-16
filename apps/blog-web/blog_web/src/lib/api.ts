@@ -21,6 +21,14 @@ export function toApiLocale(locale: string): string {
   return LOCALE_MAP[locale] ?? 'zh-CN'
 }
 
+export interface FriendLink { id: string; siteName: string; siteUrl: string; description: string }
+export async function getFriendLinks(): Promise<FriendLink[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/friend-links`, { next: { revalidate: 300 } })
+    return res.ok ? res.json() : []
+  } catch { return [] }
+}
+
 // 文章列表
 export async function getArticles(params?: {
   page?: number

@@ -222,6 +222,49 @@ enum ColumnStatus {
   published
 }
 
+enum FriendLinkStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REMOVED
+}
+
+model FriendLink {
+  id                String           @id @default(uuid())
+  siteName          String           @db.VarChar(120)
+  siteUrl           String           @unique @db.VarChar(500)
+  reciprocalUrl     String           @db.VarChar(500)
+  description       String           @db.VarChar(500)
+  contactEmail      String?          @db.VarChar(254)
+  status            FriendLinkStatus @default(PENDING)
+  reviewNote        String?          @db.VarChar(500)
+  approvedAt        DateTime?
+  removedAt         DateTime?
+  lastCheckedAt     DateTime?
+  lastCheckPassed   Boolean?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  checks            FriendLinkCheck[]
+
+  @@index([status])
+  @@index([approvedAt])
+  @@map("friend_links")
+}
+
+model FriendLinkCheck {
+  id           String     @id @default(uuid())
+  friendLinkId String
+  checkedAt    DateTime   @default(now())
+  passed       Boolean
+  statusCode   Int?
+  message      String?    @db.VarChar(1000)
+  foundUrl     String?    @db.VarChar(500)
+  friendLink   FriendLink @relation(fields: [friendLinkId], references: [id], onDelete: Cascade)
+
+  @@index([friendLinkId, checkedAt])
+  @@map("friend_link_checks")
+}
+
 model Column {
   id          String         @id @default(uuid())
   title       String         @db.VarChar(100)

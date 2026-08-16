@@ -106,6 +106,12 @@ export default [
         component: './content/columns',
       },
       {
+        name: 'friend-links',
+        icon: 'link',
+        path: '/content/friends',
+        component: './content/friends',
+      },
+      {
         name: 'column-edit',
         path: '/content/columns/edit/:id?',
         component: './content/columns/edit',
