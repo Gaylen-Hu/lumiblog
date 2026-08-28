@@ -150,17 +150,13 @@ jobs:
           scp $SCP_OPTS _artifacts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/blog-deploy/
 
       - name: Deploy on server
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
-          command_timeout: 15m
-          script: |
-            set -Eeuo pipefail
-            test "$(readlink -f /tmp/blog-deploy)" = /tmp/blog-deploy
-            trap 'rm -rf -- /tmp/blog-deploy' EXIT
-            chmod +x /tmp/blog-deploy/deploy-remote.sh
-            /tmp/blog-deploy/deploy-remote.sh
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -p "${{ secrets.SSH_PORT }}" \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -Eeuo pipefail
+             test "$(readlink -f /tmp/blog-deploy)" = /tmp/blog-deploy
+             trap "rm -rf -- /tmp/blog-deploy" EXIT
+             chmod +x /tmp/blog-deploy/deploy-remote.sh
+             /tmp/blog-deploy/deploy-remote.sh'
