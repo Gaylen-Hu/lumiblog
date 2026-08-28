@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { VercelAnalyticsProvider } from './providers/vercel-analytics.provider';
-import { WechatAnalyticsProvider } from './providers/wechat-analytics.provider';
 import { GoogleAnalyticsProvider } from './providers/google-analytics.provider';
 import { SelfHostedAnalyticsProvider } from './providers/self-hosted-analytics.provider';
 import {
@@ -23,7 +22,6 @@ export class AnalyticsService {
   constructor(
     private readonly selfHosted: SelfHostedAnalyticsProvider,
     private readonly vercel: VercelAnalyticsProvider,
-    private readonly wechat: WechatAnalyticsProvider,
     private readonly google: GoogleAnalyticsProvider,
   ) {}
 
@@ -31,20 +29,17 @@ export class AnalyticsService {
    * 获取概览数据
    */
   async getOverview(period: Period): Promise<AnalyticsOverviewResponseDto> {
-    const [selfSummary, wechatFollowers] = await Promise.all([
-      this.selfHosted.getSummary(period),
-      this.wechat.getCumulateUser(),
-    ]);
+    const selfSummary = await this.selfHosted.getSummary(period);
 
     return {
       pageViews: selfSummary.pageViews,
       visitors: selfSummary.visitors,
       bounceRate: selfSummary.bounceRate,
-      wechatFollowers,
+      wechatFollowers: 0,
       sources: {
         selfHosted: true,
         vercel: this.vercel.isConfigured,
-        wechat: !!wechatFollowers,
+        wechat: false,
         google: this.google.isConfigured,
       },
     };
@@ -86,26 +81,4 @@ export class AnalyticsService {
     return this.selfHosted.getCountries(period, limit);
   }
 
-  /**
-   * 获取微信公众号数据
-   */
-  async getWechatStats(days = 7): Promise<{
-    userSummary: { date: string; newUser: number; cancelUser: number; cumulateUser: number }[];
-    articleSummary: { date: string; intPageReadUser: number; intPageReadCount: number; shareCount: number }[];
-  }> {
-    const endDate = new Date(Date.now() - 86400000); // 昨天
-    const beginDate = new Date(endDate.getTime() - days * 86400000);
-
-    const formatDate = (d: Date): string => d.toISOString().split('T')[0];
-
-    const [userSummary, articleSummary] = await Promise.all([
-      this.wechat.getUserSummary(formatDate(beginDate), formatDate(endDate)),
-      this.wechat.getArticleSummary(
-        formatDate(new Date(endDate.getTime() - 2 * 86400000)),
-        formatDate(endDate),
-      ),
-    ]);
-
-    return { userSummary, articleSummary };
-  }
 }

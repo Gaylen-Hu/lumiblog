@@ -26,6 +26,7 @@ const config: any = defineConfig({
   hash: true,
 
   publicPath: PUBLIC_PATH,
+  favicons: ['/logo.svg'],
 
   /**
    * @name 兼容性设置
@@ -84,7 +85,7 @@ const config: any = defineConfig({
    * @name layout 插件
    * @doc https://umijs.org/docs/max/layout-menu
    */
-  title: 'Ant Design Pro',
+  title: '墨千管理后台',
   layout: {
     locale: true,
     ...defaultSettings,

@@ -6,7 +6,7 @@
  * 布局组件
  */
 import Footer from './Footer';
-import { Question, SelectLang } from './RightContent';
+import { SelectLang } from './RightContent';
 import { AvatarDropdown, AvatarName } from './RightContent/AvatarDropdown';
 
 /**
@@ -24,6 +24,5 @@ export {
   MarkdownEditor,
   MediaPicker,
   OssUploader,
-  Question,
   SelectLang,
 };

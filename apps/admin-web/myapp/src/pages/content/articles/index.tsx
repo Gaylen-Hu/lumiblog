@@ -6,7 +6,6 @@ import {
   MoreOutlined,
   TranslationOutlined,
   SearchOutlined,
-  WechatOutlined,
 } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
@@ -100,12 +99,6 @@ const ArticleList: React.FC = () => {
         icon: <SearchOutlined />,
         label: 'AI 生成 SEO',
         onClick: () => handleSeoOptimize(record.id),
-      },
-      {
-        key: 'wechat',
-        icon: <WechatOutlined style={{ color: '#07c160' }} />,
-        label: '发布到微信',
-        onClick: () => history.push(`/content/articles/${record.id}`),
       },
       { type: 'divider' as const },
       {

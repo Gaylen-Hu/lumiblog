@@ -4,7 +4,6 @@ import { CollectController } from './collect.controller';
 import { AnalyticsService } from './analytics.service';
 import { SelfHostedAnalyticsProvider } from './providers/self-hosted-analytics.provider';
 import { VercelAnalyticsProvider } from './providers/vercel-analytics.provider';
-import { WechatAnalyticsProvider } from './providers/wechat-analytics.provider';
 import { GoogleAnalyticsProvider } from './providers/google-analytics.provider';
 
 @Module({
@@ -13,7 +12,6 @@ import { GoogleAnalyticsProvider } from './providers/google-analytics.provider';
     AnalyticsService,
     SelfHostedAnalyticsProvider,
     VercelAnalyticsProvider,
-    WechatAnalyticsProvider,
     GoogleAnalyticsProvider,
   ],
   exports: [AnalyticsService],

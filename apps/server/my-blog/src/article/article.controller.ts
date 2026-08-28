@@ -30,8 +30,6 @@ import {
   TranslateArticleDto,
   TranslateArticleResponseDto,
   SeoOptimizeArticleResponseDto,
-  PublishToWechatDto,
-  PublishToWechatResponseDto,
 } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -141,17 +139,6 @@ export class AdminArticleController {
     return this.articleService.optimizeSeo(id);
   }
 
-  @ApiOperation({ summary: '发布到微信公众号', description: '将文章发布到微信公众号草稿箱或直接发布' })
-  @ApiParam({ name: 'id', description: '文章 ID' })
-  @ApiResponse({ status: 200, description: '发布成功', type: PublishToWechatResponseDto })
-  @ApiResponse({ status: 404, description: '文章不存在' })
-  @Post(':id/publish-wechat')
-  async publishToWechat(
-    @Param('id') id: string,
-    @Body() dto: PublishToWechatDto,
-  ): Promise<PublishToWechatResponseDto> {
-    return this.articleService.publishToWechat(id, dto);
-  }
 }
 
 /**

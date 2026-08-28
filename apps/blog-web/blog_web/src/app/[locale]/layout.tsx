@@ -41,7 +41,7 @@ export async function generateMetadata({
         zh: `${SITE_URL}/zh`,
         en: `${SITE_URL}/en`,
       },
-      types: { 'application/rss+xml': `/${locale}/feed.xml` },
+      types: { 'application/rss+xml': `${SITE_URL}/feed.xml` },
     },
     openGraph: {
       title: config.seo.defaultTitle || config.siteName,

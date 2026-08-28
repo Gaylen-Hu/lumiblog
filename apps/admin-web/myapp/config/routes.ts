@@ -70,12 +70,6 @@ export default [
         component: './content/tags',
       },
       {
-        name: 'wechat',
-        icon: 'wechat',
-        path: '/content/wechat',
-        component: './content/wechat',
-      },
-      {
         name: 'categories',
         icon: 'folder',
         path: '/content/categories',

@@ -1,9 +1,17 @@
 import type { Post, PostDetail } from '@/types'
 import type { SiteConfig } from '@/lib/api'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
-const ORGANIZATION_ID = `${SITE_URL}/#organization`
-const WEBSITE_ID = `${SITE_URL}/#website`
+import {
+  AUTHOR_ID,
+  AUTHOR_KNOWS_ABOUT,
+  AUTHOR_NAME,
+  AUTHOR_PROFILE_URL,
+  BRAND_NAME,
+  BRAND_NAME_EN,
+  BRAND_NAME_ZH,
+  ORGANIZATION_ID,
+  SITE_URL,
+  WEBSITE_ID,
+} from '@/lib/site-identity'
 
 function toAbsoluteUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined
@@ -25,6 +33,8 @@ export function SiteJsonLd({ config }: { config: SiteConfig }) {
   const logo = toAbsoluteUrl(config.logo)
   const sameAs = Object.values(config.socialLinks).filter((url): url is string => Boolean(url))
   const email = config.owner.email || undefined
+  const authorName = config.owner.name?.trim() || AUTHOR_NAME
+  const authorImage = toAbsoluteUrl(config.owner.avatar)
 
   return (
     <JsonLd
@@ -34,20 +44,33 @@ export function SiteJsonLd({ config }: { config: SiteConfig }) {
           {
             '@type': 'Organization',
             '@id': ORGANIZATION_ID,
-            name: config.siteName,
+            name: BRAND_NAME,
+            alternateName: [BRAND_NAME_ZH, BRAND_NAME_EN],
             url: SITE_URL,
             ...(logo ? { logo } : {}),
             ...(sameAs.length > 0 ? { sameAs } : {}),
             ...(email ? { email } : {}),
+            founder: { '@id': AUTHOR_ID },
+          },
+          {
+            '@type': 'Person',
+            '@id': AUTHOR_ID,
+            name: authorName,
+            url: AUTHOR_PROFILE_URL,
+            ...(authorImage ? { image: authorImage } : {}),
+            ...(sameAs.length > 0 ? { sameAs } : {}),
+            knowsAbout: AUTHOR_KNOWS_ABOUT,
           },
           {
             '@type': 'WebSite',
             '@id': WEBSITE_ID,
             url: SITE_URL,
-            name: config.siteName,
+            name: BRAND_NAME,
+            alternateName: [BRAND_NAME_ZH, BRAND_NAME_EN],
             description: config.siteDescription,
             inLanguage: ['zh-CN', 'en-US'],
             publisher: { '@id': ORGANIZATION_ID },
+            author: { '@id': AUTHOR_ID },
           },
         ],
       }}
@@ -60,6 +83,7 @@ export function ArticleJsonLd({ post, locale }: { post: PostDetail; locale: stri
   const canonicalUrl = `${SITE_URL}/${locale}/posts/${post.slug}`
   const image = toAbsoluteUrl(post.seo.ogImage || post.coverImage)
   const authorImage = toAbsoluteUrl(post.author.avatar)
+  const isSiteOwner = post.author.name.trim() === AUTHOR_NAME
 
   return (
     <JsonLd
@@ -75,12 +99,32 @@ export function ArticleJsonLd({ post, locale }: { post: PostDetail; locale: stri
         dateModified: post.updatedAt || post.publishedAt,
         author: {
           '@type': 'Person',
+          ...(isSiteOwner ? { '@id': AUTHOR_ID, url: AUTHOR_PROFILE_URL } : {}),
           name: post.author.name,
           ...(authorImage ? { image: authorImage } : {}),
         },
         publisher: { '@id': ORGANIZATION_ID },
         inLanguage: locale === 'zh' ? 'zh-CN' : 'en-US',
         ...(post.tags.length > 0 ? { keywords: post.tags.map((tag) => tag.name).join(', ') } : {}),
+      }}
+    />
+  )
+}
+
+/** ProfilePage markup for the visible author biography on the About page. */
+export function ProfilePageJsonLd({ locale }: { locale: string }) {
+  const pageUrl = `${SITE_URL}/${locale}/about`
+
+  return (
+    <JsonLd
+      data={{
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        '@id': `${pageUrl}#profile-page`,
+        url: pageUrl,
+        inLanguage: locale === 'zh' ? 'zh-CN' : 'en-US',
+        mainEntity: { '@id': AUTHOR_ID },
+        isPartOf: { '@id': WEBSITE_ID },
       }}
     />
   )

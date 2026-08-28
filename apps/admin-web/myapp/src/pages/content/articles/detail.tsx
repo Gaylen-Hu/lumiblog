@@ -16,7 +16,6 @@ import {
   EditOutlined,
   ArrowLeftOutlined,
   RobotOutlined,
-  WechatOutlined,
   TranslationOutlined,
   SearchOutlined,
   DownOutlined,
@@ -29,7 +28,6 @@ import {
   translateArticle,
   optimizeArticleSeo,
 } from '@/services/blog/article';
-import WechatPublishModal from './components/WechatPublishModal';
 import dayjs from 'dayjs';
 
 const { Paragraph } = Typography;
@@ -49,9 +47,6 @@ const ArticleDetail: React.FC = () => {
   const [seoModalOpen, setSeoModalOpen] = useState(false);
   const [seoLoading, setSeoLoading] = useState(false);
   const [seoResult, setSeoResult] = useState<BlogAPI.SeoOptimizeResponse>();
-
-  // 微信发布状态
-  const [wechatModalOpen, setWechatModalOpen] = useState(false);
 
   const fetchArticle = useCallback(() => {
     if (id) {
@@ -137,13 +132,6 @@ const ArticleDetail: React.FC = () => {
           <Dropdown menu={{ items: aiMenuItems }}>
             <Button icon={<RobotOutlined />}>AI 功能 <DownOutlined /></Button>
           </Dropdown>
-          <Button
-            icon={<WechatOutlined />}
-            style={{ backgroundColor: '#07c160', borderColor: '#07c160', color: '#fff' }}
-            onClick={() => setWechatModalOpen(true)}
-          >
-            发布到微信
-          </Button>
           <Button
             type="primary"
             icon={<EditOutlined />}
@@ -261,14 +249,6 @@ const ArticleDetail: React.FC = () => {
         ) : null}
       </Modal>
 
-      {/* 微信发布弹窗 */}
-      <WechatPublishModal
-        open={wechatModalOpen}
-        articleId={id!}
-        coverImage={article.coverImage}
-        onClose={() => setWechatModalOpen(false)}
-        onSuccess={() => fetchArticle()}
-      />
     </PageContainer>
   );
 };

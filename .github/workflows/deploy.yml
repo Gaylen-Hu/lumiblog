@@ -1,5 +1,12 @@
 name: Build & Deploy
 
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 on:
   push:
     branches: [main, master]
@@ -70,7 +77,7 @@ jobs:
         working-directory: apps/blog-web/blog_web
         env:
           NEXT_PUBLIC_SITE_URL: https://www.new-universe.cn
-          NEXT_PUBLIC_API_URL: http://localhost:3000/v1/public
+          NEXT_PUBLIC_API_URL: https://api.new-universe.cn/v1/public
           NEXT_PUBLIC_GA_ID: G-Q018EMFR1V
         run: |
           pnpm install --frozen-lockfile
@@ -125,16 +132,21 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          printf '[%s]:%s %s\n' \
+            "${{ secrets.SSH_HOST }}" \
+            "${{ secrets.SSH_PORT }}" \
+            "${{ secrets.SSH_HOST_KEY }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Upload artifacts
         run: |
-          SCP_OPTS="-i ~/.ssh/deploy_key -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
-          SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no"
+          SCP_OPTS="-i ~/.ssh/deploy_key -P ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes"
+          SSH_OPTS="-i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=yes"
 
-          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p /tmp/blog-deploy"
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "install -d -m 0700 /tmp/blog-deploy"
           scp $SCP_OPTS _artifacts/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/blog-deploy/
 
       - name: Deploy on server
@@ -144,10 +156,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          request_pty: true
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
           command_timeout: 15m
           script: |
-            set -e
+            set -Eeuo pipefail
+            test "$(readlink -f /tmp/blog-deploy)" = /tmp/blog-deploy
+            trap 'rm -rf -- /tmp/blog-deploy' EXIT
             chmod +x /tmp/blog-deploy/deploy-remote.sh
             /tmp/blog-deploy/deploy-remote.sh
-            rm -rf /tmp/blog-deploy

@@ -24,9 +24,7 @@ const useStyles = createStyles(({ token }) => ({
     flexDirection: 'column',
     height: '100vh',
     overflow: 'auto',
-    backgroundImage:
-      "url('https://mdn.alipayobjects.com/yuyan_qk0oxh/afts/img/V-_oS6r-i7wAAAAAAAAAAAAAFl94AQBr')",
-    backgroundSize: '100% 100%',
+    background: 'linear-gradient(145deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%)',
   },
 }));
 
@@ -85,7 +83,7 @@ const Login: React.FC = () => {
         <LoginForm
           contentStyle={{ minWidth: 280, maxWidth: '75vw' }}
           logo={<img alt="logo" src="/logo.svg" />}
-          title="Nova Blog"
+          title="墨千"
           subTitle={intl.formatMessage({ id: 'pages.layouts.userLayout.title', defaultMessage: '管理后台' })}
           initialValues={{ autoLogin: true }}
           onFinish={async (values) => handleSubmit(values as API.LoginParams)}

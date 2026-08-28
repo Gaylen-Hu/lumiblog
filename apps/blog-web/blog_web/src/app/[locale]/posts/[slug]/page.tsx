@@ -159,7 +159,12 @@ export default async function PostPage({ params }: PostPageProps) {
               )}
             </div>
             <div>
-              <p className="text-sm font-bold text-[#111111] dark:text-white">{post.author.name}</p>
+              <Link
+                href="/about"
+                className="text-sm font-bold text-[#111111] dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {post.author.name}
+              </Link>
               <p className="text-xs text-gray-400">
                 {t('publishedAt')} {post.publishedAt.split('T')[0]}
               </p>

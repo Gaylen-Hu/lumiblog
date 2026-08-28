@@ -2,7 +2,6 @@ import {
   EyeOutlined,
   UserOutlined,
   RiseOutlined,
-  WechatOutlined,
 } from '@ant-design/icons';
 import { PageContainer } from '@ant-design/pro-components';
 import { App, Card, Col, Radio, Row, Spin, Statistic } from 'antd';
@@ -80,7 +79,7 @@ const Dashboard: React.FC = () => {
     >
       <Spin spinning={loading}>
         <Row gutter={[16, 16]}>
-          <Col xs={12} lg={6}>
+          <Col xs={24} md={8}>
             <Card>
               <Statistic
                 title="页面浏览量 (PV)"
@@ -89,7 +88,7 @@ const Dashboard: React.FC = () => {
               />
             </Card>
           </Col>
-          <Col xs={12} lg={6}>
+          <Col xs={24} md={8}>
             <Card>
               <Statistic
                 title="独立访客 (UV)"
@@ -98,22 +97,13 @@ const Dashboard: React.FC = () => {
               />
             </Card>
           </Col>
-          <Col xs={12} lg={6}>
+          <Col xs={24} md={8}>
             <Card>
               <Statistic
                 title="跳出率"
                 value={overview?.bounceRate ?? 0}
                 suffix="%"
                 prefix={<RiseOutlined style={{ color: '#faad14' }} />}
-              />
-            </Card>
-          </Col>
-          <Col xs={12} lg={6}>
-            <Card>
-              <Statistic
-                title="微信关注"
-                value={overview?.wechatFollowers ?? 0}
-                prefix={<WechatOutlined style={{ color: '#07c160' }} />}
               />
             </Card>
           </Col>

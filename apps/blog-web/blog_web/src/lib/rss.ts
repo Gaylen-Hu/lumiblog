@@ -7,14 +7,16 @@ export interface RSSConfig {
   language: string
   author: string
   email?: string
+  locale?: string
 }
 
 const DEFAULT_CONFIG: RSSConfig = {
-  title: 'Byte&Beyond - 探索技术与设计的前沿',
+  title: '墨千（Byte & Beyond）- 探索技术与设计的前沿',
   description: '以极简主义的视角，探索技术、设计与人类潜能的前沿。',
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn',
   language: 'zh-CN',
-  author: 'NOVA',
+  author: '胡新宇',
+  locale: 'zh',
 }
 
 function escapeXml(text: string | null): string {
@@ -33,11 +35,11 @@ function formatRFC822Date(dateStr: string): string {
 }
 
 export function generateRSSFeed(posts: Post[], config: RSSConfig = DEFAULT_CONFIG): string {
-  const { title, description, siteUrl, language, email } = config
+  const { title, description, siteUrl, language, email, locale = 'zh' } = config
 
   const items = posts
     .map((post) => {
-      const postUrl = `${siteUrl}/posts/${post.slug}`
+      const postUrl = `${siteUrl}/${locale}/posts/${post.slug}`
       const authorName = post.author?.name || 'Anonymous'
       const categoryName = post.category?.name || 'Uncategorized'
       return `    <item>

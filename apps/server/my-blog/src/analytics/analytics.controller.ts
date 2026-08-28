@@ -47,9 +47,4 @@ export class AnalyticsController {
     return this.analyticsService.getCountries(query.period || '7d');
   }
 
-  @ApiOperation({ summary: '获取微信公众号数据' })
-  @Get('wechat')
-  async getWechatStats() {
-    return this.analyticsService.getWechatStats();
-  }
 }

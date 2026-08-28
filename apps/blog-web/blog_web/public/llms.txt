@@ -1,10 +1,10 @@
-# 墨千 (Byte&Beyond)
+# 墨千（Byte & Beyond）
 
 > 一个聚焦 AI、前端工程与软件架构的中英双语技术博客。内容涵盖 AI Agent、MCP 协议、Context Engineering、Flutter、JavaScript 深度解析、软件设计模式等前沿技术话题。
 
 网站地址: https://www.new-universe.cn
 语言: 中文 (zh-CN) / English (en-US)
-RSS: https://www.new-universe.cn/zh/feed.xml
+RSS: https://www.new-universe.cn/feed.xml
 Sitemap: https://www.new-universe.cn/sitemap.xml
 
 ## AI Agent & LLM

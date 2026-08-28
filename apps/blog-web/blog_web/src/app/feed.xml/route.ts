@@ -2,17 +2,18 @@ import { getArticles, getSiteConfig } from '@/lib/api'
 import { generateRSSFeed } from '@/lib/rss'
 
 export async function GET() {
-  const { data: posts } = await getArticles({ pageSize: 50 })
+  const { data: posts } = await getArticles({ pageSize: 50, locale: 'zh-CN' })
 
   const siteConfig = await getSiteConfig()
 
   const feed = generateRSSFeed(posts, {
-    title: siteConfig.siteName || 'Byte&Beyond',
+    title: '墨千（Byte & Beyond）',
     description: siteConfig.siteDescription || '探索技术与设计的前沿',
     siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn',
     language: 'zh-CN',
-    author: siteConfig.owner?.name || 'NOVA',
+    author: siteConfig.owner?.name || '胡新宇',
     email: siteConfig.owner?.email || undefined,
+    locale: 'zh',
   })
 
   return new Response(feed, {

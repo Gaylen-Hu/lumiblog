@@ -4,6 +4,7 @@ import { getSiteConfig } from '@/lib/api'
 import BlurText from '@/components/ui/BlurText'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import IconCloud from '@/components/IconCloud'
+import { ProfilePageJsonLd } from '@/components/JsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
@@ -40,6 +41,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   const { owner } = config
   const { aboutImage1, aboutImage2 } = config
   const techStack = owner.techStack.length > 0 ? owner.techStack : FALLBACK_TECH_STACK
+  const displayOwnerName = owner.name && owner.name !== 'Site Owner' ? owner.name : '胡新宇'
 
   // 始终使用 i18n 数据展示职业成长路径
   const timelineItems: { year: string; title: string; desc: string }[] =
@@ -51,15 +53,19 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
   return (
     <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900 min-h-screen animate-page-fade">
+      <ProfilePageJsonLd locale={locale} />
       <div className="max-w-7xl mx-auto space-y-32">
 
         {/* Section 1: Persona */}
         <div className="grid lg:grid-cols-2 gap-20 items-center pt-4">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white mb-8 leading-tight">
+            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-4">
+              {displayOwnerName} · 墨千（Byte & Beyond）
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white mb-8 leading-tight">
               <BlurText text={t('tagline1')} delay={60} className="block" />
               <BlurText text={`${t('tagline2')}${t('tagline3')}${t('tagline4')}`} delay={60} className="block" />
-            </h2>
+            </h1>
             <div className="space-y-6 text-[#555555] dark:text-gray-400 leading-relaxed text-lg font-light">
               {owner.bio ? (
                 owner.bio.split('\n').map((paragraph, i) => (
@@ -97,7 +103,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                 {aboutImage1 !== null ? (
                   <Image
                     src={aboutImage1}
-                    alt="Hobby 1"
+                    alt={`${displayOwnerName} 的个人照片`}
                     width={400}
                     height={400}
                     className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
@@ -133,7 +139,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                 {aboutImage2 !== null ? (
                   <Image
                     src={aboutImage2}
-                    alt="Hobby 2"
+                    alt={`${displayOwnerName} 的生活照片`}
                     width={400}
                     height={400}
                     className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
