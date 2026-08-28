@@ -134,12 +134,10 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          printf '%s %s\n[%s]:%s %s\n' \
-            "${{ secrets.SSH_HOST }}" \
-            "${{ secrets.SSH_HOST_KEY }}" \
-            "${{ secrets.SSH_HOST }}" \
-            "${{ secrets.SSH_PORT }}" \
-            "${{ secrets.SSH_HOST_KEY }}" > ~/.ssh/known_hosts
+          ssh-keyscan -t ed25519 -p "${{ secrets.SSH_PORT }}" \
+            "${{ secrets.SSH_HOST }}" > ~/.ssh/known_hosts 2>/dev/null
+          ACTUAL_FINGERPRINT="$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}')"
+          test "$ACTUAL_FINGERPRINT" = "${{ secrets.SSH_FINGERPRINT }}"
           chmod 600 ~/.ssh/known_hosts
 
       - name: Upload artifacts
