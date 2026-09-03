@@ -216,8 +216,8 @@ describe('TimelineService', () => {
    * P2：公开接口按 order 升序排列
    * Validates: Requirements 3.2
    */
-  describe('P2：公开接口按 order 升序排列', () => {
-    it('findPublished() 返回结果按 order 升序排列', async () => {
+  describe('P2：公开接口按创建时间倒序排列', () => {
+    it('findPublished() 请求按 createdAt 倒序排列', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(
@@ -236,16 +236,15 @@ describe('TimelineService', () => {
             { minLength: 0, maxLength: 10 },
           ),
           async (entries) => {
-            const sortedEntries = [...entries].sort((a, b) => a.order - b.order);
+            const sortedEntries = [...entries].sort(
+              (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+            );
             prisma.timelineEntry.findMany.mockResolvedValue(sortedEntries);
 
             const result = await service.findPublished();
 
-            for (let i = 0; i < result.length - 1; i++) {
-              expect(result[i].order).toBeLessThanOrEqual(result[i + 1].order);
-            }
             expect(prisma.timelineEntry.findMany).toHaveBeenCalledWith(
-              expect.objectContaining({ orderBy: { order: 'asc' } }),
+              expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
             );
           },
         ),
@@ -259,7 +258,7 @@ describe('TimelineService', () => {
    * Validates: Requirements 3.3
    */
   describe('P3：公开接口不暴露内部字段', () => {
-    it('findPublished() 返回条目不含 createdAt/updatedAt/isVisible', async () => {
+    it('findPublished() 返回条目包含发布时间但不含 updatedAt/isVisible', async () => {
       await fc.assert(
         fc.asyncProperty(
           fc.array(
@@ -283,7 +282,7 @@ describe('TimelineService', () => {
             const result = await service.findPublished();
 
             for (const item of result) {
-              expect(item).not.toHaveProperty('createdAt');
+              expect(item).toHaveProperty('createdAt');
               expect(item).not.toHaveProperty('updatedAt');
               expect(item).not.toHaveProperty('isVisible');
               expect(item).toHaveProperty('id');

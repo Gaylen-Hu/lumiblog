@@ -92,6 +92,9 @@ export class PublicTimelineResponseDto {
   @ApiProperty({ description: '排序权重' })
   readonly order: number;
 
+  @ApiProperty({ description: '发布时间' })
+  readonly createdAt: Date;
+
   constructor(params: {
     id: string;
     year: string;
@@ -101,6 +104,7 @@ export class PublicTimelineResponseDto {
     descEn: string;
     images: string[];
     order: number;
+    createdAt: Date;
   }) {
     this.id = params.id;
     this.year = params.year;
@@ -110,6 +114,7 @@ export class PublicTimelineResponseDto {
     this.descEn = params.descEn;
     this.images = params.images;
     this.order = params.order;
+    this.createdAt = params.createdAt;
   }
 }
 

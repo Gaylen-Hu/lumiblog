@@ -127,7 +127,7 @@ export class TimelineService {
   async findPublished(): Promise<PublicTimelineResponseDto[]> {
     const entries = await this.prisma.timelineEntry.findMany({
       where: { isVisible: true },
-      orderBy: { order: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return entries.map((e) => this.toPublicResponseDto(e));
@@ -159,6 +159,7 @@ export class TimelineService {
       descEn: entry.descEn,
       images: entry.images,
       order: entry.order,
+      createdAt: entry.createdAt,
     });
   }
 }

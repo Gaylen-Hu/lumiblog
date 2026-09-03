@@ -34,6 +34,11 @@ export default async function TimelinePage({
   ])
   const authorName =
     config.owner.name && config.owner.name !== 'Site Owner' ? config.owner.name : '胡新宇'
+  const dateFormatter = new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+    year: 'numeric',
+    month: locale === 'zh' ? 'long' : 'short',
+    day: 'numeric',
+  })
 
   return (
     <div className="min-h-screen bg-[#f5f5f3] px-4 py-10 animate-page-fade dark:bg-slate-950 sm:px-6 md:py-14">
@@ -73,7 +78,9 @@ export default async function TimelinePage({
                   <div className="min-w-0 flex-1">
                       <div className="mb-2 flex items-baseline justify-between gap-3">
                         <span className="font-semibold text-[#526a8a] dark:text-blue-300">{authorName}</span>
-                        <time className="shrink-0 text-xs text-gray-400">{entry.year}</time>
+                        <time dateTime={entry.createdAt} className="shrink-0 text-xs text-gray-400">
+                          {dateFormatter.format(new Date(entry.createdAt))}
+                        </time>
                       </div>
 
                       {(() => {
