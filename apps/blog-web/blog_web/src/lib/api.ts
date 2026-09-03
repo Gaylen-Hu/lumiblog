@@ -300,7 +300,7 @@ export interface TimelineEntry {
   descEn: string
   images: string[]
   order: number
-  createdAt: string
+  createdAt?: string
 }
 
 // 时间轴列表（ISR 缓存 1 小时）

@@ -5,6 +5,17 @@ import type { Metadata } from 'next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
+function formatTimelineDate(
+  createdAt: string | undefined,
+  fallbackYear: string,
+  formatter: Intl.DateTimeFormat,
+) {
+  if (!createdAt) return fallbackYear
+
+  const date = new Date(createdAt)
+  return Number.isNaN(date.getTime()) ? fallbackYear : formatter.format(date)
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -78,8 +89,11 @@ export default async function TimelinePage({
                   <div className="min-w-0 flex-1">
                       <div className="mb-2 flex items-baseline justify-between gap-3">
                         <span className="font-semibold text-[#526a8a] dark:text-blue-300">{authorName}</span>
-                        <time dateTime={entry.createdAt} className="shrink-0 text-xs text-gray-400">
-                          {dateFormatter.format(new Date(entry.createdAt))}
+                        <time
+                          dateTime={entry.createdAt}
+                          className="shrink-0 text-xs text-gray-400"
+                        >
+                          {formatTimelineDate(entry.createdAt, entry.year, dateFormatter)}
                         </time>
                       </div>
 
