@@ -298,6 +298,7 @@ export interface TimelineEntry {
   titleEn: string
   descZh: string
   descEn: string
+  images: string[]
   order: number
 }
 
