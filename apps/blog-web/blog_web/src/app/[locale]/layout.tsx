@@ -7,8 +7,6 @@ import '../globals.css'
 import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/react'
 import SiteAnalytics from '@/components/SiteAnalytics'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
 import { getSiteConfig } from '@/lib/api'
 import { routing } from '@/i18n/routing'
@@ -122,15 +120,7 @@ export default async function LocaleLayout({
         <SiteJsonLd config={config} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
-            <Header siteName={config.siteName} />
-            <main className="flex-1 pt-20">{children}</main>
-            <Footer
-              siteName={config.siteName}
-              siteDescription={config.siteDescription}
-              socialLinks={config.socialLinks}
-              filing={config.filing}
-              email={config.owner.email}
-            />
+            {children}
           </NextIntlClientProvider>
         </ThemeProvider>
         <Analytics />
