@@ -1,0 +1,16 @@
+.viewer {
+  --yarl__color_backdrop: #171c19f7;
+  --yarl__color_button: #f2e9d8;
+  --yarl__color_button_active: #fffaf0;
+  --yarl__slide_description_text_align: center;
+}
+.viewer audio { width: min(420px, 76vw); }
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #e6dfd0;
+  color: #5a6153;
+  font: 13px/1.7 system-ui, sans-serif;
+}

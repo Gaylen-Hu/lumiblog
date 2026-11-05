@@ -1,0 +1,30 @@
+.leaf {
+  position:absolute; inset:0 0 0 260px; z-index:4; display:flex; flex-direction:column;
+  color:#3e392f; background:linear-gradient(90deg,#ded0b6 0,#f3ead7 2.3%,#faf4e5 9%,#f8f1e1 100%);
+  box-shadow:-4px 0 12px #493d2526; transform-origin:left center; backface-visibility:hidden;
+  transform:perspective(1600px) rotateY(-90deg); visibility:hidden; pointer-events:none;
+  transition:transform 450ms cubic-bezier(.32,.03,.32,1),visibility 0s 450ms;
+}
+.leaf[data-open=true] {visibility:visible;pointer-events:auto;transform:perspective(1600px) rotateY(0);transition-delay:0s}
+.leaf::after {content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,#59492d48,#af95793b 70%,#fef9e7a3);opacity:1;transition:opacity 400ms}
+.leaf[data-open=true]::after {opacity:0}
+.bar {display:flex;align-items:center;justify-content:space-between;margin:0 clamp(20px,3vw,40px);padding:10px 0 7px;border-bottom:1px solid #bcaa865e;color:#645942;flex:none}
+.bar button {cursor:pointer;background:transparent;border:0;padding:8px 4px;font:13px/1.5 Georgia,'Songti SC',serif;color:inherit}
+.bar span,.masthead div {font:11px/1.7 system-ui,sans-serif;color:#786b56}
+.scroll {flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#b9a682 transparent;padding:24px clamp(20px,3vw,40px) 36px}
+.masthead {border-bottom:1px solid #bcaa865e;padding-bottom:14px;margin-bottom:20px}
+.masthead div,.masthead p {display:flex;gap:16px;align-items:center}
+.masthead h1 {font:500 clamp(23px,2.3vw,34px)/1.5 Georgia,'Songti SC','SimSun',serif;color:#3c473c;margin:12px 0;overflow-wrap:anywhere}
+.masthead h1:focus {outline:none}
+.masthead p {justify-content:space-between;font-size:13px;color:#71664f}
+.scroll :global(.magazine-article){padding:0;max-width:none}
+.scroll :global(.markdown-content){font:16px/1.95 Georgia,'Songti SC','SimSun',serif;color:#463c30;overflow-wrap:anywhere}
+.scroll :global(.markdown-content) h2 {font:500 22px/1.55 Georgia,'Songti SC',serif; margin:1.4em 0 .6em;color:#404a3f}
+.scroll :global(.markdown-content) h3 {font-size:18px;line-height:1.65}
+.scroll :global(.markdown-content) :is(pre,table){max-width:100%;overflow-x:auto}
+.scroll :global(.markdown-content) :not(pre)>code {color:#4c624e;background:#e7e5d6;border-radius:2px}
+.scroll :global(.markdown-content) a {color:#586c55;text-decoration-color:#a6af93;text-underline-offset:3px}
+.scroll :global(.magazine-cover){margin:20px 0}
+.scroll :global(.magazine-deck){font-size:16px;line-height:1.85;margin:16px 0;color:#736752}
+.scroll :global(.study-loading){min-height:90px;justify-items:start}
+@media(max-width:700px){.leaf{inset:0}.scroll{padding:19px 20px 32px}.bar{margin:0 20px}.masthead h1{font-size:23px}.scroll :global(.markdown-content){font-size:16px}}

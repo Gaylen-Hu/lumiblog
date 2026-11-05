@@ -49,6 +49,7 @@ export async function getArticles(params?: {
 
     const res = await fetch(`${API_BASE_URL}/articles?${searchParams}`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(12000),
     })
     if (!res.ok) throw new Error('Failed to fetch articles')
     return res.json()
@@ -66,10 +67,11 @@ export async function getArticleBySlug(
     const searchParams = new URLSearchParams()
     if (locale) searchParams.set('locale', locale)
     const qs = searchParams.toString()
-    const url = `${API_BASE_URL}/articles/${slug}${qs ? `?${qs}` : ''}`
+    const url = `${API_BASE_URL}/articles/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`
 
     const res = await fetch(url, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(12000),
     })
     if (!res.ok) {
       if (res.status === 404) return null
@@ -112,6 +114,7 @@ export async function getProjects(params?: {
 
     const res = await fetch(`${API_BASE_URL}/projects?${searchParams}`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(12000),
     })
     if (!res.ok) throw new Error('Failed to fetch projects')
     return res.json()
@@ -125,6 +128,7 @@ export async function getProjectById(id: string): Promise<Project | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/projects/${id}`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(12000),
     })
     if (!res.ok) {
       if (res.status === 404) return null
@@ -310,7 +314,8 @@ export async function getTimeline(): Promise<TimelineEntry[]> {
       next: { revalidate: 3600 },
     })
     if (!res.ok) throw new Error('Failed to fetch timeline')
-    return res.json()
+    const entries = await res.json()
+    return Array.isArray(entries) ? entries : []
   } catch {
     return []
   }

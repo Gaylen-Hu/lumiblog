@@ -12,9 +12,11 @@ export async function getPublicColumns(): Promise<PublicColumnListItemDto[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/columns`, {
       next: { revalidate: 300 },
+      signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) throw new Error('Failed to fetch columns')
-    return res.json()
+    const columns = await res.json()
+    return Array.isArray(columns) ? columns : []
   } catch {
     return []
   }
@@ -25,8 +27,9 @@ export async function getPublicColumnBySlug(
   slug: string,
 ): Promise<PublicColumnDetailDto | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/columns/${slug}`, {
+    const res = await fetch(`${API_BASE_URL}/columns/${encodeURIComponent(slug)}`, {
       next: { revalidate: 60 },
+      signal: AbortSignal.timeout(12000),
     })
     if (!res.ok) {
       if (res.status === 404) return null

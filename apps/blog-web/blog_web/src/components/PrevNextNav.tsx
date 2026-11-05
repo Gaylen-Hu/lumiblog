@@ -10,14 +10,14 @@ export default function PrevNextNav({ prevArticle, nextArticle }: PrevNextNavPro
   if (!prevArticle && !nextArticle) return null
 
   return (
-    <div className="mt-12 pt-8 border-t border-gray-100 dark:border-slate-800">
+    <div className="magazine-panel mt-12 pt-8">
       <div className="grid grid-cols-2 gap-4">
         {/* 左侧：上一篇 */}
         <div>
           {prevArticle ? (
             <Link
               href={`/posts/${prevArticle.slug}`}
-              className="group flex flex-col gap-1 p-4 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              className="group flex flex-col gap-1 py-4 hover:opacity-70 transition-colors"
             >
               <span className="text-xs font-medium text-gray-400 dark:text-gray-500 flex items-center gap-1">
                 <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,7 +37,7 @@ export default function PrevNextNav({ prevArticle, nextArticle }: PrevNextNavPro
           {nextArticle ? (
             <Link
               href={`/posts/${nextArticle.slug}`}
-              className="group flex flex-col gap-1 p-4 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 hover:border-gray-300 dark:hover:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-right"
+              className="group flex flex-col gap-1 py-4 hover:opacity-70 transition-colors text-right"
             >
               <span className="text-xs font-medium text-gray-400 dark:text-gray-500 flex items-center justify-end gap-1">
                 下一篇

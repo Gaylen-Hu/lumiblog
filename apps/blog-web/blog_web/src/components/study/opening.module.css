@@ -1,0 +1,84 @@
+/* Each object keeps its own material, silhouette and entrance. The dialog's
+   focus/history behaviour stays shared in StudyRoom. */
+.stage[data-object]{justify-content:center;perspective:1400px;animation:roomDim .35s ease both;backdrop-filter:blur(2px);background:#222b254d}
+.surface[data-object]{animation-duration:.65s;animation-timing-function:cubic-bezier(.2,.7,.2,1);animation-fill-mode:both;isolation:isolate}
+.surface[data-object]::before{display:none}
+.surface[data-object]>button{z-index:3;width:40px;height:40px;top:14px;right:15px}
+.heading{position:relative;padding-right:30px;flex:none}
+.heading>span{margin-bottom:10px}
+.contents{position:relative;min-width:0}
+.surface[data-object=album],.surface[data-object=columns]{display:flex;flex-direction:column;overflow:hidden}
+.surface[data-object=album]>.contents,.surface[data-object=columns]>.contents{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#a8987d70 transparent;padding-right:8px}
+
+
+/* Diary: the journal owns both pages and the turning leaf. */
+.surface[data-object=diary]{width:min(1080px,100%);padding:0;min-height:0;max-height:calc(100svh - 40px);overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none;animation-name:journalOpen;color:#f6edd9}
+.surface[data-object=diary]>.heading{display:flex;align-items:baseline;gap:22px;padding:0 64px 13px 9px;color:#f6edd9;text-shadow:0 1px 8px #18241980}
+.surface[data-object=diary]>.heading>span{order:2;font-size:8px;letter-spacing:2px;margin:0;color:#e0d5b9}
+.surface[data-object=diary]>.heading h2{font-size:24px;margin:0;line-height:1.3}
+.surface[data-object=diary]>button{top:-5px;right:0;background:#f6efdf;color:#667257;border-color:#ddd0b1}
+
+
+/* Series: separate clothbound volumes, rather than an article list. */
+.stage[data-object=columns]{background:#242a2433;backdrop-filter:none}
+.surface[data-object=columns]{width:min(850px,100%);padding:42px 38px 30px;background:#ece5d4;border:1px solid #f9f3e8;border-radius:5px;animation-name:editionsRise;box-shadow:0 22px 75px #282d264d}
+.editions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:28px 0 5px;perspective:900px}
+.edition{display:flex;flex-direction:column;position:relative;min-height:275px;padding:26px 22px 24px 29px;border-radius:3px 7px 7px 3px;border:1px solid #21382e66;background:repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 3px),linear-gradient(90deg,#10251c55 0,#ffffff14 6%,#1c302b77 9%,transparent 13%,transparent 95%,#e4dac1 96%,#e4dac1 98%,transparent 99%),var(--jacket,#4b6351);box-shadow:5px 6px 6px #302e2526;color:#f3e7c8;text-decoration:none;transform:rotate(-2deg);animation:editionArrive .55s backwards;transition:transform .2s}
+.edition:nth-child(3n+2){transform:rotate(1deg);animation-delay:.08s}.edition:nth-child(3n+3){transform:rotate(-1deg);animation-delay:.16s}
+.edition:hover{transform:translateY(-8px) rotate(0)}
+.edition::after{content:'';position:absolute;inset:13px 15px 13px 21px;border:1px solid #d3c18b50;pointer-events:none}
+.edition small{font:9px/1.7 system-ui,sans-serif;letter-spacing:1.3px;color:#dbd0ae;min-height:30px}
+.edition h3{font:23px/1.5 Georgia,'Songti SC',serif;margin:23px 0 14px;overflow-wrap:anywhere}
+.edition p{font:11px/1.8 system-ui,sans-serif;color:#e0d6bc;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:0 0 20px}
+.edition>span{font:11px/1.8 system-ui,sans-serif;margin-top:auto;color:#e7d9ad}
+
+/* Album: a linen-backed folio with loose mounted photographs. */
+.surface[data-object=album]{width:min(920px,100%);padding:44px 45px 32px;border:9px solid #9e8c6d;border-radius:6px;background:linear-gradient(90deg,#dfd1b8 0,#f4ead6 3%,#f5eddd 50%,#dfd1b8 50.5%,#f5eddd 51%,#eee3ce);box-shadow:0 30px 85px #22291b70,5px 5px 0 #d0c2a8;animation-name:albumUnfold;transform-origin:50% 45%}
+.surface[data-object=album] .heading{padding-bottom:12px;border-bottom:1px solid #b3a38750;margin-bottom:24px}
+
+/* About: a postcard lifted from the frame and turned over. */
+.surface[data-object=portrait]{width:min(760px,100%);padding:48px 42px;background:#f5eddc;border:10px solid #fff9ed;border-radius:2px;box-shadow:0 30px 70px #25251e70;animation-name:postcardTurn}
+.surface[data-object=portrait] .heading::after{content:'LUMI / POST';position:absolute;right:40px;top:6px;border:1px dashed #9b94776e;padding:13px 8px;color:#9b9477;font:9px/1 system-ui;letter-spacing:1px;transform:rotate(9deg)}
+.postcard{display:grid;grid-template-columns:170px 1fr;gap:35px;margin-top:30px}
+.portraitStamp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:220px;background:#7b8c71;color:#f1e9cf;padding:22px 15px;box-shadow:0 0 0 7px #fff9ec,0 3px 14px #5a574533;transform:rotate(-3deg)}
+.portraitStamp>span{font:64px Georgia,'Songti SC',serif}.portraitStamp small{font:9px/1.6 system-ui,sans-serif;letter-spacing:2px;text-align:center}
+.postcard h3{font-size:28px;font-weight:400;margin:0 0 20px}.postcard p{font:14px/2.1 Georgia,'Songti SC',serif;color:#6f705f;margin-bottom:18px}.postcard a{display:inline-block;font:12px/2 system-ui,sans-serif;color:#617253;margin-top:8px;border-bottom:1px solid #96a18a}
+
+/* Drawer: a compact tray, with two separate paper index cards. */
+.stage[data-object=drawer]{justify-content:flex-end;align-items:flex-end;backdrop-filter:none;background:linear-gradient(90deg,transparent 40%,#2d2a2155);padding-bottom:7svh}
+.surface[data-object=drawer]{width:min(540px,46vw);padding:33px 30px 30px;min-height:0;background:repeating-linear-gradient(90deg,#ffffff02 0 1px,transparent 1px 3px),#717a62;border:9px solid #ac8961;border-bottom-width:14px;border-radius:4px;color:#faf0d8;box-shadow:0 16px 45px #28292177,inset 0 3px 15px #303b2d55;animation-name:drawerContents;transform-origin:center bottom}
+.surface[data-object=drawer]>button{color:#ecdfc2;border-color:#e1d7ba66}.surface[data-object=drawer] .heading>span{color:#d8ceb3}.surface[data-object=drawer] h2{font-size:25px;margin-bottom:22px}
+.keepsakes{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:6px}
+.keepsakes a{position:relative;display:flex;flex-direction:column;min-height:172px;padding:22px 18px;background:#f9eed6;border:1px solid #d7c8a9;box-shadow:0 5px 10px #23322533;color:#58614d;transform:rotate(-4deg);text-decoration:none;transition:transform .2s}
+.keepsakes a:nth-child(2){transform:rotate(3deg);background:#ede9d8;margin-top:8px}
+.keepsakes a:hover{transform:translateY(-6px) rotate(0)}
+.keepsakes a::before{content:'';position:absolute;top:-10px;left:18px;width:50px;height:14px;background:#f9eed6;border:1px solid #d7c8a9;border-bottom:0;border-radius:5px 5px 0 0}
+.keepsakes small{font:9px/1.5 system-ui,sans-serif;letter-spacing:2px;color:#a28c65}.keepsakes strong{font:21px/1.6 Georgia,'Songti SC',serif;margin:18px 0 10px}.keepsakes span{font:11px/1.9 system-ui,sans-serif;color:#8b8067}.keepsakes i{font-style:normal;align-self:flex-end;margin-top:auto}
+
+@keyframes roomDim{from{opacity:0}to{opacity:1}}
+@keyframes journalOpen{from{opacity:0;transform:translateY(32px) rotateX(12deg) scale(.94)}to{opacity:1;transform:none}}
+@keyframes editionsRise{from{opacity:0;transform:translateY(42px)}to{opacity:1;transform:none}}
+@keyframes editionArrive{from{opacity:0;translate:0 30px}to{opacity:1;translate:0 0}}
+@keyframes albumUnfold{from{opacity:0;transform:rotateX(16deg) scale(.88)}to{opacity:1;transform:none}}
+@keyframes postcardTurn{from{opacity:0;transform:rotateY(-32deg) rotateZ(-6deg) translateY(22px)}to{opacity:1;transform:none}}
+@keyframes drawerContents{from{opacity:0;transform:translateY(35px) rotateX(12deg)}to{opacity:1;transform:none}}
+
+@media(max-width:700px){
+  .stage[data-object]{padding:18px 12px;align-items:center}
+  .surface[data-object]{max-height:calc(100svh - 36px);width:100%;min-height:0}
+  .surface[data-object] .heading h2{font-size:27px}
+  .surface[data-object=columns]{padding:36px 24px 25px}.editions{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 13px}.edition{padding:23px 15px 20px 22px;min-height:240px}.edition h3{font-size:19px;margin:17px 0 12px}.edition p{-webkit-line-clamp:2;font-size:10px}.edition::after{inset:9px 10px 9px 14px}
+  .surface[data-object=album]{padding:36px 19px 24px;border-width:6px}.surface[data-object=album] .heading{margin-bottom:18px}.surface[data-object=album] .heading>span{font-size:8px;letter-spacing:1.4px}
+  .surface[data-object=album]>.contents,.surface[data-object=columns]>.contents{padding-right:4px}
+  .surface[data-object=portrait]{padding:36px 24px 28px;border-width:7px}.postcard{grid-template-columns:1fr;gap:28px}.portraitStamp{width:120px;min-height:135px;margin:0 auto;padding:14px;gap:14px}.portraitStamp>span{font-size:45px}.portraitStamp small{font-size:8px}.surface[data-object=portrait] .heading::after{display:none}.postcard h3{font-size:24px}
+  .stage[data-object=drawer]{align-items:flex-end;padding-bottom:24px;background:linear-gradient(0deg,#2b302433,transparent)}.surface[data-object=drawer]{padding:30px 19px 22px;border-width:7px}.surface[data-object=drawer] .heading h2{font-size:23px}.keepsakes{gap:12px;padding:5px 0}.keepsakes a{padding:20px 14px;min-height:160px}.keepsakes strong{font-size:18px}
+}
+.stage[data-motion=reduced],.stage[data-motion=reduced] *{animation:none!important;transition:none!important}
+@media(prefers-reduced-motion:reduce){.stage,.stage *{animation:none!important;transition:none!important}}
+
+@media(max-width:700px){
+  .surface[data-object=diary]{padding:0;width:100%;max-height:calc(100svh - 28px);overflow:visible}
+  .surface[data-object=diary]>.heading{padding:0 48px 14px 6px;gap:14px;display:flex}
+  .surface[data-object=diary]>.heading h2{font-size:23px}
+  .surface[data-object=diary]>.heading>span{font-size:6px;letter-spacing:1px;max-width:160px;line-height:1.7}
+}

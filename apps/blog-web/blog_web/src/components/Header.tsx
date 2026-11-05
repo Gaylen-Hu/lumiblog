@@ -34,6 +34,7 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
+    handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -43,9 +44,19 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
     setIsMobileMenuOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMobileMenuOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [isMobileMenuOpen])
+
   function handleSearch() {
     const q = searchQuery.trim()
     if (!q) return
+    setIsMobileMenuOpen(false)
     router.push(`/posts?search=${encodeURIComponent(q)}`)
   }
 
@@ -78,7 +89,7 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6">
             {navItems.map((item) => {
               const isActive =
                 item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
@@ -86,6 +97,7 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`text-sm font-medium transition-colors relative group px-1 ${
                     isActive
                       ? 'text-[#111111] dark:text-white'
@@ -118,9 +130,10 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
               />
             </svg>
             <input
-              type="text"
+              type="search"
+              aria-label={ts('placeholder')}
               placeholder={ts('placeholder')}
-              className="pl-10 pr-4 py-1.5 text-sm bg-gray-100/50 dark:bg-gray-800/50 border border-transparent rounded-full focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-300 dark:focus:border-blue-700 outline-none transition-all w-48 md:w-64"
+              className="pl-10 pr-4 py-1.5 text-sm bg-gray-100/50 dark:bg-gray-800/50 border border-transparent rounded-full focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-300 dark:focus:border-blue-700 outline-none transition-all w-40 xl:w-64"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -129,9 +142,10 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
           <HeaderControls />
           {/* 移动端汉堡按钮 */}
           <button
-            className="md:hidden w-8 h-8 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
             onClick={() => setIsMobileMenuOpen(prev => !prev)}
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-controls="mobile-navigation"
             aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? (
@@ -149,7 +163,7 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
 
       {/* 移动端菜单面板 */}
       {isMobileMenuOpen && (
-        <nav className="md:hidden frosted-glass border-t border-gray-200/50 dark:border-slate-700/50">
+        <nav id="mobile-navigation" className="lg:hidden frosted-glass border-t border-gray-200/50 dark:border-slate-700/50">
           <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-1">
             {navItems.map((item) => {
               const isActive =
@@ -158,6 +172,7 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`block px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? 'text-[#111111] dark:text-white bg-gray-100/80 dark:bg-slate-800/80'
@@ -182,7 +197,8 @@ export default function Header({ siteName = '墨千' }: HeaderProps) {
                 />
               </svg>
               <input
-                type="text"
+                type="search"
+              aria-label={ts('placeholder')}
                 placeholder={ts('placeholder')}
                 className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100/50 dark:bg-gray-800/50 border border-transparent rounded-full focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-300 dark:focus:border-blue-700 outline-none transition-all"
                 value={searchQuery}

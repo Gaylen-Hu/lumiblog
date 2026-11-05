@@ -9,9 +9,10 @@ import { ColumnBadge } from '@/components/ColumnBadge';
 
 interface PostCardProps {
   post: Post;
+  variant?: 'card' | 'magazine';
 }
 
-export default function PostCard({ post }: PostCardProps) {
+export default function PostCard({ post, variant = 'card' }: PostCardProps) {
   const t = useTranslations('posts');
   const locale = useLocale();
   const categoryName = post.category?.name ?? t('uncategorized');
@@ -22,6 +23,13 @@ export default function PostCard({ post }: PostCardProps) {
         day: 'numeric',
       })
     : '';
+
+  if (variant === 'magazine') return <article className="magazine-story">
+    <small>{categoryName} · {displayDate}</small>
+    <h2><Link prefetch={false} href={`/posts/${post.slug}`}>{post.title}</Link></h2>
+    <p>{post.excerpt}</p>
+    <Link prefetch={false} href={`/posts/${post.slug}`}>{t('readArticle')} <span aria-hidden="true">↗</span></Link>
+  </article>;
 
   return (
     <Link href={`/posts/${post.slug}`}>

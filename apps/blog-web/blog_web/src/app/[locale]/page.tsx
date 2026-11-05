@@ -1,115 +1,24 @@
-import { getLocale, getTranslations } from 'next-intl/server'
-import { Link } from '@/i18n/navigation'
-import HeroSection from '@/components/HeroSection'
-import StatsSection from '@/components/StatsSection'
-import PostCard from '@/components/PostCard'
-import ProjectCard from '@/components/ProjectCard'
-import ScrollReveal from '@/components/ui/ScrollReveal'
-import { getArticles, getProjects, getSiteStats, toApiLocale } from '@/lib/api'
+import { redirect } from 'next/navigation'
+import { canonicalReadingHref } from '@/components/study/study-route'
+import RoomContent from '@/components/study/RoomContent'
 import type { Metadata } from 'next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
-  return {
-    alternates: {
-      canonical: `${SITE_URL}/${locale}`,
-      languages: { zh: `${SITE_URL}/zh`, en: `${SITE_URL}/en` },
-    },
-  }
+  return { alternates: { canonical: `${SITE_URL}/${locale}`, languages: { zh: `${SITE_URL}/zh`, en: `${SITE_URL}/en` } } }
 }
 
-export default async function Home() {
-  const locale = await getLocale()
-  const [articlesRes, projectsRes, stats, t] = await Promise.all([
-    getArticles({ page: 1, pageSize: 6, locale: toApiLocale(locale) }),
-    getProjects({ featured: true, pageSize: 3 }),
-    getSiteStats(),
-    getTranslations('home'),
-  ])
-
-  const posts = articlesRes.data
-  const projects = projectsRes.data
-
-  return (
-    <div className="animate-page-fade">
-      <HeroSection />
-      <StatsSection
-        articleCount={stats.articleCount}
-        yearsOfExperience={stats.yearsOfExperience}
-        openSourceCount={stats.openSourceCount}
-        talkCount={stats.talkCount}
-      />
-
-      {/* Latest Articles */}
-      <section className="py-24 px-6 md:px-12 lg:px-24 bg-white dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-3xl font-bold text-[#111111] dark:text-white">
-              {t('latestPosts')}
-            </h2>
-            <Link
-              href="/posts"
-              className="text-blue-600 font-medium flex items-center gap-2 hover:gap-3 transition-all"
-            >
-              {t('allPosts')}
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post, i) => (
-              <ScrollReveal key={post.id} delay={i * 0.08} direction="up">
-                <PostCard post={post} />
-              </ScrollReveal>
-            ))}
-          </div>
-
-          {posts.length === 0 && (
-            <div className="py-20 text-center">
-              <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <h3 className="text-xl font-bold text-gray-400">{t('noPosts')}</h3>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Featured Projects */}
-      <section className="py-24 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-3xl font-bold text-[#111111] dark:text-white">
-              {t('featuredProjects')}
-            </h2>
-            <Link
-              href="/projects"
-              className="text-blue-600 font-medium flex items-center gap-2 hover:gap-3 transition-all"
-            >
-              {t('allProjects')}
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {projects.map((project, i) => (
-              <ScrollReveal key={project.id} delay={i * 0.08} direction="up">
-                <ProjectCard project={project} />
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
-  )
+export default async function Home({ params, searchParams }: {
+  params: Promise<{ locale: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const [{ locale }, query] = await Promise.all([params, searchParams])
+  if (!query.room) {
+    const sp = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) if (typeof value === 'string') sp.set(key, value)
+    const canonical = canonicalReadingHref(`/${locale}?${sp}`, locale)
+    if (canonical) redirect(canonical)
+  }
+  return <RoomContent params={params} />
 }

@@ -1,3 +1,4 @@
+import StudyShell from '@/components/study/StudyShell'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
@@ -7,8 +8,6 @@ import '../globals.css'
 import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/react'
 import SiteAnalytics from '@/components/SiteAnalytics'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
 import { getSiteConfig } from '@/lib/api'
 import { routing } from '@/i18n/routing'
@@ -117,20 +116,12 @@ export default async function LocaleLayout({
         </>
       ) : null}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white dark:bg-slate-950`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-[#FBF9F5]`}
       >
         <SiteJsonLd config={config} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
-            <Header siteName={config.siteName} />
-            <main className="flex-1 pt-20">{children}</main>
-            <Footer
-              siteName={config.siteName}
-              siteDescription={config.siteDescription}
-              socialLinks={config.socialLinks}
-              filing={config.filing}
-              email={config.owner.email}
-            />
+            <StudyShell locale={locale}>{children}</StudyShell>
           </NextIntlClientProvider>
         </ThemeProvider>
         <Analytics />
