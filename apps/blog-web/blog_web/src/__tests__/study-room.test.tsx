@@ -8,18 +8,24 @@ import { clockHandAngles } from '@/components/study/wall-clock'
 import { localLightPeriod } from '@/components/study/room-light'
 import { findBookmarkedBlock, readBookmark, writeBookmark } from '@/lib/reading-bookmark'
 
-const mocked = vi.hoisted(() => ({ fail: false, disposed: 0, targets: [] as (string | null)[] }))
+const mocked = vi.hoisted(() => ({ fail: false, holdReady: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
+let loseContext: () => void
+let presentFrame: () => void
 let pickItem: (item: RoomItem, columnSlug?: string) => void
 let finishDrawerSlide: () => void
 let clockPhase: (view: ClockView) => void
 vi.mock('@/components/study/room-scene', () => ({
-  createRoom: (_host: HTMLElement, options: { onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase }) => {
+  createRoom: (_host: HTMLElement, options: { onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void; onQuality: (light: boolean) => void }) => {
     if (mocked.fail) throw new Error('WebGL unavailable')
+    mocked.created++
+    loseContext = options.onContextLost
+    presentFrame = options.onReady
     pickItem = options.onPick
     clockPhase = options.onClockView
-    options.onReady()
+    if (!mocked.holdReady) options.onReady()
     return {
       setMotion: vi.fn(),
+      setQuality: (value: string) => { mocked.quality.push(value); options.onQuality(value === 'light') },
       setPaused: vi.fn(),
       inspectClock: () => clockPhase('approaching'),
       leaveClock: () => clockPhase('returning'),
@@ -63,11 +69,70 @@ beforeEach(() => {
   localStorage.clear()
   window.history.replaceState(null, '', '/zh')
   Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }) })
-  mocked.fail = false; mocked.disposed = 0; mocked.targets = []
+  mocked.fail = false; mocked.holdReady = false; mocked.disposed = 0; mocked.created = 0; mocked.quality = []; mocked.targets = []
 })
 afterEach(async () => { if (root) await act(async () => root.unmount()) })
 
 describe('书房的内容与恢复流程', () => {
+  it('首帧一直未就绪时降级，迟到的成功回调不能复活已销毁场景', async () => {
+    mocked.holdReady = true
+    vi.useFakeTimers()
+    try {
+      await mount()
+      await act(async () => { await vi.advanceTimersByTimeAsync(15000) })
+      expect(mocked.disposed).toBe(1)
+      expect(document.body.textContent).toContain('3D 书房暂未打开')
+      await act(async () => presentFrame())
+      expect(document.body.textContent).toContain('3D 书房暂未打开')
+      expect(document.querySelector('a[href="/zh/posts"]')).toBeTruthy()
+    } finally { vi.useRealTimers() }
+  })
+  it('音频 resume 未真正获得播放许可时仍显示关闭，不阻塞内容入口', async () => {
+    const ctx = { state: 'suspended', resume: vi.fn(async () => {}), close: vi.fn(async () => {}) }
+    vi.stubGlobal('AudioContext', class { constructor() { return ctx } })
+    try {
+      await mount()
+      await click('开启声音')
+      expect(ctx.resume).toHaveBeenCalledOnce()
+      expect(document.querySelector('[aria-label="开启声音"]')?.getAttribute('aria-pressed')).toBe('false')
+      await click('书架 · 文章')
+      expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+    } finally { vi.unstubAllGlobals() }
+  })
+  it('上下文丢失仅自动重建一次，保留当前阅读入口，重复丢失进入可阅读的降级页', async () => {
+    await mount()
+    await click('书架 · 文章')
+    const path = window.location.href
+    await act(async () => loseContext())
+    expect(mocked.created).toBe(2)
+    expect(mocked.disposed).toBe(1)
+    expect(window.location.href).toBe(path)
+    expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+    await act(async () => loseContext())
+    expect(mocked.created).toBe(2)
+    expect(mocked.disposed).toBe(2)
+    await click('关闭并返回')
+    expect(document.body.textContent).toContain('3D 书房暂未打开')
+    expect(document.querySelector('a[href="/zh/posts"]')).toBeTruthy()
+    await click('重试')
+    expect(mocked.created).toBe(3)
+    await act(async () => loseContext())
+    expect(mocked.created).toBe(4) // Explicit retry starts a fresh recovery budget.
+  })
+  it('轻量画质可保存，重新进入仍使用轻量，选择自动可恢复', async () => {
+    await mount()
+    await click('环境设置')
+    await click('轻量')
+    expect(localStorage.getItem('study-quality')).toBe('light')
+    expect(mocked.quality.at(-1)).toBe('light')
+    await act(async () => root.unmount())
+    await mount()
+    expect(mocked.quality.at(-1)).toBe('light')
+    await click('环境设置')
+    await click('自动')
+    expect(mocked.quality.at(-1)).toBe('auto')
+    expect(localStorage.getItem('study-quality')).toBe('auto')
+  })
   it('点层板只看该分类，从目录收下文章后重开匣子仍有书笺，移出不影响续读', async () => {
     const base = { excerpt:null,coverImage:null,author:{name:'A',avatar:null},publishedAt:'2026-11-01',readTime:'2 min',tags:[],column:null }
     const post = { ...base,id:'a',slug:'tea-and-books',title:'茶与书',category:{id:'life',slug:'life',name:'随笔'} }

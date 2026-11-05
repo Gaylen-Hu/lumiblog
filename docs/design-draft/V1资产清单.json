@@ -1,0 +1,92 @@
+{
+  "assets": [
+    {
+      "file": "daylight/garden.webp",
+      "bytes": 53642,
+      "sha256": "88dc075a53a1b96bf2f1b25e26ea891c3989879558237c3bca11a35a77d436be",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "窗外花园远景",
+      "runtime": true
+    },
+    {
+      "file": "daylight/kingfisher.webp",
+      "bytes": 86950,
+      "sha256": "f27218bf4a8bc7dd1c2040a60f647596349d20ebcb312540a5978664644c25b2",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "翠鸟装饰画",
+      "runtime": true
+    },
+    {
+      "file": "daylight/leaf.webp",
+      "bytes": 38314,
+      "sha256": "8a48ece8bd8d82715a31d9061f04ec70fe4befaa955b67d7f80541e8ffb349c3",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "程序叶片底色",
+      "runtime": true
+    },
+    {
+      "file": "daylight/oak.webp",
+      "bytes": 155978,
+      "sha256": "803d02d57c0213745fee3e07bad948958c489d98a344659152cc472896dde6c6",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "家具与地板木纹",
+      "runtime": true
+    },
+    {
+      "file": "dusk-neighborhood.webp",
+      "bytes": 290722,
+      "sha256": "bd64d49e078932c4e7201e4c92f078c1a830042717ea15324c16a4d02b5f799f",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "旧视觉版本保留，不在当前房间加载",
+      "runtime": false
+    },
+    {
+      "file": "v1/bookcloth.webp",
+      "bytes": 469394,
+      "sha256": "8f760d6868eeac5fda8e8688975dd074d5d669117f11cee9e7bcfc0a252c7814",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "书封与日记封面",
+      "runtime": true
+    },
+    {
+      "file": "v1/exterior.webp",
+      "bytes": 265014,
+      "sha256": "5667570a936381547fc8cce56dbb59ccfae45d48b3ae1013906da6d026aecd76",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "旧视觉版本保留，不在当前房间加载",
+      "runtime": false
+    },
+    {
+      "file": "v1/landscape.webp",
+      "bytes": 75236,
+      "sha256": "cd38b38dff1e1ae95c4d125246e8bdf968ee3a872c353c59a986da8c1dcbce9d",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "墙面装饰画",
+      "runtime": true
+    },
+    {
+      "file": "v1/linen.webp",
+      "bytes": 476302,
+      "sha256": "b2bb6a58d48bbfd08fc8a6cf08e1bd05d43f5579848b1910a3202ea01a10fc1c",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "窗帘与软装",
+      "runtime": true
+    },
+    {
+      "file": "v1/paper.webp",
+      "bytes": 306724,
+      "sha256": "0a69f1255bde6ee91db5f33af1dfdca3d6b704349ea3f3ab15aa33d3260910d0",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "日记纸页",
+      "runtime": true
+    },
+    {
+      "file": "v1/walnut.webp",
+      "bytes": 282074,
+      "sha256": "c7f746aead113ec848d5998186f679eeae971194b817bc24e724b53efa60f944",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "旧视觉版本保留，不在当前房间加载",
+      "runtime": false
+    }
+  ]
+}

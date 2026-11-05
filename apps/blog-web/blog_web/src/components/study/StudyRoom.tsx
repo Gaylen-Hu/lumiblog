@@ -19,6 +19,7 @@ import type { PublicColumnListItemDto } from '@/types/column'
 import type { TimelineEntry } from '@/lib/api'
 import { isDestination, itemLabels, labels, type ClockView, type Destination, type RoomDetail, type RoomItem } from './model'
 import styles from './study.module.css'
+import type { RoomQuality } from './room-quality'
 import opening from './opening.module.css'
 
 export type StudyRoomProps = { locale: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
@@ -70,6 +71,11 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
   const settled = settledView === active ? settledView : null
   const [menu, setMenu] = useState(false), [settings, setSettings] = useState(false)
   const [ready, setReady] = useState(false), [failed, setFailed] = useState(false)
+  const [recovering, setRecovering] = useState(false)
+  const recoveries = useRef(0)
+  const [quality, setQuality] = useState<RoomQuality>('auto')
+  const qualityRef = useRef<RoomQuality>('auto')
+  const [lightQuality, setLightQuality] = useState(false)
   const [simple, setSimple] = useState(false), [motion, setMotion] = useState(true)
   const [sound, setSound] = useState(false), [retry, setRetry] = useState(0)
   const [night, setNight] = useState(false)
@@ -136,6 +142,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
   const revealSound = useCallback((kind: 'diary' | 'bookshelf') => {
     const ctx = audio.current
     if (!soundRef.current || !ctx || ctx.state !== 'running') return
+    playing.current?.stop(); playing.current = null
     const duration = kind === 'diary' ? .22 : .16
     const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate)
     const samples = buffer.getChannelData(0)
@@ -158,6 +165,8 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     try {
       setSimple(localStorage.getItem('study-simple') === 'true')
       setMotion(localStorage.getItem('study-motion') !== 'false')
+      qualityRef.current = localStorage.getItem('study-quality') === 'light' ? 'light' : 'auto'
+      setQuality(qualityRef.current)
     } catch { /* Storage is optional. */ }
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     const update = () => {
@@ -166,7 +175,21 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       setMotion(preferred && !media.matches)
     }
     update(); media.addEventListener('change', update)
-    return () => { media.removeEventListener('change', update); void audio.current?.close() }
+    return () => {
+      media.removeEventListener('change', update)
+      const ctx = audio.current; audio.current = null
+      void ctx?.close().catch(() => {})
+    }
+  }, [])
+  useEffect(() => {
+    const silence = () => {
+      if (!document.hidden) return
+      playing.current?.stop(); playing.current = null
+      soundRef.current = false; setSound(false)
+      void audio.current?.suspend().catch(() => {})
+    }
+    document.addEventListener('visibilitychange', silence)
+    return () => document.removeEventListener('visibilitychange', silence)
   }, [])
   useEffect(() => {
     if (playing.current) { playing.current.stop(); playing.current = null }
@@ -190,13 +213,23 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
   useEffect(() => {
     if (simple || !host.current) return
     let cancelled = false, timedOut = false
-    const fail = () => { if (!cancelled) { timedOut = true; reflectClockView('room'); setFailed(true); setReady(false); setSettled(activeRef.current); controller.current?.dispose(); controller.current = null } }
+    const fail = () => { if (!cancelled && !timedOut) { timedOut = true; window.clearTimeout(timeout); setRecovering(false); reflectClockView('room'); setFailed(true); setReady(false); setSettled(activeRef.current); controller.current?.dispose(); controller.current = null } }
     const timeout = window.setTimeout(fail, 15000)
     import('./room-scene').then(({ createRoom }) => {
       if (cancelled || timedOut || !host.current) return
       controller.current = createRoom(host.current, {
         columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, note: notes[0],
-        onReady: () => { window.clearTimeout(timeout); setReady(true); setFailed(false) },
+        onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setFailed(false); setRecovering(false) },
+        onContextLost: () => {
+          if (cancelled || timedOut) return
+          if (recoveries.current >= 1) { fail(); return }
+          recoveries.current++
+          timedOut = true // Invalidate any late callbacks from this renderer generation.
+          window.clearTimeout(timeout); setReady(false); setRecovering(true); reflectClockView('room')
+          controller.current?.dispose(); controller.current = null
+          setRetry(value => value + 1)
+        },
+        onQuality: setLightQuality,
         onError: fail, onPick: (item, slug) => pickRef.current(item, slug),
         onHover: (item, slug) => { setHover(item); setHoveredColumn(slug) },
         onReveal: revealNavigationSound,
@@ -223,6 +256,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         },
       })
       controller.current.setMotion(motionRef.current)
+      controller.current.setQuality?.(qualityRef.current)
       const current = navigationRef.current.route
       if (current.mode === 'object' && current.target === 'computer') setPortfolioTrip(true)
       controller.current.setTarget(current.target, current.column)
@@ -271,9 +305,14 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     try { localStorage.setItem('study-simple', String(next)) } catch { /* optional */ }
   }
   function toggleSound() {
-    if (sound) { setSound(false); void audio.current?.suspend(); return }
-    try { audio.current ||= new AudioContext(); void audio.current.resume().then(() => setSound(true)).catch(() => setSound(false)) }
+    if (sound) { soundRef.current = false; setSound(false); playing.current?.stop(); playing.current = null; void audio.current?.suspend().catch(() => {}); return }
+    try { audio.current ||= new AudioContext(); const ctx = audio.current; void ctx.resume().then(() => { soundRef.current = ctx.state === 'running' && !document.hidden; setSound(soundRef.current) }).catch(() => setSound(false)) }
     catch { setSound(false) }
+  }
+  function chooseQuality(value: RoomQuality) {
+    qualityRef.current = value; setQuality(value)
+    controller.current?.setQuality?.(value)
+    try { localStorage.setItem('study-quality', value) } catch { /* optional */ }
   }
   const links = [
     ['posts', en ? 'Writing' : '文章'], ['timeline', en ? 'Life' : '日常'],
@@ -319,8 +358,8 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         <h1>{en ? 'A quiet place for' : '把日子写下来，'}<br /><em>{en ? 'thoughts & little things.' : '也把想法留下来。'}</em></h1>
         <p>{en ? 'Writing on the shelf. Life on the desk. A little room to explore at your own pace.' : '书架里放着文章，桌上留着日常。慢慢看看，也许会有一些小发现。'}</p>
         <nav className={styles.fallbackLinks} aria-label={en ? 'Content navigation' : '内容导航'}>{links.map(([url, label]) => <Link prefetch={false} key={url} href={`/${locale}/${url}`}>{label} ↗</Link>)}</nav>
-        {!ready && !failed && !simple && <p role="status" className={styles.loading}><i />{en ? 'Opening the study… Content links are ready.' : '正在打开书房… 文字入口已可使用'}</p>}
-        {failed && <div role="status" className={styles.failure}>{en ? 'The 3D room could not load. Your reading links are still here.' : '3D 书房暂未打开，内容仍可正常浏览。'} <button onClick={() => { setFailed(false); setRetry(v => v + 1) }}>{en ? 'Try again' : '重试'}</button></div>}
+        {!ready && !failed && !simple && <p role="status" className={styles.loading}><i />{recovering ? (en ? 'Restoring the study… Reading stays available.' : '正在恢复书房… 内容仍可正常浏览') : (en ? 'Opening the study… Content links are ready.' : '正在打开书房… 文字入口已可使用')}</p>}
+        {failed && <div role="status" className={styles.failure}>{en ? 'The 3D room could not load. Your reading links are still here.' : '3D 书房暂未打开，内容仍可正常浏览。'} <button onClick={() => { recoveries.current = 0; setFailed(false); setRetry(v => v + 1) }}>{en ? 'Try again' : '重试'}</button></div>}
         {simple && <button className={styles.enter} onClick={toggleSimple}>{en ? 'Enter the 3D study' : '进入 3D 书房'} <span>→</span></button>}
         <div className={styles.staticLatest}>{posts.slice(0, 3).map(post => <Link prefetch={false} href={`/${locale}/posts/${encodeURIComponent(post.slug)}`} key={post.id}>{post.title} <span>↗</span></Link>)}</div>
       </section>
@@ -395,6 +434,11 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
           <button onClick={() => { const next = !motion; try { localStorage.setItem('study-motion', String(next)) } catch { /* optional */ } setMotion(next && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) }} aria-pressed={motion}>{en ? 'Subtle movement' : '环境微动与视差'}<span>{motion ? 'ON' : 'OFF'}</span></button>
           <button onClick={toggleSound} aria-pressed={sound}>{en ? 'Interaction sounds' : '翻页与交互声音'}<span>{sound ? 'ON' : 'OFF'}</span></button>
           <button onClick={toggleSimple} aria-pressed={simple}>{en ? 'Simple view' : '简洁模式'}<span>{simple ? 'ON' : 'OFF'}</span></button>
+          <fieldset className={styles.quality}>
+            <legend>{en ? 'Room detail' : '画面质量'}</legend>
+            <div><button onClick={() => chooseQuality('auto')} aria-pressed={quality === 'auto'}>{en ? 'Automatic' : '自动'}</button><button onClick={() => chooseQuality('light')} aria-pressed={quality === 'light'}>{en ? 'Lightweight' : '轻量'}</button></div>
+            <p role="status">{quality === 'auto' && lightQuality ? (en ? 'Using lighter detail to keep the room responsive.' : '已自动降低画面细节，让操作更流畅。') : (en ? 'Lighter detail uses less power. Reading stays the same.' : '轻量模式降低画面细节和耗电，阅读内容不受影响。')}</p>
+          </fieldset>
           <p className={styles.note}>{en ? 'The lamp comes on at 23:00 local time. The brass lamp switches between lamplight and daylight.' : '当地时间 23:00 至次日 06:00 为灯下书房。点击铜台灯可切换日光与灯光。'}</p>
         </div>}
         {settled === 'columns' && <>

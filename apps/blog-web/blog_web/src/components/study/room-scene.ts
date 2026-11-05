@@ -7,6 +7,7 @@ import type { DeskNote } from './desk-notes'
 import { isNightHour, localLightPeriod } from './room-light'
 import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
+import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
 
 type PickedItem = { target: RoomItem; columnSlug?: string; categoryId?: string; shelfIndex?: number; tier?: number; drawerIndex?: number }
 export type RoomOptions = {
@@ -22,6 +23,8 @@ export type RoomOptions = {
   onPick: (target: RoomItem, columnSlug?: string) => void
   onHover: (target: RoomItem | null, columnSlug?: string) => void
   onError: () => void
+  onContextLost: () => void
+  onQuality: (light: boolean) => void
   onReveal: (target: 'diary' | 'bookshelf') => void
   onSettled: (target: Destination | null) => void
   onClockView: (view: ClockView) => void
@@ -976,6 +979,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     options.onClockView(view)
   }
   let yaw = 0, pitch = 0, hingeFrom = 0, ambientMotion = true
+  let quality: RoomQuality = 'auto', autoLight = false
+  let presented = false
+  const frameBudget = new RoomFrameBudget()
   type Gesture = { id:number; x:number; y:number; lastX:number; lastY:number; moved:boolean; pressed:PickedItem|null; grab:THREE.Vector3|null }
   let drag: Gesture | null = null
   let observationKey = ''
@@ -1102,8 +1108,14 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     const narrow = width < 700
     const oldObservation = observationKey
     restoreObservation(narrow)
-    if (renderer.shadowMap.enabled !== !narrow) {
-      renderer.shadowMap.enabled = !narrow; renderer.shadowMap.needsUpdate = true
+    const light = quality === 'light' || autoLight
+    renderer.setPixelRatio(roomPixelRatio(window.devicePixelRatio, narrow, light))
+    if (renderer.shadowMap.enabled !== (!narrow && !light)) {
+      renderer.shadowMap.enabled = !narrow && !light; renderer.shadowMap.needsUpdate = true
+      scene.traverse(object => {
+        if (!(object instanceof THREE.Mesh)) return
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.needsUpdate = true
+      })
     }
     home.set(narrow ? -.13 : -.42, narrow ? 1.98 : 1.85, narrow ? 5.25 : 2.65)
     homeLook.set(narrow ? -.49 : .22, narrow ? 1.57 : 1.5, -2.5)
@@ -1145,7 +1157,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       screenFlight.sample(camera,screenU,options.onPortfolioFrame)
     }
     // setSize clears the drawing buffer even when a paper panel has paused RAF.
-    if (!active && !disposed && !document.hidden) renderer.render(scene,camera)
+    if (!active && !disposed && !document.hidden) drawScene()
     else requestFrame()
   }
   const observer = new ResizeObserver(resize); observer.observe(host)
@@ -1349,9 +1361,13 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (clockBlankReleased && event.detail <= 1) leaveClock()
     clockBlankReleased = false
   }
-  function lost(event: Event) { event.preventDefault(); active = false; options.onError() }
+  function lost(event: Event) {
+    event.preventDefault(); active = false
+    cancel(); clearClockTimer(); cancelAnimationFrame(frame); frame = 0
+    options.onContextLost()
+  }
   function visibility() {
-    const now = performance.now(); lastTime = now
+    const now = performance.now(); lastTime = now; frameBudget.reset()
     if (document.hidden) { hiddenAt = now; clearClockTimer() }
     else { if (transitioning && hiddenAt) startTime += now - Math.max(hiddenAt, startTime); hiddenAt = 0; requestFrame() }
   }
@@ -1364,7 +1380,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   renderer.domElement.addEventListener('pointerleave', cancel)
   renderer.domElement.addEventListener('webglcontextlost', lost)
   document.addEventListener('visibilitychange', visibility)
-  let frame = 0, frameSamples = 0, slowSamples = 0
+  let frame = 0
   let clockTimer: number | undefined
   function clearClockTimer() {
     window.clearTimeout(clockTimer)
@@ -1390,6 +1406,20 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     }, period - local.getTime() % period)
   }
   function requestFrame() { if (!frame && !disposed && (active || catalogAnimating) && !document.hidden) frame = requestAnimationFrame(render) }
+  function drawScene() {
+    if (disposed) return false
+    try {
+      renderer.render(scene, camera)
+      if (disposed) return false // A context-lost listener may have disposed it during drawing.
+      if (!presented) { presented = true; options.onReady() }
+      return true
+    } catch {
+      active = false; catalogAnimating = false
+      clearClockTimer(); cancelAnimationFrame(frame); frame = 0
+      options.onError()
+      return false
+    }
+  }
   function render(now: number) {
     frame = 0
     if (disposed || document.hidden) return
@@ -1397,7 +1427,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       // A paused room only redraws while a catalog spine is moving.
       if (catalogAnimating) {
         drawCatalogCue(now - lastTime); lastTime = now
-        renderer.render(scene,camera); if (catalogAnimating) requestFrame()
+        if (drawScene() && catalogAnimating) requestFrame()
       }
       return
     }
@@ -1416,8 +1446,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       wisp.scale.set(.09+.05*phase,.13+.06*phase,1)
       wisp.material.opacity = .46 * Math.sin(phase * Math.PI)
     })
-    if (delta > 70 && delta < 500) slowSamples++
-    if (++frameSamples === 180 && slowSamples > 70) { renderer.setPixelRatio(1); ambientMotion = false; renderer.shadowMap.autoUpdate = false }
+    if (quality === 'auto' && !autoLight && frameBudget.sample(delta, (!target && !reduced && ambientMotion) || transitioning || lightMoving)) {
+      autoLight = true; ambientMotion = false
+      resize(); options.onQuality(true)
+    }
     if (transitioning) {
       const duration = onScreenTrack ? Math.max(1, (target ? 1550*(1-screenStart) : 1200*screenStart))
         : clockView === 'returning' ? clockReturnMs : target === 'clock' ? 1250
@@ -1500,7 +1532,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       renderer.shadowMap.needsUpdate = true
     }
     if (catalogAnimating) drawCatalogCue(delta)
-    renderer.render(scene, camera)
+    if (!drawScene()) return
     if (catalogAnimating) requestFrame()
     if (!target && !reduced && ambientMotion || transitioning || curtainsMoving || lightMoving) requestFrame()
   }
@@ -1543,14 +1575,19 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const picture = mesh(new THREE.PlaneGeometry(.46, .59), pictureMaterial, [-.95, 2.45, -3.76])
   picture.castShadow = false
   loadArt('landscape', texture => { pictureMaterial.map = texture; pictureMaterial.needsUpdate = true })
-  resize(); requestFrame(); options.onReady()
+  resize(); requestFrame()
   return {
     setTarget,
+    setQuality(value: RoomQuality) {
+      quality = value; autoLight = false; frameBudget.reset()
+      ambientMotion = value !== 'light'
+      resize(); requestFrame(); options.onQuality(value === 'light')
+    },
     setCatalogCue,
     setBoxCount(count:number) {
       indexCards.children.forEach((card,i) => {card.visible=i<Math.min(count,3)})
       renderer.shadowMap.needsUpdate = true
-      if (!active && !disposed && !document.hidden && target === 'readingBox') renderer.render(scene,camera)
+      if (!active && !disposed && !document.hidden && target === 'readingBox') drawScene()
       else requestFrame()
     },
     inspectClock,
@@ -1575,7 +1612,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     },
     setMotion(value: boolean) { reduced = !value || media.matches; clearClockTimer(); requestFrame() },
     setPaused(value: boolean) {
-      const now = performance.now()
+      const now = performance.now(); frameBudget.reset()
       if (value) { cancel(); cancelAnimationFrame(frame); frame = 0 }
       if (value && active) { pausedAt = now; clearClockTimer() }
       if (!value && !active && transitioning && pausedAt) startTime += now - pausedAt
