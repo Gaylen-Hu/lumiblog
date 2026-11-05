@@ -122,7 +122,7 @@ jobs:
             if [ "$1" = true ]; then exit 0; fi
             test "$(id -u)" = 0
             test -d /home/myblog/current/blog
-            test -f /etc/nginx/sites-available/www.new-universe.cn
+            test -f /etc/nginx/sites-enabled/myblog.conf
             systemctl is-active --quiet blog-web.service
             systemctl is-active --quiet nginx.service
             systemctl show blog-web.service -p User -p WorkingDirectory -p FragmentPath

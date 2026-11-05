@@ -5,7 +5,7 @@ umask 027
 APP_HOME="${APP_HOME:-/home/myblog}"
 APP_USER="${APP_USER:-myblog}"
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-/tmp/blog-frontend}"
-NGINX_SITE="${NGINX_SITE:-/etc/nginx/sites-available/www.new-universe.cn}"
+NGINX_SITE="${NGINX_SITE:-/etc/nginx/sites-enabled/myblog.conf}"
 ACTION="${1:-deploy}"
 CURRENT="$APP_HOME/blog-current"
 DROPIN=/etc/systemd/system/blog-web.service.d/20-blog-release.conf
