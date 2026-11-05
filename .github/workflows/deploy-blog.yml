@@ -20,7 +20,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: production-deploy
+  group: ${{ inputs.inspect_only && 'production-inspect' || 'production-deploy' }}
   cancel-in-progress: false
 jobs:
   verify:
@@ -112,6 +112,8 @@ jobs:
             set -eu
             printf 'Remote UID: '; id -u
             node --version
+            printf '\nFrontend upload sizes and timestamps:\n'
+            find /tmp -maxdepth 2 -type f -path '/tmp/blog-frontend-*/*' -printf '%TY-%Tm-%Td %TH:%TM:%TS %s %p\n' 2>/dev/null || true
             for item in /home/myblog/current/blog /home/myblog/blog-current /root/myblog /etc/nginx/sites-available /etc/nginx/sites-enabled; do
               ls -ld "$item" 2>/dev/null || true
             done
