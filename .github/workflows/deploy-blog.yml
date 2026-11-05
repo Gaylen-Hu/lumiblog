@@ -1,5 +1,12 @@
 name: Blog frontend release
 on:
+  pull_request:
+    paths:
+      - 'apps/blog-web/blog_web/**'
+      - 'scripts/*blog*'
+      - '.github/workflows/deploy-blog.yml'
+      - 'nginx-blog.conf'
+      - 'ops/nginx-myblog.conf'
   workflow_dispatch:
     inputs:
       deploy:
@@ -88,6 +95,23 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -t ed25519 -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts
           test "$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}')" = "$SSH_FINGERPRINT"
+      - name: Check existing production layout without changes
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'set -eu
+            test "$(id -u)" = 0
+            test -d /home/myblog/current/blog
+            test -f /etc/nginx/sites-available/www.new-universe.cn
+            systemctl is-active --quiet blog-web.service
+            systemctl is-active --quiet nginx.service
+            systemctl show blog-web.service -p User -p WorkingDirectory -p FragmentPath
+            node --version
+            nginx -t
+            curl -fsS --max-time 30 http://127.0.0.1:3001/zh >/dev/null
+            df -h /home/myblog'
       - name: Upload and deploy frontend only
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
