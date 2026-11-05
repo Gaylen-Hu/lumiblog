@@ -13,6 +13,10 @@ on:
         description: 'Deploy the tested blog artifact to production (frontend only)'
         type: boolean
         default: false
+      inspect_only:
+        description: 'Inspect existing production layout without building or changing it'
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -20,6 +24,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
+    if: ${{ !inputs.inspect_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -74,12 +79,13 @@ jobs:
             scripts/patch-blog-nginx.mjs
             scripts/smoke-blog.mjs
   deploy:
-    if: ${{ inputs.deploy }}
+    if: ${{ always() && (inputs.deploy || inputs.inspect_only) && (needs.verify.result == 'success' || inputs.inspect_only) }}
     needs: verify
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/download-artifact@v4
+        if: ${{ !inputs.inspect_only }}
         with:
           name: blog-${{ github.sha }}
           path: release
@@ -100,8 +106,20 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
+          INSPECT_ONLY: ${{ inputs.inspect_only }}
         run: |
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'set -eu
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s -- "$INSPECT_ONLY" <<'REMOTE'
+            set -eu
+            printf 'Remote UID: '; id -u
+            node --version
+            for item in /home/myblog/current/blog /home/myblog/blog-current /root/myblog /etc/nginx/sites-available /etc/nginx/sites-enabled; do
+              ls -ld "$item" 2>/dev/null || true
+            done
+            systemctl show blog-web.service -p User -p WorkingDirectory -p FragmentPath || true
+            systemctl is-active blog-web.service myblog-api.service nginx.service || true
+            printf '\nNginx site names and upstreams:\n'
+            nginx -T 2>/dev/null | awk '/^# configuration file / || /^[[:space:]]*(server_name|listen|proxy_pass|root)[[:space:]]/ {print}' || true
+            if [ "$1" = true ]; then exit 0; fi
             test "$(id -u)" = 0
             test -d /home/myblog/current/blog
             test -f /etc/nginx/sites-available/www.new-universe.cn
@@ -111,8 +129,10 @@ jobs:
             node --version
             nginx -t
             curl -fsS --max-time 30 http://127.0.0.1:3001/zh >/dev/null
-            df -h /home/myblog'
+            df -h /home/myblog
+          REMOTE
       - name: Upload and deploy frontend only
+        if: ${{ !inputs.inspect_only }}
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
