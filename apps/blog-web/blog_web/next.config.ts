@@ -5,6 +5,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Older local tabs cached unversioned dev chunks as immutable.
+  deploymentId: process.env.NODE_ENV === 'development' ? 'study-daylight-preview' : undefined,
   images: {
     remotePatterns: [
       {
@@ -42,7 +44,7 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
-      {
+      ...(process.env.NODE_ENV === 'production' ? [{
         source: '/(.*)\\.(js|css|woff2|woff|ttf|ico|svg|png|jpg|jpeg|webp|avif)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
@@ -55,6 +57,12 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: '/study-assets/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      {
         // Public content is locale-specific in its URL and has no user state.
         // Shared caching reduces TTFB while ISR refreshes article data every minute.
         source: '/:locale(zh|en)/:path*',
@@ -62,6 +70,7 @@ const nextConfig: NextConfig = {
           { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=300' },
         ],
       },
+      ] : []),
     ]
   },
   async redirects() {

@@ -1,5 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
+import TimelineMedia from '@/components/media/TimelineMedia'
+import { noteText } from '@/components/study/desk-notes'
 import { getSiteConfig, getTimeline } from '@/lib/api'
 import type { Metadata } from 'next'
 
@@ -52,9 +54,10 @@ export default async function TimelinePage({
   })
 
   return (
-    <div className="min-h-screen bg-[#f5f5f3] px-4 py-10 animate-page-fade dark:bg-slate-950 sm:px-6 md:py-14">
+    <div className="magazine-page magazine-journal">
       <div className="mx-auto max-w-2xl">
-        <div className="mb-8 px-1 md:mb-10">
+        <div className="magazine-heading">
+          <p className="study-imprint">A JOURNAL OF ORDINARY DAYS</p>
           <h1 className="mb-2 text-3xl font-bold text-[#111111] dark:text-white md:text-4xl">
             {t('title')}
           </h1>
@@ -66,10 +69,10 @@ export default async function TimelinePage({
             <p className="text-gray-400 text-lg">{t('empty')}</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
-            <div className="divide-y divide-black/[0.06] dark:divide-white/10">
+          <div className="magazine-panel">
+            <div className="space-y-8">
               {entries.map((entry) => (
-                <article key={entry.id} className="flex gap-3 p-4 sm:gap-4 sm:p-6">
+                <article id={`day-${entry.id}`} key={entry.id} className="scroll-mt-24 flex gap-3 p-4 sm:gap-4 sm:p-6">
                   <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm">
                     {config.owner.avatar ? (
                       <Image
@@ -98,8 +101,7 @@ export default async function TimelinePage({
                       </div>
 
                       {(() => {
-                        const title = locale === 'zh' ? entry.titleZh : entry.titleEn
-                        const description = locale === 'zh' ? entry.descZh : entry.descEn
+                        const {title,body:description} = noteText(entry,locale === 'en')
                         const showDescription = description.trim() && description.trim() !== title.trim()
                         return (
                           <>
@@ -116,31 +118,9 @@ export default async function TimelinePage({
                       })()}
 
                       {entry.images.length > 0 && (
-                        <div
-                          className={`mt-3 grid gap-1.5 ${entry.images.length === 1 ? 'max-w-sm grid-cols-1' : 'grid-cols-2 sm:max-w-lg sm:grid-cols-3'}`}
-                        >
-                          {entry.images.slice(0, 9).map((src, imageIndex) => (
-                            <a
-                              key={src}
-                              href={src}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={`relative block overflow-hidden rounded-md bg-gray-100 dark:bg-slate-800 ${entry.images.length === 1 ? 'aspect-[4/3]' : 'aspect-square'}`}
-                            >
-                              <Image
-                                src={src}
-                                alt={`${locale === 'zh' ? entry.titleZh : entry.titleEn} - ${imageIndex + 1}`}
-                                fill
-                                sizes={
-                                  entry.images.length === 1
-                                    ? '(max-width: 640px) 75vw, 384px'
-                                    : '(max-width: 640px) 36vw, 170px'
-                                }
-                                className="object-cover transition-transform duration-300 hover:scale-[1.02]"
-                              />
-                            </a>
-                          ))}
-                        </div>
+                        <TimelineMedia urls={entry.images} en={locale === 'en'}
+                          title={locale === 'en' ? entry.titleEn || entry.titleZh : entry.titleZh}
+                          date={formatTimelineDate(entry.createdAt, entry.year, dateFormatter)} />
                       )}
                   </div>
                 </article>

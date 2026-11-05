@@ -31,12 +31,13 @@ export default function Comments({ slug }: CommentsProps) {
     script.setAttribute('data-repo-id', repoId);
     script.setAttribute('data-category', 'Comments');
     script.setAttribute('data-category-id', categoryId);
-    script.setAttribute('data-mapping', 'pathname');
+    script.setAttribute('data-mapping', 'specific');
+    script.setAttribute('data-term', `/${locale}/posts/${slug}`);
     script.setAttribute('data-strict', '0');
     script.setAttribute('data-reactions-enabled', '1');
     script.setAttribute('data-emit-metadata', '0');
     script.setAttribute('data-input-position', 'top');
-    script.setAttribute('data-theme', resolvedTheme === 'dark' ? 'dark' : 'light');
+    script.setAttribute('data-theme', !container.closest('.study-magazine') && resolvedTheme === 'dark' ? 'dark' : 'light');
     script.setAttribute('data-lang', locale === 'zh' ? 'zh-CN' : 'en');
     script.crossOrigin = 'anonymous';
     script.async = true;

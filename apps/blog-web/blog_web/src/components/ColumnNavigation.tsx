@@ -42,7 +42,7 @@ export default function ColumnNavigation({ articleId, columns }: ColumnNavigatio
   if (!columnSlug || !navData) return null
 
   return (
-    <nav className="mt-12 p-5 rounded-xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50">
+    <nav className="magazine-panel mt-12 py-5">
       <div className="flex items-center gap-2 mb-4">
         <svg
           className="w-4 h-4 text-gray-400"

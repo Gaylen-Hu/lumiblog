@@ -1,0 +1,27 @@
+.paper {
+  position:relative;width:min(380px,100%);max-height:calc(100svh - 40px);overflow:auto;
+  padding:30px 30px 18px;border-radius:2px;
+  color:#433a2e;background:linear-gradient(118deg,#fff0b9,#f4dea0 86%,#e8cc88);
+  box-shadow:1px 9px 25px #36291240,3px 3px 0 #e2cb91;transform:rotate(-1deg);
+  color-scheme:light;font-family:'LXGW WenKai','KaiTi','STKaiti',Georgia,serif
+}
+.paper::before{content:'';position:absolute;top:-3px;left:calc(50% - 19px);width:38px;height:14px;
+  border-radius:0 0 3px 3px;background:linear-gradient(#846c44,#c0a578 40%,#8b754b)}
+.stage:has(.paper){justify-content:center;align-items:center;background:#312d234d;backdrop-filter:blur(2px)}
+.paper h2{font-size:16px;font-weight:500;line-height:1.5;margin:0 42px 0 0;color:#695b43}
+.paper .back{position:absolute;right:10px;top:9px;min-width:44px;min-height:44px;color:#504536;cursor:pointer;background:transparent;border:0;border-radius:50%;font-size:19px}
+.ink{padding-top:14px;animation:lift .22s ease-out}
+.ink time{color:#756344;font:11px/1.5 ui-monospace,monospace;letter-spacing:.08em}
+.ink p{font:400 clamp(24px,3vw,32px)/1.6 'LXGW WenKai','KaiTi','STKaiti',Georgia,serif;overflow-wrap:anywhere;margin:13px 0 18px}
+.print{display:block;position:relative;width:120px;height:85px;border:4px solid #fffaf0;border-bottom-width:9px;box-shadow:1px 2px 4px #4a382c44;transform:rotate(3deg);margin:4px 8px 18px auto;overflow:hidden}
+.print img{object-fit:cover}
+.noteFoot{display:flex;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid #73603942}
+.noteFoot a,.noteFoot button{display:inline-flex;align-items:center;min-height:44px;font:13px/1.5 system-ui,sans-serif;cursor:pointer;color:#594b35}
+.noteFoot button{background:none;border:0}.noteFoot a{margin-left:auto;padding-right:12px;text-decoration:underline;text-underline-offset:4px}
+.noteFoot a::after{content:'';position:absolute;bottom:0;right:0;width:22px;height:22px;background:linear-gradient(135deg,#d2b574 50%,#efe0bc 51%);box-shadow:-1px -1px 2px #89734030}
+.slip{display:block;border-left:3px solid #a65343;padding:8px 12px;margin:0 0 18px;background:#e6ddc9;color:#493f32;text-decoration:none;font-size:14px;line-height:1.6}
+.slip small{display:block;color:#705443;font:11px/1.8 system-ui,sans-serif}
+.keyboardRibbon:not(:focus){position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+.keyboardRibbon:focus{padding:12px 18px;background:#f6ead2;color:#332d23;pointer-events:auto}
+@keyframes lift{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.ink{animation:none}}

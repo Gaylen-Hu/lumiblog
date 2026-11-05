@@ -1,4 +1,4 @@
-name: Build & Deploy
+name: Full stack deploy (manual)
 
 permissions:
   contents: read
@@ -8,8 +8,7 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  push:
-    branches: [main, master]
+  # Intentionally manual: a frontend release must not run database migrations.
   workflow_dispatch:
 
 env:

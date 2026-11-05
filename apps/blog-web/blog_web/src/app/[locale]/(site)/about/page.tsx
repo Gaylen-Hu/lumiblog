@@ -52,7 +52,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
     }))
 
   return (
-    <div className="py-12 px-6 md:px-12 lg:px-24 bg-[#F9F9F9] dark:bg-slate-900 min-h-screen animate-page-fade">
+    <div className="py-12 px-6 md:px-12 lg:px-24 min-h-screen">
       <ProfilePageJsonLd locale={locale} />
       <div className="max-w-7xl mx-auto space-y-32">
 
@@ -88,7 +88,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                 {techStack.map((tech) => (
                   <span
                     key={tech}
-                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300"
+                    className="magazine-panel px-4 py-2 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300"
                   >
                     {tech}
                   </span>
@@ -99,7 +99,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
-              <div className="aspect-square rounded-3xl overflow-hidden shadow-sm group">
+              <div className="magazine-panel aspect-square rounded-3xl overflow-hidden shadow-sm group">
                 {aboutImage1 !== null ? (
                   <Image
                     src={aboutImage1}
@@ -116,7 +116,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                   </div>
                 )}
               </div>
-              <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-blue-600 flex items-end p-8 text-white relative group">
+              <div className="magazine-panel aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-blue-600 flex items-end p-8 text-white relative group">
                 <div className="z-10 relative">
                   <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('interest')}</span>
                   <h4 className="text-2xl font-bold mt-2">{t('architecture')}</h4>
@@ -124,7 +124,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
               </div>
             </div>
             <div className="space-y-4 pt-12">
-              <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-[#111111] p-8 text-white group">
+              <div className="magazine-panel aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-[#111111] p-8 text-white group">
                 <div className="h-full flex flex-col justify-between">
                   <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform text-2xl">
                     ☕️
@@ -135,7 +135,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                   </div>
                 </div>
               </div>
-              <div className="aspect-square rounded-3xl overflow-hidden shadow-sm group">
+              <div className="magazine-panel aspect-square rounded-3xl overflow-hidden shadow-sm group">
                 {aboutImage2 !== null ? (
                   <Image
                     src={aboutImage2}
@@ -166,27 +166,27 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
               {t('techUniverse')}
             </h2>
             <div className="grid gap-4">
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+              <div className="magazine-panel p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
                 <h4 className="text-xs font-mono text-blue-500 uppercase tracking-widest mb-3">Frontend Core</h4>
                 <div className="flex flex-wrap gap-2">
                   {['Vue 3', 'Pinia', 'Next.js', 'React'].map((tag) => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
+                    <span key={tag} className="magazine-panel px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
                   ))}
                 </div>
               </div>
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+              <div className="magazine-panel p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
                 <h4 className="text-xs font-mono text-emerald-500 uppercase tracking-widest mb-3">Cross-Platform</h4>
                 <div className="flex flex-wrap gap-2">
                   {['UniApp', 'Electron', 'HarmonyOS'].map((tag) => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
+                    <span key={tag} className="magazine-panel px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
                   ))}
                 </div>
               </div>
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
+              <div className="magazine-panel p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
                 <h4 className="text-xs font-mono text-purple-500 uppercase tracking-widest mb-3">Full-Stack</h4>
                 <div className="flex flex-wrap gap-2">
                   {['NestJS', 'Redis', 'PostgreSQL', 'JWT'].map((tag) => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
+                    <span key={tag} className="magazine-panel px-3 py-1 rounded-full bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 text-sm text-gray-600 dark:text-gray-300">{tag}</span>
                   ))}
                 </div>
               </div>

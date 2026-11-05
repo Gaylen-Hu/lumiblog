@@ -1,6 +1,5 @@
 import { getTranslations } from 'next-intl/server'
 import ProjectCard from '@/components/ProjectCard'
-import ScrollReveal from '@/components/ui/ScrollReveal'
 import { getProjects } from '@/lib/api'
 import type { Metadata } from 'next'
 
@@ -27,19 +26,18 @@ export default async function ProjectsPage() {
   const projects = projectsRes.data
 
   return (
-    <div className="py-12 px-6 md:px-12 lg:px-24 animate-page-fade bg-white dark:bg-slate-950 min-h-screen">
+    <div className="magazine-page">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-[#111111] dark:text-white">
+        <div className="magazine-heading">
+          <p className="study-imprint">FROM THE WORK DESK / SELECTED PROJECTS</p>
+          <h1>
             {t('title')}
           </h1>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {projects.map((project, i) => (
-            <ScrollReveal key={project.id} delay={i * 0.07} direction="up">
-              <ProjectCard project={project} />
-            </ScrollReveal>
+        <div className="magazine-story-list">
+          {projects.map((project) => (
+            <ProjectCard key={project.id} project={project} variant="magazine" />
           ))}
         </div>
 

@@ -24,7 +24,7 @@ export default function RSSPage() {
   const feedUrl = '/feed.xml'
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950">
+    <div className="min-h-screen bg-transparent dark:bg-slate-950">
       <div className="max-w-3xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-50 dark:bg-orange-900/20 text-orange-500 mb-6">
@@ -39,7 +39,7 @@ export default function RSSPage() {
         <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl p-8 mb-12">
           <h2 className="text-sm font-semibold text-[#111111] dark:text-white uppercase tracking-wider mb-4">订阅地址</h2>
           <div className="flex items-center gap-3">
-            <code className="flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-lg text-sm text-[#555555] dark:text-gray-300 font-mono border border-gray-100 dark:border-slate-700 overflow-x-auto">
+            <code className="magazine-panel flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-lg text-sm text-[#555555] dark:text-gray-300 font-mono border border-gray-100 dark:border-slate-700 overflow-x-auto">
               {feedUrl}
             </code>
             <CopyButton text={feedUrl} />

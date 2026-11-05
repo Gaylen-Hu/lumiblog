@@ -8,10 +8,18 @@ import SpotlightCard from './ui/SpotlightCard';
 
 interface ProjectCardProps {
   project: Project;
+  variant?: 'card' | 'magazine';
 }
 
-export default function ProjectCard({ project }: ProjectCardProps) {
+export default function ProjectCard({ project, variant = 'card' }: ProjectCardProps) {
   const t = useTranslations('projects');
+
+  if (variant === 'magazine') return <article className="magazine-story">
+    <small>{project.techStack.join(' / ')}</small>
+    <h2><Link prefetch={false} href={`/projects/${project.id}`}>{project.title}</Link></h2>
+    <p>{project.description}</p>
+    <Link prefetch={false} href={`/projects/${project.id}`}>{t('viewProject')} ↗</Link>
+  </article>;
 
   return (
     <Link

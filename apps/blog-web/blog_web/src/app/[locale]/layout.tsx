@@ -1,3 +1,4 @@
+import StudyShell from '@/components/study/StudyShell'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
@@ -115,12 +116,12 @@ export default async function LocaleLayout({
         </>
       ) : null}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-white dark:bg-slate-950`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-[#FBF9F5]`}
       >
         <SiteJsonLd config={config} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
-            {children}
+            <StudyShell locale={locale}>{children}</StudyShell>
           </NextIntlClientProvider>
         </ThemeProvider>
         <Analytics />

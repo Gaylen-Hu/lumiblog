@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { Link } from '@/i18n/navigation'
 import { getProjectById } from '@/lib/api'
 import type { Metadata } from 'next'
 
@@ -27,24 +26,15 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   if (!project) notFound()
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 pb-32 animate-page-fade">
-      <div className="max-w-4xl mx-auto px-6 pt-12">
-        <Link
-          href="/projects"
-          className="group flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors mb-12"
-        >
-          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          {t('backToList')}
-        </Link>
-
+    <div className="magazine-page">
+      <div className="magazine-reading-column">
+        <p className="study-imprint">FROM THE WORK DESK / PROJECT NOTES</p>
         <h1 className="text-4xl md:text-5xl font-bold text-[#111111] dark:text-white leading-tight mb-8 tracking-tight">
           {project.title}
         </h1>
 
         {project.coverImage && (
-          <div className="mb-10 rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-800">
+          <div className="mb-10 overflow-hidden">
             <Image
               src={project.coverImage}
               alt={project.title}

@@ -1,0 +1,100 @@
+name: Blog frontend release
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy the tested blog artifact to production (frontend only)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SITE_URL: https://www.new-universe.cn
+      NEXT_PUBLIC_API_URL: https://api.new-universe.cn/v1/public
+      NEXT_PUBLIC_GA_ID: G-Q018EMFR1V
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: '10'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Verify deployment helpers
+        run: |
+          node --test scripts/blog-release.test.mjs
+          bash -n scripts/deploy-blog.sh
+      - name: Install, test and build blog
+        working-directory: apps/blog-web/blog_web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm exec next typegen
+          pnpm exec tsc --noEmit
+          pnpm exec eslint src/components/study src/app/api src/lib/reading-bookmark.ts
+          pnpm build
+      - name: Package and run production smoke checks
+        run: |
+          node scripts/package-blog.mjs apps/blog-web/blog_web _artifacts/blog-release "$GITHUB_SHA"
+          cd _artifacts/blog-release
+          HOSTNAME=127.0.0.1 PORT=3105 NODE_ENV=production node server.js > ../blog-smoke.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+          cd ../..
+          READY=false
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3105/zh >/dev/null; then READY=true; break; fi
+            sleep 1
+          done
+          test "$READY" = true || { cat _artifacts/blog-smoke.log; exit 1; }
+          node scripts/smoke-blog.mjs http://127.0.0.1:3105 "$GITHUB_SHA"
+          tar -czf _artifacts/blog.tar.gz -C _artifacts/blog-release .
+          printf '%s\n' "$GITHUB_SHA" > _artifacts/revision.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blog-${{ github.sha }}
+          path: |
+            _artifacts/blog.tar.gz
+            _artifacts/revision.txt
+            scripts/deploy-blog.sh
+            scripts/patch-blog-nginx.mjs
+            scripts/smoke-blog.mjs
+  deploy:
+    if: ${{ inputs.deploy }}
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: blog-${{ github.sha }}
+          path: release
+      - name: Set up verified SSH host
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_FINGERPRINT: ${{ secrets.SSH_FINGERPRINT }}
+        run: |
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -t ed25519 -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts
+          test "$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}')" = "$SSH_FINGERPRINT"
+      - name: Upload and deploy frontend only
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          REMOTE="/tmp/blog-frontend-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "install -d -m 0700 '$REMOTE'"
+          scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/blog.tar.gz release/_artifacts/revision.txt release/scripts/*.mjs release/scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-blog.sh'"

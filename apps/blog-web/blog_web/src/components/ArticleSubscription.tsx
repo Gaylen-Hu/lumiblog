@@ -7,9 +7,8 @@ export default async function ArticleSubscription() {
   return (
     <aside
       aria-labelledby="article-subscription-title"
-      className="relative my-14 overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:border-blue-900/50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/40"
+      className="magazine-panel relative my-14 overflow-hidden"
     >
-      <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-blue-200/30 blur-3xl dark:bg-blue-500/10" />
       <div className="relative grid items-center gap-8 p-8 md:grid-cols-[minmax(0,1fr)_auto] md:p-10">
         <div>
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">
@@ -27,7 +26,7 @@ export default async function ArticleSubscription() {
           </p>
         </div>
 
-        <div className="mx-auto rounded-2xl bg-white p-3 shadow-[0_18px_50px_rgba(37,99,235,0.12)] dark:bg-white">
+        <div className="mx-auto p-3">
           <Image
             src="/byte-beyond-qrcode.jpg"
             alt={t('qrAlt')}
