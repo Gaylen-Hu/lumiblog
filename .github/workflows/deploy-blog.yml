@@ -17,14 +17,19 @@ on:
         description: 'Inspect existing production layout without building or changing it'
         type: boolean
         default: false
+      reuse_run_id:
+        description: 'Reuse a previous run artifact after verifying its successful build job'
+        type: string
+        default: ''
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: ${{ inputs.inspect_only && 'production-inspect' || 'production-deploy' }}
   cancel-in-progress: false
 jobs:
   verify:
-    if: ${{ !inputs.inspect_only }}
+    if: ${{ !inputs.inspect_only && !inputs.reuse_run_id }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -79,16 +84,38 @@ jobs:
             scripts/patch-blog-nginx.mjs
             scripts/smoke-blog.mjs
   deploy:
-    if: ${{ always() && (inputs.deploy || inputs.inspect_only) && (needs.verify.result == 'success' || inputs.inspect_only) }}
+    if: ${{ always() && (inputs.deploy || inputs.inspect_only) && (needs.verify.result == 'success' || inputs.inspect_only || inputs.reuse_run_id) }}
     needs: verify
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - uses: actions/checkout@v5
+        if: ${{ !inputs.inspect_only }}
+      - name: Select verified artifact
+        if: ${{ !inputs.inspect_only }}
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REUSE_RUN_ID: ${{ inputs.reuse_run_id }}
+        run: |
+          SOURCE_RUN="${REUSE_RUN_ID:-$GITHUB_RUN_ID}"
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          if [ -n "$REUSE_RUN_ID" ]; then
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN/jobs" --jq '[.jobs[] | select(.name == "verify" and .conclusion == "success")] | length')" -gt 0
+          fi
+          REVISION="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq '.head_sha')"
+          ATTEMPT="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq '.run_attempt')"
+          [[ "$REVISION" =~ ^[a-f0-9]{40}$ ]]
+          printf 'revision=%s\nrun_id=%s\nattempt=%s\n' "$REVISION" "$SOURCE_RUN" "$ATTEMPT" >> "$GITHUB_OUTPUT"
+          node --test scripts/blog-release.test.mjs
+          bash -n scripts/deploy-blog.sh
       - uses: actions/download-artifact@v4
         if: ${{ !inputs.inspect_only }}
         with:
-          name: blog-${{ github.sha }}
+          name: blog-${{ steps.candidate.outputs.revision }}
           path: release
+          run-id: ${{ steps.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
       - name: Set up verified SSH host
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -139,8 +166,17 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
+          SOURCE_RUN: ${{ steps.candidate.outputs.run_id }}
+          SOURCE_ATTEMPT: ${{ steps.candidate.outputs.attempt }}
         run: |
-          REMOTE="/tmp/blog-frontend-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          REMOTE="/tmp/blog-frontend-$SOURCE_RUN-$SOURCE_ATTEMPT"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "install -d -m 0700 '$REMOTE'"
-          scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/blog.tar.gz release/_artifacts/revision.txt release/scripts/*.mjs release/scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
+          LOCAL_HASH="$(sha256sum release/_artifacts/blog.tar.gz | awk '{print $1}')"
+          REMOTE_HASH="$(ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "if test -f '$REMOTE/blog.tar.gz'; then sha256sum '$REMOTE/blog.tar.gz' | cut -d' ' -f1; fi")"
+          if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
+            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/blog.tar.gz "$SSH_USER@$SSH_HOST:$REMOTE/"
+          else
+            printf 'Reusing identical uploaded archive (SHA-256 verified)\n'
+          fi
+          scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/revision.txt scripts/patch-blog-nginx.mjs scripts/smoke-blog.mjs scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-blog.sh'"

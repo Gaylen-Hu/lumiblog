@@ -95,7 +95,9 @@ nginx -t
 systemctl reload nginx.service
 # Exercise the actual virtual host and TLS route, not just the upstream port.
 for route in '/zh' '/api/study/reading?path=%2Fzh%2Ftimeline' '/api/study/search?q=Flutter&page=1&locale=zh' '/study-assets/daylight/garden.webp'; do
-  curl -fsS --max-time 30 --resolve www.new-universe.cn:443:127.0.0.1 "https://www.new-universe.cn$route" >/dev/null
+  printf '[blog] HTTPS check %s\n' "$route"
+  # nginx reload returns before all workers have adopted the new configuration.
+  curl -fsS --retry 10 --retry-all-errors --retry-delay 1 --max-time 30 --resolve www.new-universe.cn:443:127.0.0.1 "https://www.new-universe.cn$route" >/dev/null
 done
 curl -fsS --max-time 30 --resolve www.new-universe.cn:443:127.0.0.1 'https://www.new-universe.cn/api/study/reading?path=%2Fzh%2Ftimeline' \
   | node -e 'let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{if(JSON.parse(s).kind!=="timeline")process.exit(1)})'
