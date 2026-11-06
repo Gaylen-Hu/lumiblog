@@ -28,8 +28,15 @@ export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { va
       float water(vec2 uv) { return max(beads(uv,vec2(24.0,13.0),0.32),beads(uv+0.17,vec2(45.0,24.0),0.08)*0.7); }
       void main(){
         float h=water(glassUv);
+        // Recover the UV gradient from screen derivatives. Sampling the entire
+        // bead field four more times per pixel was expensive on integrated GPUs.
+        vec2 dx=dFdx(glassUv), dy=dFdy(glassUv);
+        float hx=dFdx(h), hy=dFdy(h);
+        float determinant=dx.x*dy.y-dx.y*dy.x;
+        vec2 normal=abs(determinant)>0.0000000001
+          ? clamp(vec2(hx*dy.y-hy*dx.y,hy*dx.x-hx*dy.x)/determinant*0.0012,vec2(-1.0),vec2(1.0))
+          : vec2(0.0);
         if(h<0.005 || wet<0.005) discard;
-        vec2 normal=vec2(water(glassUv+vec2(0.0006,0.0))-water(glassUv-vec2(0.0006,0.0)),water(glassUv+vec2(0.0,0.0006))-water(glassUv-vec2(0.0,0.0006)));
         vec3 ray=glassWorld-cameraPosition;
         float distanceToPainting=(5.0-glassWorld.x)/max(ray.x,0.001);
         vec3 hit=glassWorld+ray*distanceToPainting;

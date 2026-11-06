@@ -12,6 +12,7 @@ import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
 import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
 import { roomDiagnostics } from './room-diagnostics'
+import { batchStaticScene } from './batch-static-scene'
 
 type PickedItem = { target: RoomItem; columnSlug?: string; categoryId?: string; shelfIndex?: number; tier?: number; drawerIndex?: number }
 export type RoomOptions = {
@@ -1593,6 +1594,12 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const picture = mesh(new THREE.PlaneGeometry(.46, .59), pictureMaterial, [-.95, 2.45, -3.76])
   picture.castShadow = false
   loadArt('landscape', texture => { pictureMaterial.map = texture; pictureMaterial.needsUpdate = true })
+  batchStaticScene(scene, new Set<THREE.Object3D>([
+    ...hits, curtains, diary, readingCase, caseTray, display,
+    ...drawers, ...markedVolumes.map(value => value.book), ...rails,
+    ...plates.map(value => value.holder), printFrame, ...editionModels,
+    hourHand, minuteHand, secondHand, ...leaves.map(value => value.mesh), ...steam,
+  ]), geometries)
   resize(); requestFrame()
   return {
     setTarget,

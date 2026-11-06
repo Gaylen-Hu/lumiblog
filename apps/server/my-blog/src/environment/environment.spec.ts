@@ -47,4 +47,24 @@ describe('environment proxy', () => {
   it('rejects old upstream data even when it has just been fetched', () => {
     expect(() => parseCurrentWeather({ validTime: '2026-11-05T12:00Z', condition: { code: '101' }, temperature: { value: 14, unit: '°C' } }, Date.parse('2026-11-05T15:05Z'))).toThrow('invalid weather validity time');
   });
+  it('preserves valid stale weather on upstream timeout and backs off repeated visitors', async () => {
+    let now = Date.now();
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    const configured = new ConfigService({ QWEATHER_API_HOST:'example.xy.qweatherapi.com', QWEATHER_API_KEY:'test-key' });
+    const fetcher = jest.spyOn(global, 'fetch').mockResolvedValue({ ok:true, json:async()=>({condition:{code:'305'},temperature:{value:15,unit:'°C'}}) } as Response);
+    const cache = { get:jest.fn().mockResolvedValue(null),set:jest.fn() } as unknown as BlogCacheService;
+    const service = new EnvironmentService(configured, cache);
+    const first = await service.read();
+    now += 900_001;
+    fetcher.mockRejectedValue(new DOMException('timeout','TimeoutError'));
+    expect((await service.read()).weather?.freshness).toBe('stale');
+    await new Promise<void>(resolve=>setImmediate(resolve));
+    for(let i=0;i<10;i++) expect((await service.read()).weather?.fetchedAt).toBe(first.weather?.fetchedAt);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    now += 60_001;
+    await service.read(); await new Promise<void>(resolve=>setImmediate(resolve));
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    now = first.weather!.fetchedAt + 7200_001;
+    expect((await service.read()).weather).toBeNull();
+  });
 });
