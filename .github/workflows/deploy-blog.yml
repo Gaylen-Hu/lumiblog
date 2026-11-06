@@ -15,6 +15,10 @@ on:
         description: 'Deploy the tested blog artifact to production (frontend only)'
         type: boolean
         default: false
+      deploy_server:
+        description: 'Also deploy the compatible search API without database migrations'
+        type: boolean
+        default: false
       inspect_only:
         description: 'Inspect existing production layout without building or changing it'
         type: boolean
@@ -51,6 +55,20 @@ jobs:
           node --test scripts/blog-release.test.mjs
           node scripts/audit-study-assets.mjs
           bash -n scripts/deploy-blog.sh
+          bash -n scripts/deploy-search-server.sh
+          node --check scripts/smoke-search.mjs
+      - name: Build search API candidate
+        if: ${{ inputs.deploy_server }}
+        working-directory: apps/server/my-blog
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+          pnpm exec jest --runInBand src/public/__tests__/article-search.spec.ts src/public/__tests__/public.service.spec.ts
+          pnpm build
+          mkdir -p ../../../_artifacts
+          tar -czf ../../../_artifacts/server.tar.gz dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc
       - name: Install, test and build blog
         working-directory: apps/blog-web/blog_web
         run: |
@@ -83,9 +101,12 @@ jobs:
           path: |
             _artifacts/blog.tar.gz
             _artifacts/revision.txt
+            _artifacts/server.tar.gz
             scripts/deploy-blog.sh
             scripts/patch-blog-nginx.mjs
             scripts/smoke-blog.mjs
+            scripts/deploy-search-server.sh
+            scripts/smoke-search.mjs
   deploy:
     if: ${{ always() && (inputs.deploy || inputs.inspect_only) && (needs.verify.result == 'success' || inputs.inspect_only || inputs.reuse_run_id) }}
     needs: verify
@@ -148,6 +169,7 @@ jobs:
               ls -ld "$item" 2>/dev/null || true
             done
             systemctl show blog-web.service -p User -p WorkingDirectory -p FragmentPath || true
+            systemctl show myblog-api.service -p User -p WorkingDirectory -p FragmentPath || true
             systemctl is-active blog-web.service myblog-api.service nginx.service || true
             printf '\nNginx site names and upstreams:\n'
             nginx -T 2>/dev/null | awk '/^# configuration file / || /^[[:space:]]*(server_name|listen|proxy_pass|root)[[:space:]]/ {print}' || true
@@ -163,7 +185,7 @@ jobs:
             curl -fsS --max-time 30 http://127.0.0.1:3001/zh >/dev/null
             df -h /home/myblog
           REMOTE
-      - name: Upload and deploy frontend only
+      - name: Upload and deploy selected services
         if: ${{ !inputs.inspect_only }}
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -171,6 +193,7 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           SOURCE_RUN: ${{ steps.candidate.outputs.run_id }}
           SOURCE_ATTEMPT: ${{ steps.candidate.outputs.attempt }}
+          DEPLOY_SERVER: ${{ inputs.deploy_server }}
         run: |
           REMOTE="/tmp/blog-frontend-$SOURCE_RUN-$SOURCE_ATTEMPT"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "install -d -m 0700 '$REMOTE'"
@@ -182,4 +205,9 @@ jobs:
             printf 'Reusing identical uploaded archive (SHA-256 verified)\n'
           fi
           scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/revision.txt scripts/patch-blog-nginx.mjs scripts/smoke-blog.mjs scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
+          if [ "$DEPLOY_SERVER" = true ]; then
+            test -f release/_artifacts/server.tar.gz
+            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/server.tar.gz scripts/deploy-search-server.sh scripts/smoke-search.mjs "$SSH_USER@$SSH_HOST:$REMOTE/"
+            ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-search-server.sh'"
+          fi
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-blog.sh'"
