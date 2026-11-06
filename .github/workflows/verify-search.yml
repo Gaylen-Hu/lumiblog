@@ -1,0 +1,43 @@
+name: Search upgrade verification
+on:
+  pull_request:
+    paths:
+      - 'apps/server/my-blog/src/public/**'
+      - '.github/workflows/verify-search.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: search_test
+          POSTGRES_PASSWORD: search_test
+          POSTGRES_DB: search_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U search_test -d search_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://search_test:search_test@localhost:5432/search_test
+      SEARCH_INTEGRATION_URL: postgresql://search_test:search_test@localhost:5432/search_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: '10'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Build and test search against disposable PostgreSQL
+        working-directory: apps/server/my-blog
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+          pnpm exec jest --runInBand src/public/__tests__/article-search.spec.ts src/public/__tests__/public.service.spec.ts
+          pnpm build

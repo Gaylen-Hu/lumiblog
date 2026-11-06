@@ -6,9 +6,10 @@ import type { PaginatedResponse, Post, SearchResult } from '@/types'
 import CatalogLeaf from './CatalogLeaf'
 import { stampStudyHistory, studyHistory } from './study-route'
 import skin from './shelf-catalog.module.css'
+import { searchExcerpt } from './search-excerpt'
 
 type ResultPage = PaginatedResponse<SearchResult>
-type Reply = { key: string; query: string; results?: ResultPage }
+type Reply = { key: string; query: string; results?: ResultPage; invalid?: boolean }
 export type ShelfSelection = Pick<SearchResult, 'slug' | 'category'>
 type Props = {
   locale: string; posts: Post[]; path?: string; motion: boolean; sceneVisible: boolean
@@ -17,13 +18,7 @@ type Props = {
 }
 
 function excerpt(result: SearchResult, q: string) {
-  const text = (result.highlight || result.excerpt || '')
-    .replace(/<\/?mark>/gi, '').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/(?:^|\s)#{1,6}\s+|(?:^|\s)>\s+|\*\*|~~|`/g, ' ').replace(/\s+/g, ' ').trim()
-  const index = text.toLowerCase().indexOf(q.toLowerCase())
-  if (index < 0) return text
-  // Keep the first match visible even on a one-line mobile card.
-  return <>{index > 12 ? '…' : ''}{text.slice(Math.max(0, index - 12), index)}<mark>{text.slice(index, index + q.length)}</mark>{text.slice(index + q.length)}</>
+  return searchExcerpt(result.highlight || result.excerpt || '', q).map((segment, i) => segment.matched ? <mark key={i}>{segment.text}</mark> : segment.text)
 }
 
 export default function ShelfCatalog({ locale, posts, path, motion, sceneVisible, panelRef, onClose, onCue, children }: Props) {
@@ -66,6 +61,10 @@ export default function ShelfCatalog({ locale, posts, path, motion, sceneVisible
     const timer = window.setTimeout(async () => {
       try {
         const response = await fetch('/api/study/search?' + key, { signal: controller.signal })
+        if (response.status === 400) {
+          if (!controller.signal.aborted) setReply({ key, query, invalid: true })
+          return
+        }
         if (!response.ok) throw new Error('Search failed')
         const data: ResultPage = await response.json()
         if (!controller.signal.aborted) setReply({ key, query, results: data })
@@ -110,6 +109,7 @@ export default function ShelfCatalog({ locale, posts, path, motion, sceneVisible
   let status = ''
   if (query && !composing) {
     if (!current) status = en ? 'Looking through the catalog…' : '正在查阅目录…'
+    else if (current.invalid) status = en ? 'Please shorten the query or use fewer keywords.' : '请缩短搜索内容，或减少关键词数量。'
     else if (!results) status = en ? 'The catalog could not be reached.' : '暂时没能连上目录。'
     else if (!results.total) status = en ? 'No matching articles. Try another word.' : '没有找到这篇文章，换个词试试。'
     else status = en ? results.total + (results.total === 1 ? ' article' : ' articles') : '共 ' + results.total + ' 篇'

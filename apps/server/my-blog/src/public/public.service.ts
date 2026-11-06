@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SiteConfigService } from '../site-config/site-config.service';
 import { BlogCacheService, CacheKeyRegistry } from '../redis';
+import { rankedSearchSql, searchHighlight } from './article-search';
 import {
   PublicArticleQueryDto,
   PublicArticleListItemDto,
@@ -45,7 +46,15 @@ const ARTICLE_INCLUDE = {
   tags: { include: { tag: { select: { id: true, name: true, slug: true } } } },
   columns: {
     include: {
-      column: { select: { id: true, title: true, slug: true, sortOrder: true, status: true } },
+      column: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          sortOrder: true,
+          status: true,
+        },
+      },
     },
   },
 } as const;
@@ -68,8 +77,41 @@ export class PublicService {
   /**
    * 获取公开文章列表
    */
-  async getArticles(query: PublicArticleQueryDto): Promise<PaginatedPublicArticleListDto> {
+  async getArticles(
+    query: PublicArticleQueryDto,
+  ): Promise<PaginatedPublicArticleListDto> {
     const { page = 1, pageSize = 10, category, tag, search, locale } = query;
+
+    if (search) {
+      const matches = await this.prisma.$queryRaw<{ id: string }[]>(
+        rankedSearchSql(search, { locale, category, tag }),
+      );
+      const ids = matches
+        .slice((page - 1) * pageSize, page * pageSize)
+        .map((item) => item.id);
+      const [items, author] = await Promise.all([
+        this.prisma.article.findMany({
+          where: {
+            id: { in: ids },
+            isPublished: true,
+            ...(locale ? { locale } : {}),
+          },
+          include: ARTICLE_INCLUDE,
+        }),
+        this.getSiteAuthor(),
+      ]);
+      const byId = new Map(items.map((item) => [item.id, item]));
+      const data = ids.flatMap((id) => {
+        const item = byId.get(id);
+        return item ? [this.toArticleListItem(item, author)] : [];
+      });
+      return new PaginatedPublicArticleListDto({
+        data,
+        total: matches.length,
+        page,
+        pageSize,
+      });
+    }
 
     const where: Prisma.ArticleWhereInput = { isPublished: true };
 
@@ -82,13 +124,6 @@ export class PublicService {
     if (tag) {
       where.tags = { some: { tag: { slug: tag } } };
     }
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { summary: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
     const [items, total, author] = await Promise.all([
       this.prisma.article.findMany({
         where,
@@ -101,14 +136,19 @@ export class PublicService {
       this.getSiteAuthor(),
     ]);
 
-    const data = items.map((article) => this.toArticleListItem(article, author));
+    const data = items.map((article) =>
+      this.toArticleListItem(article, author),
+    );
     return new PaginatedPublicArticleListDto({ data, total, page, pageSize });
   }
 
   /**
    * 根据 slug 获取文章详情
    */
-  async getArticleBySlug(slug: string, locale?: string): Promise<PublicArticleDetailDto> {
+  async getArticleBySlug(
+    slug: string,
+    locale?: string,
+  ): Promise<PublicArticleDetailDto> {
     const where: Prisma.ArticleWhereInput = { slug, isPublished: true };
     if (locale) where.locale = locale;
 
@@ -147,7 +187,11 @@ export class PublicService {
         where: { id: article.id },
         data: { viewCount: { increment: 1 } },
       })
-      .catch((err) => this.logger.error(`阅读量更新失败: ${err.message}`));
+      .catch((err: unknown) =>
+        this.logger.error(
+          `阅读量更新失败: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     const navWhere: Prisma.ArticleWhereInput = {
       isPublished: true,
@@ -177,10 +221,18 @@ export class PublicService {
     ]);
 
     const prevArticle = prev
-      ? new ArticleNavItemDto({ slug: prev.slug, title: prev.title, publishedAt: prev.publishedAt! })
+      ? new ArticleNavItemDto({
+          slug: prev.slug,
+          title: prev.title,
+          publishedAt: prev.publishedAt!,
+        })
       : null;
     const nextArticle = next
-      ? new ArticleNavItemDto({ slug: next.slug, title: next.title, publishedAt: next.publishedAt! })
+      ? new ArticleNavItemDto({
+          slug: next.slug,
+          title: next.title,
+          publishedAt: next.publishedAt!,
+        })
       : null;
 
     return this.toArticleDetail(article, prevArticle, nextArticle, author);
@@ -200,7 +252,9 @@ export class PublicService {
   /**
    * 获取项目列表（支持分页和精选筛选）
    */
-  async getProjects(query: PublicProjectQueryDto): Promise<PaginatedPublicProjectListDto> {
+  async getProjects(
+    query: PublicProjectQueryDto,
+  ): Promise<PaginatedPublicProjectListDto> {
     const { page = 1, pageSize = 10, featured } = query;
     const where: Prisma.ProjectWhereInput = {};
     if (featured !== undefined) where.featured = featured;
@@ -229,7 +283,6 @@ export class PublicService {
     }
     return new PublicProjectDto(project);
   }
-
 
   /**
    * 获取分类列表（含已发布文章数量）
@@ -359,32 +412,26 @@ export class PublicService {
    */
   async search(query: SearchQueryDto): Promise<SearchResultDto> {
     const { q, page = 1, pageSize = 10, locale } = query;
-
-    const where: Prisma.ArticleWhereInput = {
-      isPublished: true,
-      ...(locale ? { locale } : {}),
-      OR: [
-        { title: { contains: q, mode: 'insensitive' } },
-        { summary: { contains: q, mode: 'insensitive' } },
-        { content: { contains: q, mode: 'insensitive' } },
-      ],
-    };
-
-    const [items, total] = await Promise.all([
-      this.prisma.article.findMany({
-        where,
-        orderBy: { publishedAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        include: {
-          category: { select: { name: true } },
-        },
-      }),
-      this.prisma.article.count({ where }),
-    ]);
-
-    const data = items.map((article) => this.toSearchResultItem(article, q));
-    return new SearchResultDto({ data, total, page, pageSize });
+    const matches = await this.prisma.$queryRaw<{ id: string }[]>(
+      rankedSearchSql(q, { locale }),
+    );
+    const ids = matches
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((item) => item.id);
+    const items = await this.prisma.article.findMany({
+      where: {
+        id: { in: ids },
+        isPublished: true,
+        ...(locale ? { locale } : {}),
+      },
+      include: { category: { select: { name: true } } },
+    });
+    const byId = new Map(items.map((item) => [item.id, item]));
+    const data = ids.flatMap((id) => {
+      const item = byId.get(id);
+      return item ? [this.toSearchResultItem(item, q)] : [];
+    });
+    return new SearchResultDto({ data, total: matches.length, page, pageSize });
   }
 
   /**
@@ -398,34 +445,12 @@ export class PublicService {
   }
 
   /**
-   * 生成高亮文本
-   */
-  private generateHighlight(content: string | null, keyword: string): string | null {
-      if (!content) return null;
-      const lowerContent = content.toLowerCase();
-      const lowerKeyword = keyword.toLowerCase();
-      const index = lowerContent.indexOf(lowerKeyword);
-      if (index === -1) return null;
-
-      const start = Math.max(0, index - 50);
-      const end = Math.min(content.length, index + keyword.length + 50);
-      let highlight = content.slice(start, end);
-
-      if (start > 0) highlight = '...' + highlight;
-      if (end < content.length) highlight = highlight + '...';
-
-      // 转义正则特殊字符后添加高亮标记
-      const specialChars = /[.*+?^${}()|[\]\\]/g;
-      const escaped = keyword.replace(specialChars, String.raw`\$&`);
-      const regex = new RegExp('(' + escaped + ')', 'gi');
-      return highlight.replace(regex, '<mark>$1</mark>');
-    }
-
-
-  /**
    * 转换为文章列表项 DTO
    */
-  private toArticleListItem(article: ArticleWithRelations, author: AuthorDto): PublicArticleListItemDto {
+  private toArticleListItem(
+    article: ArticleWithRelations,
+    author: AuthorDto,
+  ): PublicArticleListItemDto {
     // 筛选已发布专栏，按 sortOrder 升序取第一个
     const publishedColumns = article.columns
       .filter((ca) => ca.column.status === 'published')
@@ -433,7 +458,11 @@ export class PublicService {
 
     const firstColumn = publishedColumns[0]?.column ?? null;
     const column = firstColumn
-      ? new ColumnBriefDto({ id: firstColumn.id, title: firstColumn.title, slug: firstColumn.slug })
+      ? new ColumnBriefDto({
+          id: firstColumn.id,
+          title: firstColumn.title,
+          slug: firstColumn.slug,
+        })
       : null;
 
     return new PublicArticleListItemDto({
@@ -468,7 +497,12 @@ export class PublicService {
       .sort((a, b) => a.column.sortOrder - b.column.sortOrder);
 
     const columns = publishedColumns.map(
-      (ca) => new ColumnBriefDto({ id: ca.column.id, title: ca.column.title, slug: ca.column.slug }),
+      (ca) =>
+        new ColumnBriefDto({
+          id: ca.column.id,
+          title: ca.column.title,
+          slug: ca.column.slug,
+        }),
     );
 
     // 列表项的 column 取第一个已发布专栏
@@ -530,7 +564,7 @@ export class PublicService {
       slug: article.slug,
       title: article.title,
       excerpt: article.summary,
-      highlight: this.generateHighlight(article.content, keyword),
+      highlight: searchHighlight(article.content, keyword),
       category: article.category?.name ?? null,
       publishedAt: article.publishedAt ?? article.createdAt,
     });
