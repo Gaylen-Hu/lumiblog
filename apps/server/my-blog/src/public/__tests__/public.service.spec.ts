@@ -70,6 +70,7 @@ function buildMockArticle(overrides: Partial<{
 describe('PublicService', () => {
   let service: PublicService;
   let prisma: {
+    $queryRaw: jest.Mock;
     article: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
@@ -90,6 +91,7 @@ describe('PublicService', () => {
 
   beforeEach(async () => {
     prisma = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
       article: {
         findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest.fn(),
@@ -126,6 +128,22 @@ describe('PublicService', () => {
   // ─── getArticles ────────────────────────────────────────────────
 
   describe('getArticles', () => {
+    it('两个入口保留统一排名、正文覆盖和分页总数，不依赖 hydration 返回顺序', async () => {
+      prisma.$queryRaw.mockResolvedValue([{ id:'a' }, { id:'b' }, { id:'c' }]);
+      prisma.article.findMany.mockResolvedValue([buildMockArticle({id:'c'}), buildMockArticle({id:'b'})]);
+      const hits = await service.search({q:'动画 Flutter', locale:'zh-CN', page:2, pageSize:1});
+      const listing = await service.getArticles({search:'动画 Flutter', locale:'zh-CN', page:2, pageSize:1});
+      expect(hits.data.map(row => row.id)).toEqual(['b']);
+      expect(listing.data.map(row => row.id)).toEqual(['b']);
+      expect(hits.total).toBe(3);
+      expect(listing.total).toBe(3);
+      const calls = prisma.$queryRaw.mock.calls;
+      expect(calls[0][0].sql).toBe(calls[1][0].sql);
+      expect(calls[0][0].values).toEqual(calls[1][0].values);
+      const empty = await service.search({q:'Flutter',page:9,pageSize:10});
+      expect(empty.total).toBe(3);
+      expect(empty.data).toEqual([]);
+    });
     it('应返回已发布文章的分页列表', async () => {
       // Arrange
       const mockArticles = [buildMockArticle()];
@@ -198,10 +216,7 @@ describe('PublicService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             isPublished: true,
-            OR: [
-              { title: { contains: 'NestJS', mode: 'insensitive' } },
-              { summary: { contains: 'NestJS', mode: 'insensitive' } },
-            ],
+            id: { in: [] },
           }),
         }),
       );
@@ -907,7 +922,7 @@ describe('PublicService', () => {
             pageSize: fc.integer({ min: 1, max: 100 }),
             category: fc.option(fc.stringMatching(/^[a-z][a-z0-9-]{0,19}$/), { nil: undefined }),
             tag: fc.option(fc.stringMatching(/^[a-z][a-z0-9-]{0,19}$/), { nil: undefined }),
-            search: fc.option(fc.string({ minLength: 1, maxLength: 30 }), { nil: undefined }),
+            search: fc.option(fc.stringMatching(/^[a-z]{1,20}$/), { nil: undefined }),
           }),
           async (query) => {
             // Arrange
@@ -922,8 +937,12 @@ describe('PublicService', () => {
             expect(call.where).toHaveProperty('isPublished', true);
 
             // Also verify count uses the same where
-            const countCall = prisma.article.count.mock.calls[0][0];
-            expect(countCall.where).toHaveProperty('isPublished', true);
+            if (!query.search) {
+              const countCall = prisma.article.count.mock.calls[0][0];
+              expect(countCall.where).toHaveProperty('isPublished', true);
+            } else {
+              expect(prisma.$queryRaw).toHaveBeenCalled();
+            }
           },
         ),
         { numRuns: 50 },

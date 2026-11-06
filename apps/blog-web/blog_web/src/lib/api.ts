@@ -161,6 +161,9 @@ export async function getTags(): Promise<Tag[]> {
 }
 
 // 搜索
+export class SearchRequestError extends Error {
+  constructor(public readonly status: number) { super('Search failed') }
+}
 export async function searchArticles(
   q: string,
   page = 1,
@@ -177,7 +180,7 @@ export async function searchArticles(
       next: { revalidate: 0 },
     },
   )
-  if (!res.ok) throw new Error('Search failed')
+  if (!res.ok) throw new SearchRequestError(res.status)
   return res.json()
 }
 

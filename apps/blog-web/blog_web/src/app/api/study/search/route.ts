@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { searchArticles, toApiLocale } from '@/lib/api'
+import { searchArticles, toApiLocale, SearchRequestError } from '@/lib/api'
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     const results = await searchArticles(q, page, toApiLocale(locale))
     return NextResponse.json(results)
-  } catch {
+  } catch (error) {
+    if (error instanceof SearchRequestError && error.status === 400) return NextResponse.json({ error: 'Invalid catalog query' }, { status: 400 })
     return NextResponse.json({ error: 'Catalog unavailable' }, { status: 503 })
   }
 }

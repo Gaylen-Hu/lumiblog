@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsInt, Min, Max, IsString, IsNotEmpty } from 'class-validator';
+import {
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 /** 默认分页大小 */
@@ -14,6 +22,7 @@ export class SearchQueryDto {
   @ApiProperty({ description: '搜索关键词', example: 'NestJS' })
   @IsString()
   @IsNotEmpty({ message: '搜索关键词不能为空' })
+  @MaxLength(200)
   q: string;
 
   @ApiPropertyOptional({ description: '页码', example: 1, default: 1 })
