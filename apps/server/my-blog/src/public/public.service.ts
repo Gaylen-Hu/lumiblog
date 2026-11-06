@@ -187,7 +187,11 @@ export class PublicService {
         where: { id: article.id },
         data: { viewCount: { increment: 1 } },
       })
-      .catch((err) => this.logger.error(`阅读量更新失败: ${err.message}`));
+      .catch((err: unknown) =>
+        this.logger.error(
+          `阅读量更新失败: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     const navWhere: Prisma.ArticleWhereInput = {
       isPublished: true,
