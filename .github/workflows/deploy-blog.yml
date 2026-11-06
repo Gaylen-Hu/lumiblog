@@ -19,6 +19,14 @@ on:
         description: 'Also deploy the compatible search API without database migrations'
         type: boolean
         default: false
+      deploy_environment:
+        description: 'Release V2 API, additive environment migration and admin with the blog'
+        type: boolean
+        default: false
+      enable_weather:
+        description: 'Require fresh weather using configured production QWeather secrets'
+        type: boolean
+        default: false
       inspect_only:
         description: 'Inspect existing production layout without building or changing it'
         type: boolean
@@ -38,6 +46,19 @@ jobs:
     if: ${{ !inputs.inspect_only && !inputs.reuse_run_id }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: environment_test
+          POSTGRES_PASSWORD: environment_test
+          POSTGRES_DB: environment_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U environment_test -d environment_test" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       NEXT_PUBLIC_SITE_URL: https://www.new-universe.cn
       NEXT_PUBLIC_API_URL: https://api.new-universe.cn/v1/public
@@ -56,19 +77,31 @@ jobs:
           node scripts/audit-study-assets.mjs
           bash -n scripts/deploy-blog.sh
           bash -n scripts/deploy-search-server.sh
+          bash -n scripts/deploy-environment.sh
+          node --test scripts/environment-release.test.mjs
           node --check scripts/smoke-search.mjs
       - name: Build search API candidate
-        if: ${{ inputs.deploy_server }}
+        if: ${{ inputs.deploy_server || inputs.deploy_environment }}
         working-directory: apps/server/my-blog
         env:
-          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          DATABASE_URL: postgresql://environment_test:environment_test@localhost:5432/environment_test
+          ENVIRONMENT_INTEGRATION_URL: postgresql://environment_test:environment_test@localhost:5432/environment_test
+          REDIS_INTEGRATION_PORT: '6379'
         run: |
           pnpm install --frozen-lockfile
           pnpm exec prisma generate
-          pnpm exec jest --runInBand src/public/__tests__/article-search.spec.ts src/public/__tests__/public.service.spec.ts
+          pnpm exec jest --runInBand
           pnpm build
           mkdir -p ../../../_artifacts
           tar -czf ../../../_artifacts/server.tar.gz dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc
+      - name: Build V2 administration
+        if: ${{ inputs.deploy_environment }}
+        working-directory: apps/admin-web/myapp
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec tsc --noEmit --declaration false
+          NODE_OPTIONS="--max-old-space-size=4096" NODE_ENV=production UMI_ENV=prod pnpm build
+          tar -czf ../../../_artifacts/admin.tar.gz dist
       - name: Install, test and build blog
         working-directory: apps/blog-web/blog_web
         run: |
@@ -102,11 +135,16 @@ jobs:
             _artifacts/blog.tar.gz
             _artifacts/revision.txt
             _artifacts/server.tar.gz
+            _artifacts/admin.tar.gz
             scripts/deploy-blog.sh
             scripts/patch-blog-nginx.mjs
             scripts/smoke-blog.mjs
             scripts/deploy-search-server.sh
             scripts/smoke-search.mjs
+            scripts/deploy-environment.sh
+            scripts/prepare-environment-db.mjs
+            scripts/environment-release-policy.mjs
+            scripts/smoke-environment.mjs
   deploy:
     if: ${{ always() && (inputs.deploy || inputs.inspect_only) && (needs.verify.result == 'success' || inputs.inspect_only || inputs.reuse_run_id) }}
     needs: verify
@@ -194,6 +232,10 @@ jobs:
           SOURCE_RUN: ${{ steps.candidate.outputs.run_id }}
           SOURCE_ATTEMPT: ${{ steps.candidate.outputs.attempt }}
           DEPLOY_SERVER: ${{ inputs.deploy_server }}
+          DEPLOY_ENVIRONMENT: ${{ inputs.deploy_environment }}
+          REQUIRE_WEATHER: ${{ inputs.enable_weather }}
+          QWEATHER_API_HOST: ${{ secrets.QWEATHER_API_HOST }}
+          QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
         run: |
           REMOTE="/tmp/blog-frontend-$SOURCE_RUN-$SOURCE_ATTEMPT"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "install -d -m 0700 '$REMOTE'"
@@ -205,9 +247,25 @@ jobs:
             printf 'Reusing identical uploaded archive (SHA-256 verified)\n'
           fi
           scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/revision.txt scripts/patch-blog-nginx.mjs scripts/smoke-blog.mjs scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
-          if [ "$DEPLOY_SERVER" = true ]; then
+          if [ "$DEPLOY_ENVIRONMENT" = true ]; then
+            test -f release/_artifacts/server.tar.gz
+            test -f release/_artifacts/admin.tar.gz
+            node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const enabled = process.env.REQUIRE_WEATHER === 'true';
+          const host = enabled ? process.env.QWEATHER_API_HOST : '';
+          const key = enabled ? process.env.QWEATHER_API_KEY : '';
+          if (enabled && (!/^[a-z0-9-]+\.[a-z0-9-]+\.qweatherapi\.com$/i.test(host || '') || !/^[a-z0-9_-]+$/i.test(key || ''))) throw Error('Production weather secrets are missing or invalid');
+          fs.writeFileSync('weather.env', `QWEATHER_API_HOST=${host}\nQWEATHER_API_KEY=${key}\nWEATHER_MULTI_INSTANCE=true\n`, {mode:0o600});
+          NODE
+            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/server.tar.gz release/_artifacts/admin.tar.gz scripts/deploy-environment.sh scripts/prepare-environment-db.mjs scripts/environment-release-policy.mjs scripts/smoke-environment.mjs scripts/smoke-search.mjs weather.env "$SSH_USER@$SSH_HOST:$REMOTE/"
+            rm -f -- weather.env
+            ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "trap 'rm -f -- $REMOTE/weather.env' EXIT; ARTIFACTS_DIR='$REMOTE' REQUIRE_WEATHER='$REQUIRE_WEATHER' bash '$REMOTE/deploy-environment.sh'"
+          elif [ "$DEPLOY_SERVER" = true ]; then
             test -f release/_artifacts/server.tar.gz
             scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/server.tar.gz scripts/deploy-search-server.sh scripts/smoke-search.mjs "$SSH_USER@$SSH_HOST:$REMOTE/"
             ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-search-server.sh'"
           fi
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-blog.sh'"
+          if [ "$DEPLOY_ENVIRONMENT" != true ]; then
+            ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-blog.sh'"
+          fi

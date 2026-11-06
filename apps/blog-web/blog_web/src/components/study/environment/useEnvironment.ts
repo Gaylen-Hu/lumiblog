@@ -22,7 +22,7 @@ export function useEnvironment() {
       const timeout = window.setTimeout(() => request.abort(), 5000)
       const start = Date.now()
       try {
-        const base = process.env.NEXT_PUBLIC_API_URL || '/api/v1/public'
+        const base = process.env.NEXT_PUBLIC_ENVIRONMENT_API_URL || process.env.NEXT_PUBLIC_API_URL || '/api/v1/public'
         const response = await fetch(`${base}/environment`, { signal: request.signal, cache: 'no-store' })
         if (!response.ok) throw new Error('environment unavailable')
         const data = await response.json() as WeatherEnvelope

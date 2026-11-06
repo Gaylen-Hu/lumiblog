@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'apps/server/my-blog/src/environment/**'
+      - 'apps/server/my-blog/src/redis/**'
+      - 'apps/server/my-blog/package.json'
+      - 'apps/server/my-blog/pnpm-lock.yaml'
       - 'apps/server/my-blog/prisma/**'
       - 'apps/blog-web/blog_web/src/components/study/environment/**'
       - '.github/workflows/verify-environment.yml'
@@ -14,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
       postgres:
         image: postgres:16
         env:
@@ -28,6 +38,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://environment_test:environment_test@localhost:5432/environment_test
       ENVIRONMENT_INTEGRATION_URL: postgresql://environment_test:environment_test@localhost:5432/environment_test
+      REDIS_INTEGRATION_PORT: '6379'
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v5
@@ -41,5 +52,5 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm exec prisma generate
-          pnpm exec jest --runInBand --testPathPatterns=environment
+          pnpm exec jest --runInBand src/environment src/redis
           pnpm build

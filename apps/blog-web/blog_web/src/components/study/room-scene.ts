@@ -11,6 +11,7 @@ import { gardenShader } from './environment/garden-shader'
 import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
 import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
+import { roomDiagnostics } from './room-diagnostics'
 
 type PickedItem = { target: RoomItem; columnSlug?: string; categoryId?: string; shelfIndex?: number; tier?: number; drawerIndex?: number }
 export type RoomOptions = {
@@ -44,11 +45,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = window.innerWidth > 700
   renderer.shadowMap.type = THREE.PCFShadowMap
+  // Static furniture shadows are reused until a light or an object moves.
+  renderer.shadowMap.autoUpdate = false
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.09
   renderer.domElement.setAttribute('aria-hidden', 'true')
   host.appendChild(renderer.domElement)
+  const diagnostics = roomDiagnostics(host, renderer)
+  let previousContinuous = false
   const camera = new THREE.PerspectiveCamera(57, 1, 0.05, 45)
   const home = new THREE.Vector3(-.15, 1.72, .65)
   const homeLook = new THREE.Vector3(.05, 1.51, -2.5)
@@ -945,6 +950,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   let weatherDim = 1, targetDim = 1
   const lampOn = () => lampOverride ?? (environment.phase === 'night' || environment.phase === 'dusk')
   function applyLight(mix: number) {
+    renderer.shadowMap.needsUpdate = true
     nightBlend.value = mix
     sun.color.lerpColors(daySun,moon,mix)
     sun.intensity = THREE.MathUtils.lerp(curtainsDrawn ? 1.05 : 3.65,curtainsDrawn ? .08 : .19,mix)
@@ -977,6 +983,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   let quality: RoomQuality = 'auto', autoLight = false
   let presented = false
   const frameBudget = new RoomFrameBudget()
+  const resolutionBudget = new RoomFrameBudget(50)
+  let resolutionCap = 2
   type Gesture = { id:number; x:number; y:number; lastX:number; lastY:number; moved:boolean; pressed:PickedItem|null; grab:THREE.Vector3|null }
   let drag: Gesture | null = null
   let observationKey = ''
@@ -1104,7 +1112,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     const oldObservation = observationKey
     restoreObservation(narrow)
     const light = quality === 'light' || autoLight
-    renderer.setPixelRatio(roomPixelRatio(window.devicePixelRatio, narrow, light))
+    renderer.setPixelRatio(Math.min(resolutionCap, roomPixelRatio(window.devicePixelRatio, narrow, light)))
     if (renderer.shadowMap.enabled !== (!narrow && !light)) {
       renderer.shadowMap.enabled = !narrow && !light; renderer.shadowMap.needsUpdate = true
       scene.traverse(object => {
@@ -1363,6 +1371,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }
   function visibility() {
     const now = performance.now(); lastTime = now; frameBudget.reset()
+    resolutionBudget.reset()
+    previousContinuous = false
+    diagnostics?.mode(document.hidden ? 'hidden' : 'resuming')
     if (document.hidden) { hiddenAt = now; clearClockTimer() }
     else { if (transitioning && hiddenAt) startTime += now - Math.max(hiddenAt, startTime); hiddenAt = 0; requestFrame() }
   }
@@ -1400,7 +1411,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   function drawScene() {
     if (disposed) return false
     try {
+      const drawStart = performance.now()
       renderer.render(scene, camera)
+      diagnostics?.draw(performance.now() - drawStart)
       if (disposed) return false // A context-lost listener may have disposed it during drawing.
       if (!presented) { presented = true; options.onReady() }
       return true
@@ -1424,6 +1437,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     }
     if (clockTimer === undefined) syncWallClock()
     const delta = now - lastTime; lastTime = now
+    diagnostics?.frame(delta, previousContinuous)
     const glassMoving = rainGlass.update(delta, !reduced && !target && !curtainsDrawn && quality !== 'light' && !autoLight)
     const weatherMoving = precipitation.update(delta, !reduced && !target && !curtainsDrawn, quality === 'light' || autoLight)
     const targetNight = 1-environment.solar.daylight
@@ -1442,7 +1456,12 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       wisp.scale.set(.09+.05*phase,.13+.06*phase,1)
       wisp.material.opacity = .46 * Math.sin(phase * Math.PI)
     })
-    if (quality === 'auto' && !autoLight && frameBudget.sample(delta, (!target && !reduced && ambientMotion) || transitioning || lightMoving || weatherMoving)) {
+    const animated = (!target && !reduced && ambientMotion) || transitioning || lightMoving || weatherMoving || glassMoving
+    if (quality === 'auto' && !autoLight && resolutionCap > 1 && resolutionBudget.sample(delta, animated)) {
+      resolutionCap = Math.max(1, Math.min(resolutionCap, renderer.getPixelRatio()) - .5)
+      resolutionBudget.reset(); frameBudget.reset(); resize()
+    }
+    if (quality === 'auto' && !autoLight && frameBudget.sample(delta, animated)) {
       autoLight = true; ambientMotion = false
       resize(); options.onQuality(true)
     }
@@ -1528,6 +1547,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       renderer.shadowMap.needsUpdate = true
     }
     if (catalogAnimating) drawCatalogCue(delta)
+    previousContinuous = !!((!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || catalogAnimating)
+    diagnostics?.mode(`${quality === 'light' || autoLight ? 'light' : 'auto'}:${previousContinuous ? 'animated' : 'idle'}:${environment.preset}`)
     if (!drawScene()) return
     if (catalogAnimating) requestFrame()
     if (!target && !reduced && ambientMotion || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving) requestFrame()
@@ -1576,6 +1597,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     setTarget,
     setQuality(value: RoomQuality) {
       quality = value; autoLight = false; frameBudget.reset()
+      resolutionCap = 2; resolutionBudget.reset()
       ambientMotion = value !== 'light'
       resize(); requestFrame(); options.onQuality(value === 'light')
     },
@@ -1613,6 +1635,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     setMotion(value: boolean) { reduced = !value || media.matches; clearClockTimer(); requestFrame() },
     setPaused(value: boolean) {
       const now = performance.now(); frameBudget.reset()
+      resolutionBudget.reset()
+      previousContinuous = false
+      diagnostics?.mode(value ? 'paused' : 'resuming')
       if (value) { cancel(); cancelAnimationFrame(frame); frame = 0 }
       if (value && active) { pausedAt = now; clearClockTimer() }
       if (!value && !active && transitioning && pausedAt) startTime += now - pausedAt
@@ -1632,6 +1657,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); textures.forEach(t => t.dispose())
       extraMaterials.forEach(m => m.dispose())
       sun.shadow.dispose(); renderer.dispose(); renderer.forceContextLoss(); canvas.remove()
+      diagnostics?.dispose()
     },
   }
 }

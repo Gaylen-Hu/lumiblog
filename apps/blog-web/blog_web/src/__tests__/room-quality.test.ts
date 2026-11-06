@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { RoomFrameBudget, roomPixelRatio } from '@/components/study/room-quality'
 
 describe('持续性能预算', () => {
+  it('30 FPS 时先降低像素负载，仍保留动画与阴影', () => {
+    const resolution = new RoomFrameBudget(50), fallback = new RoomFrameBudget()
+    let lowerResolution = false, disableAnimation = false
+    for (let i = 0; i < 130; i++) {
+      lowerResolution ||= resolution.sample(1000/30, true)
+      disableAnimation ||= fallback.sample(1000/30, true)
+    }
+    expect(lowerResolution).toBe(true)
+    expect(disableAnimation).toBe(false)
+  })
   it('短暂卡顿不切档，运行一段时间后连续低帧率仍可触发降级', () => {
     const budget = new RoomFrameBudget()
     for (let i = 0; i < 600; i++) expect(budget.sample(16.7, true)).toBe(false)
