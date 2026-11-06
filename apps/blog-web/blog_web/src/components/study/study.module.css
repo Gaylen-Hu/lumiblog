@@ -41,3 +41,29 @@
 @media(pointer:coarse){.actions button,.footerActions button,.cancel{min-height:44px;min-width:44px}}
 @media(max-height:500px){.overlay{align-items:flex-start}.panel{max-height:calc(100svh - 24px)}}
 .clockBack{min-height:44px;background:#393c32dc;color:#fff9ed;border-color:#f3ecdd66}
+
+/* Small readable controls over both sunlit walls and the evening window. */
+.header{padding-top:max(22px,env(safe-area-inset-top));padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right))}
+.live .brand{padding:8px 13px;min-height:44px;border-radius:8px;background:#262a24d9;backdrop-filter:blur(10px)}
+.brand small{opacity:1;color:#e4dbc9;letter-spacing:1.2px}
+.actions button,.footerActions button,.cancel{background:#262a24e8;color:#fff4df;border-color:#e5d3ad66;min-height:44px}
+.actions button:first-child{min-width:44px;min-height:44px}
+.live .roomCaption{margin-left:0;padding:9px 13px;border-radius:20px;background:#262a24e8;color:#fff4df;font:12px/1.5 system-ui,sans-serif}
+.footer{padding-left:max(22px,env(safe-area-inset-left));padding-right:max(22px,env(safe-area-inset-right))}
+.footerActions button{font-size:12px;letter-spacing:0}
+.study button:focus-visible,.study a:focus-visible{outline:2px solid #242c28;outline-offset:3px;box-shadow:0 0 0 5px #fff7e8}
+.keyboardNav{flex-wrap:wrap;max-width:calc(100% - 40px);z-index:4}
+.quality{border:1px solid #baa88b;border-radius:6px;padding:12px;margin-top:16px;min-width:0}
+.quality legend{padding:0 6px;font:13px/1.5 system-ui,sans-serif;color:#494b3c}
+.quality>div{display:flex;gap:8px}
+.settings .quality button{flex:1;justify-content:center;border:1px solid #a69678;border-radius:4px;padding:10px;min-height:44px}
+.settings .quality button[aria-pressed=true]{background:#404d42;color:#fff9ed;border-color:#404d42}
+.settings .quality p{font:12px/1.8 system-ui,sans-serif;color:#555746;margin:12px 0 0}
+.failure button{min-height:44px}
+@media(max-width:700px){.live .brand{font-size:17px;gap:8px;padding:7px 9px}.brandIcon{font-size:25px}.brand small{font-size:8px;letter-spacing:0}.footer{gap:8px}.live .roomCaption{font-size:11px;padding:8px 10px}.footerActions{gap:6px}.footerActions button{font-size:11px;padding:8px 10px}}
+@media(max-width:380px){.live .brand small{display:none}.actions{gap:5px}.actions button{letter-spacing:0;padding:8px 11px}}
+@media(forced-colors:active){.actions button,.footerActions button,.cancel,.live .brand,.live .roomCaption{background:Canvas;color:CanvasText;border:1px solid ButtonText}.study button:focus-visible,.study a:focus-visible{outline:2px solid Highlight;box-shadow:none}}
+.cancel{top:max(22px,env(safe-area-inset-top));left:max(20px,env(safe-area-inset-left))}
+.study[data-portfolio] .cancel{right:max(22px,env(safe-area-inset-right));left:auto}
+.overlay{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.panel{max-height:calc(100svh - max(12px,env(safe-area-inset-top)) - max(12px,env(safe-area-inset-bottom)))}

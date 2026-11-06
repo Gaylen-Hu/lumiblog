@@ -4,6 +4,8 @@ on:
     paths:
       - 'apps/blog-web/blog_web/**'
       - 'scripts/*blog*'
+      - 'scripts/audit-study-assets.mjs'
+      - 'docs/design-draft/V1资产清单.json'
       - '.github/workflows/deploy-blog.yml'
       - 'nginx-blog.conf'
       - 'ops/nginx-myblog.conf'
@@ -47,6 +49,7 @@ jobs:
       - name: Verify deployment helpers
         run: |
           node --test scripts/blog-release.test.mjs
+          node scripts/audit-study-assets.mjs
           bash -n scripts/deploy-blog.sh
       - name: Install, test and build blog
         working-directory: apps/blog-web/blog_web
