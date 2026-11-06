@@ -211,6 +211,26 @@ jobs:
             systemctl is-active blog-web.service myblog-api.service nginx.service || true
             printf '\nNginx site names and upstreams:\n'
             nginx -T 2>/dev/null | awk '/^# configuration file / || /^[[:space:]]*(server_name|listen|proxy_pass|root)[[:space:]]/ {print}' || true
+            printf '\nDatabase backup tooling:\n'
+            command -v pg_dump || true
+            command -v pg_restore || true
+            node --input-type=module <<'PREFLIGHT'
+          import fs from 'node:fs';
+          import {parseEnv} from 'node:util';
+          import {createRequire} from 'node:module';
+          const current=fs.realpathSync('/home/myblog/server-current');
+          const require=createRequire(current+'/package.json');
+          const {PrismaClient}=require('@prisma/client');
+          const config=parseEnv(fs.readFileSync('/home/myblog/apps/.env','utf8'));
+          const db=new PrismaClient({datasources:{db:{url:config.DATABASE_URL}}});
+          try {
+            const history=await db.$queryRawUnsafe('SELECT migration_name, finished_at, rolled_back_at FROM "_prisma_migrations"');
+            const applied=new Set(history.filter(x=>x.finished_at&&!x.rolled_back_at).map(x=>x.migration_name));
+            const existing=fs.readdirSync(current+'/prisma/migrations',{withFileTypes:true}).filter(x=>x.isDirectory()).map(x=>x.name);
+            console.log(JSON.stringify({appliedMigrations:applied.size,unresolvedMigrations:history.filter(x=>!x.finished_at&&!x.rolled_back_at).length,pendingExisting:existing.filter(x=>!applied.has(x)),environmentApplied:applied.has('20261105140000_environment_config')}));
+          } catch {console.log('Migration preflight unavailable; inspect privately before release');}
+          finally {await db.$disconnect();}
+          PREFLIGHT
             if [ "$1" = true ]; then exit 0; fi
             test "$(id -u)" = 0
             test -d /home/myblog/current/blog

@@ -41,7 +41,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const scene = new THREE.Scene()
   scene.background = new THREE.Color('#dce6e8')
   scene.fog = new THREE.Fog('#e5e4dc', 16, 32)
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'low-power' })
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: window.innerWidth > 700 ? 'high-performance' : 'low-power' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.shadowMap.enabled = window.innerWidth > 700
   renderer.shadowMap.type = THREE.PCFShadowMap
@@ -1427,6 +1427,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   function render(now: number) {
     frame = 0
     if (disposed || document.hidden) return
+    if (diagnostics?.baselineFrame(now)) { lastTime = now; previousContinuous = false; requestFrame(); return }
     if (!active) {
       // A paused room only redraws while a catalog spine is moving.
       if (catalogAnimating) {
