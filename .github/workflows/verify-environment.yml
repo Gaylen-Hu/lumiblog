@@ -1,0 +1,45 @@
+name: V2 environment verification
+on:
+  pull_request:
+    paths:
+      - 'apps/server/my-blog/src/environment/**'
+      - 'apps/server/my-blog/prisma/**'
+      - 'apps/blog-web/blog_web/src/components/study/environment/**'
+      - '.github/workflows/verify-environment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  environment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: environment_test
+          POSTGRES_PASSWORD: environment_test
+          POSTGRES_DB: environment_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U environment_test -d environment_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://environment_test:environment_test@localhost:5432/environment_test
+      ENVIRONMENT_INTEGRATION_URL: postgresql://environment_test:environment_test@localhost:5432/environment_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: '10'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Verify real migration, authorization and configuration persistence
+        working-directory: apps/server/my-blog
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec prisma generate
+          pnpm exec jest --runInBand --testPathPatterns=environment
+          pnpm build

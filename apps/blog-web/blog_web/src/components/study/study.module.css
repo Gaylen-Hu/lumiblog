@@ -67,3 +67,9 @@
 .study[data-portfolio] .cancel{right:max(22px,env(safe-area-inset-right));left:auto}
 .overlay{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
 .panel{max-height:calc(100svh - max(12px,env(safe-area-inset-top)) - max(12px,env(safe-area-inset-bottom)))}
+
+.quality>.environmentChoices{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px}
+.settings .quality .rainAudioToggle{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.rainVolume { display: flex; align-items: center; gap: .6rem; padding: .35rem 0; font-size: .8rem; }
+.rainVolume input { flex: 1; min-width: 0; min-height: 44px; accent-color: #655a45; }
+.rainVolume span { min-width: 3ch; }

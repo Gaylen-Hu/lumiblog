@@ -2,6 +2,7 @@ import { PageContainer, ProForm, ProFormText, ProFormTextArea, ProFormDigit } fr
 import { App, Card, Divider, Space, Image, Button, Spin, Select, Form } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { getSiteConfig, updateSiteConfig } from '@/services/blog/siteConfig';
+import EnvironmentSettings from './EnvironmentSettings';
 import MediaPicker from '@/components/MediaPicker';
 
 const SiteConfigPage: React.FC = () => {
@@ -319,54 +320,55 @@ const SiteConfigPage: React.FC = () => {
         </ProForm>
       </Card>
 
+      <EnvironmentSettings />
       <MediaPicker
         open={logoPickerOpen}
-        onCancel={() => setLogoPickerOpen(false)}
+        onClose={() => setLogoPickerOpen(false)}
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, logo: media.url } : null));
           setLogoPickerOpen(false);
         }}
-        accept="image/*"
+        mediaType="image"
       />
 
       <MediaPicker
         open={faviconPickerOpen}
-        onCancel={() => setFaviconPickerOpen(false)}
+        onClose={() => setFaviconPickerOpen(false)}
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, favicon: media.url } : null));
           setFaviconPickerOpen(false);
         }}
-        accept="image/*"
+        mediaType="image"
       />
 
       <MediaPicker
         open={avatarPickerOpen}
-        onCancel={() => setAvatarPickerOpen(false)}
+        onClose={() => setAvatarPickerOpen(false)}
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, ownerAvatar: media.url } : null));
           setAvatarPickerOpen(false);
         }}
-        accept="image/*"
+        mediaType="image"
       />
 
       <MediaPicker
         open={aboutImage1PickerOpen}
-        onCancel={() => setAboutImage1PickerOpen(false)}
+        onClose={() => setAboutImage1PickerOpen(false)}
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, aboutImage1: media.url } : null));
           setAboutImage1PickerOpen(false);
         }}
-        accept="image/*"
+        mediaType="image"
       />
 
       <MediaPicker
         open={aboutImage2PickerOpen}
-        onCancel={() => setAboutImage2PickerOpen(false)}
+        onClose={() => setAboutImage2PickerOpen(false)}
         onSelect={(media) => {
           setConfig((prev) => (prev ? { ...prev, aboutImage2: media.url } : null));
           setAboutImage2PickerOpen(false);
         }}
-        accept="image/*"
+        mediaType="image"
       />
     </PageContainer>
   );

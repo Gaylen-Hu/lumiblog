@@ -16,6 +16,19 @@ enum UserRole {
   VIEWER
 }
 
+model EnvironmentConfig {
+  id        String   @id @default("default")
+  city      String   @default("杭州")
+  timezone  String   @default("Asia/Shanghai")
+  latitude  Float    @default(30.2741)
+  longitude Float    @default(120.1551)
+  preset    String   @default("auto")
+  revision  Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@map("environment_config")
+}
+
 enum StorageType {
   local
   oss
