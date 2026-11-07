@@ -357,7 +357,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       ctx.beginPath();ctx.ellipse(311+6*i,151-15*i,11,4,-.76,0,Math.PI*2);ctx.fill()
     }
     ctx.font='34px Georgia,"SimSun",serif';ctx.fillText(options.en?'For a quiet hour':'留 待 闲 时',300,232)
-    ctx.font='17px Georgia';ctx.fillText('L U M I   /   R E A D I N G   R O O M',300,283)
+    printImprint(ctx,300,261,28)
   })});extraMaterials.add(bookplate)
   mesh(new THREE.PlaneGeometry(.48,.27),bookplate,[0,-.032,.217],caseLid).rotation.x=Math.PI/2
   const plate = mat('#ffedcc').clone(); extraMaterials.add(plate)

@@ -38,7 +38,7 @@
 
 /* About: a postcard lifted from the frame and turned over. */
 .surface[data-object=portrait]{width:min(760px,100%);padding:48px 42px;background:#f5eddc;border:10px solid #fff9ed;border-radius:2px;box-shadow:0 30px 70px #25251e70;animation-name:postcardTurn}
-.surface[data-object=portrait] .heading::after{content:'LUMI / POST';position:absolute;right:40px;top:6px;border:1px dashed #9b94776e;padding:13px 8px;color:#9b9477;font:9px/1 system-ui;letter-spacing:1px;transform:rotate(9deg)}
+.postmark{position:absolute;right:40px;top:6px;border:1px dashed #9b94776e;padding:13px 8px;color:#9b9477;font:9px/1 system-ui;letter-spacing:1px;transform:rotate(9deg)}
 .postcard{display:grid;grid-template-columns:170px 1fr;gap:35px;margin-top:30px}
 .portraitStamp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;min-height:220px;background:#7b8c71;color:#f1e9cf;padding:22px 15px;box-shadow:0 0 0 7px #fff9ec,0 3px 14px #5a574533;transform:rotate(-3deg)}
 .portraitStamp>span{font:64px Georgia,'Songti SC',serif}.portraitStamp small{font:9px/1.6 system-ui,sans-serif;letter-spacing:2px;text-align:center}
@@ -70,7 +70,7 @@
   .surface[data-object=columns]{padding:36px 24px 25px}.editions{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 13px}.edition{padding:23px 15px 20px 22px;min-height:240px}.edition h3{font-size:19px;margin:17px 0 12px}.edition p{-webkit-line-clamp:2;font-size:10px}.edition::after{inset:9px 10px 9px 14px}
   .surface[data-object=album]{padding:36px 19px 24px;border-width:6px}.surface[data-object=album] .heading{margin-bottom:18px}.surface[data-object=album] .heading>span{font-size:8px;letter-spacing:1.4px}
   .surface[data-object=album]>.contents,.surface[data-object=columns]>.contents{padding-right:4px}
-  .surface[data-object=portrait]{padding:36px 24px 28px;border-width:7px}.postcard{grid-template-columns:1fr;gap:28px}.portraitStamp{width:120px;min-height:135px;margin:0 auto;padding:14px;gap:14px}.portraitStamp>span{font-size:45px}.portraitStamp small{font-size:8px}.surface[data-object=portrait] .heading::after{display:none}.postcard h3{font-size:24px}
+  .surface[data-object=portrait]{padding:36px 24px 28px;border-width:7px}.postcard{grid-template-columns:1fr;gap:28px}.portraitStamp{width:120px;min-height:135px;margin:0 auto;padding:14px;gap:14px}.portraitStamp>span{font-size:45px}.portraitStamp small{font-size:8px}.postmark{display:none}.postcard h3{font-size:24px}
   .stage[data-object=drawer]{align-items:flex-end;padding-bottom:24px;background:linear-gradient(0deg,#2b302433,transparent)}.surface[data-object=drawer]{padding:30px 19px 22px;border-width:7px}.surface[data-object=drawer] .heading h2{font-size:23px}.keepsakes{gap:12px;padding:5px 0}.keepsakes a{padding:20px 14px;min-height:160px}.keepsakes strong{font-size:18px}
 }
 .stage[data-motion=reduced],.stage[data-motion=reduced] *{animation:none!important;transition:none!important}

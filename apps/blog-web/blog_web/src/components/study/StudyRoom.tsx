@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import RoomAlbum from './RoomAlbum'
+import RoomImprint from './RoomImprint'
 import { useStudyNavigation } from './StudyNavigation'
 import { openStudyObject, closeStudyObject } from './study-route'
 import RoomJournal from './RoomJournal'
@@ -438,10 +439,11 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         <header className={opening.heading}>
           <span className={styles.eyebrow}>{settled ? imprints[settled] : menu ? 'MAKE YOURSELF AT HOME' : 'A SMALL PERSONAL COLLECTION'}</span>
           <h2 id="room-panel-title">{panelTitle}</h2>
+          {settled === 'portrait' && <span className={opening.postmark}><RoomImprint siteName={siteName} /></span>}
         </header>
         <div className={opening.contents} inert={!!navigation.catalogPath} data-room-scroll>
-        {settled === 'readingBox' && <ReadingBoxContents locale={locale} cards={readingBox.cards} remove={readingBox.put} choose={() => choose('bookshelf')} />}
-        {settled === 'album' && <RoomAlbum timeline={timeline} locale={locale} motion={motion} />}
+        {settled === 'readingBox' && <ReadingBoxContents siteName={(!ready || simple) ? siteName : undefined} locale={locale} cards={readingBox.cards} remove={readingBox.put} choose={() => choose('bookshelf')} />}
+        {settled === 'album' && <RoomAlbum siteName={siteName} timeline={timeline} locale={locale} motion={motion} />}
         {settled === 'drawer' && <nav className={opening.keepsakes}>
           <Link prefetch={false} href={`/${locale}/columns`}><small>01 / READ</small><strong>{en ? 'Collections' : '翻看专栏'}</strong><span>{en ? 'A few things worth keeping.' : '收在一起，慢慢读。'}</span><i aria-hidden="true">↗</i></Link>
           <Link prefetch={false} href={`/${locale}/links`}><small>02 / VISIT</small><strong>{en ? 'Friends' : '拜访朋友'}</strong><span>{en ? 'Other little corners of the web.' : '去朋友的小天地坐坐。'}</span><i aria-hidden="true">↗</i></Link>
@@ -464,7 +466,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
           {!columns.length && <p className={styles.empty}>{noContent}</p>}
           <Link prefetch={false} className={styles.more} href={`/${locale}/columns`}>{en ? 'All series' : '查看全部专栏'} →</Link>
         </>}
-        {settled === 'diary' && <RoomJournal timeline={timeline} locale={locale} motion={motion} onTurn={() => revealSound('diary')} />}
+        {settled === 'diary' && <RoomJournal siteName={siteName} timeline={timeline} locale={locale} motion={motion} onTurn={() => revealSound('diary')} />}
         {settled === 'portrait' && <div className={opening.postcard}><div className={opening.portraitStamp} aria-hidden="true"><span>{name.slice(0, 1)}</span><small>FROM MY<br />LITTLE STUDY</small></div><div><h3>{name}</h3><p>{bio}</p><p>{en ? 'Thank you for stopping by this little corner of the internet.' : '很高兴你来到互联网里的这个小角落。希望你在这里，找到一点共鸣。'}</p><Link prefetch={false} href={`/${locale}/about`}>{en ? 'A little more about me' : '多了解我一点'} ↗</Link></div></div>}
         </div>
       </div>

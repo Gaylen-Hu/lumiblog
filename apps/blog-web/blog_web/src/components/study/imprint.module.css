@@ -1,0 +1,10 @@
+.imprint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #78674f;
+  font: 500 11px/1.4 Georgia, 'Songti SC', 'SimSun', serif;
+  letter-spacing: .025em;
+  white-space: nowrap;
+}
+.imprint svg { display: block; width: auto; height: 13px; }
