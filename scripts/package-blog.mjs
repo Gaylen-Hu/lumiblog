@@ -28,7 +28,7 @@ export async function packageBlog(app, output, revision) {
   for (const route of ['reading', 'search']) {
     await access(path.join(path.dirname(entries[0]), `.next/server/app/api/study/${route}/route.js`))
   }
-  for (const asset of ['daylight/garden.webp', 'daylight/oak.webp', 'daylight/leaf.webp', 'v1/paper.webp', 'v1/linen.webp']) {
+  for (const asset of ['daylight/garden.webp', 'daylight/garden-snow.webp', 'daylight/oak.webp', 'daylight/leaf.webp', 'v1/paper.webp', 'v1/linen.webp']) {
     await access(path.join(app, 'public/study-assets', asset))
   }
   await mkdir(output, { recursive: true })

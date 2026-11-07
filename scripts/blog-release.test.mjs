@@ -40,7 +40,7 @@ for (const nested of [false, true]) test(`standalone ${nested ? 'nested' : 'root
     await file(path.join(app, '.next/standalone/node_modules/dependency.js'))
     await file(path.join(app, '.next/standalone/.env.local'), 'SECRET=must-not-ship')
     await file(path.join(app, '.next/static/chunk.js'))
-    for (const name of ['daylight/garden.webp', 'daylight/oak.webp', 'daylight/leaf.webp', 'v1/paper.webp', 'v1/linen.webp']) await file(path.join(app, 'public/study-assets', name))
+    for (const name of ['daylight/garden.webp', 'daylight/garden-snow.webp', 'daylight/oak.webp', 'daylight/leaf.webp', 'v1/paper.webp', 'v1/linen.webp']) await file(path.join(app, 'public/study-assets', name))
     const result = await packageBlog(app, output, 'a'.repeat(40))
     const runtime = path.dirname(path.join(output, result.entry))
     await access(path.join(runtime, 'public/study-assets/daylight/garden.webp'))

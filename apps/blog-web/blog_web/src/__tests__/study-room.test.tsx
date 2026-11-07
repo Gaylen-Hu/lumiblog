@@ -39,7 +39,7 @@ vi.mock('@/components/study/room-scene', () => ({
   },
 }))
 
-const props: ComponentProps<typeof StudyRoom> = { locale: 'zh', name: '测试书房', bio: '个人介绍', posts: [], projects: [], timeline: [], columns: [
+const props: ComponentProps<typeof StudyRoom> = { locale: 'zh', siteName: '墨千', name: '测试书房', bio: '个人介绍', posts: [], projects: [], timeline: [], columns: [
   { id: '1', title: '绘图手记', slug: 'sketches', description: null, articleCount: 0, coverImage: null, sortOrder: 1 },
   { id: '2', title: '代码笔记', slug: '代码笔记', description: '从基础到实践', articleCount: 2, coverImage: null, sortOrder: 2 },
 ] }
@@ -122,6 +122,7 @@ describe('书房的内容与恢复流程', () => {
   it('轻量画质可保存，重新进入仍使用轻量，选择自动可恢复', async () => {
     await mount()
     await click('环境设置')
+    await click('室内设置')
     await click('轻量')
     expect(localStorage.getItem('study-quality')).toBe('light')
     expect(mocked.quality.at(-1)).toBe('light')
@@ -129,6 +130,7 @@ describe('书房的内容与恢复流程', () => {
     await mount()
     expect(mocked.quality.at(-1)).toBe('light')
     await click('环境设置')
+    await click('室内设置')
     await click('自动')
     expect(mocked.quality.at(-1)).toBe('auto')
     expect(localStorage.getItem('study-quality')).toBe('auto')
@@ -165,6 +167,11 @@ describe('书房的内容与恢复流程', () => {
     expect(dialog.querySelector('a')?.hash).toBe('#day-a')
     await click('换一张 ↻')
     expect(dialog.textContent).toContain('第二篇的完整内容')
+    expect(dialog.querySelector('a')?.hash).toBe('#day-b')
+    expect(dialog.textContent).not.toContain('读万卷书')
+    await click('翻看便签背面')
+    expect(dialog.textContent).toContain('读万卷书，行千里路')
+    await click('翻回便签正面')
     expect(dialog.querySelector('a')?.hash).toBe('#day-b')
   })
   it('同一篇改稿插段后仍能找到原段落，书签分语言保存', () => {

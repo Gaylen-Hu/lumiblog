@@ -7,6 +7,7 @@ const cases = [
   ['/api/study/reading?path=https%3A%2F%2Fexample.com', 400],
   ['/api/study/search?q=x&page=-1&locale=zh', 400],
   ['/study-assets/daylight/garden.webp', 200],
+  ['/study-assets/daylight/garden-snow.webp', 200],
 ]
 for (const [route, status] of cases) {
   const response = await fetch(new URL(route, base), { signal: AbortSignal.timeout(30000) })
