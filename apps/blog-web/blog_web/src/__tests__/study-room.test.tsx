@@ -8,7 +8,7 @@ import { clockHandAngles } from '@/components/study/wall-clock'
 import { localLightPeriod } from '@/components/study/room-light'
 import { findBookmarkedBlock, readBookmark, writeBookmark } from '@/lib/reading-bookmark'
 
-const mocked = vi.hoisted(() => ({ fail: false, holdReady: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
+const mocked = vi.hoisted(() => ({ setCeilingLight: vi.fn(), fail: false, holdReady: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
 let loseContext: () => void
 let presentFrame: () => void
 let pickItem: (item: RoomItem, columnSlug?: string) => void
@@ -25,6 +25,7 @@ vi.mock('@/components/study/room-scene', () => ({
     if (!mocked.holdReady) options.onReady()
     return {
       setMotion: vi.fn(),
+      setCeilingLight: mocked.setCeilingLight,
       setQuality: (value: string) => { mocked.quality.push(value); options.onQuality(value === 'light') },
       setPaused: vi.fn(),
       inspectClock: () => clockPhase('approaching'),
@@ -74,6 +75,23 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root.unmount()) })
 
 describe('书房的内容与恢复流程', () => {
+  it('墙上开关和键盘入口共用大灯状态，重新进入后记住选择', async () => {
+    await mount()
+    expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(false)
+    await act(async () => pickItem('ceilingLight'))
+    expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(true)
+    expect(localStorage.getItem('study-ceiling-light')).toBe('true')
+    await act(async () => root.unmount())
+    await mount()
+    expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(true)
+    const label = '墙上开关 · 书房大灯'
+    const button = Array.from(document.querySelectorAll('button')).find(b => b.textContent === label)
+    expect(button?.getAttribute('aria-pressed')).toBe('true')
+    await click(label)
+    expect(button?.getAttribute('aria-pressed')).toBe('false')
+    expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(false)
+    expect(localStorage.getItem('study-ceiling-light')).toBe('false')
+  })
   it('首帧一直未就绪时降级，迟到的成功回调不能复活已销毁场景', async () => {
     mocked.holdReady = true
     vi.useFakeTimers()

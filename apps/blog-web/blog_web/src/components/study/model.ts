@@ -2,7 +2,7 @@ export const destinations = ['bookshelf', 'columns', 'diary', 'computer', 'album
 export type Destination = typeof destinations[number]
 export type RoomDetail = 'tea' | 'note'
 export type ClockView = 'room' | 'approaching' | 'observing' | 'returning'
-export type RoomItem = Destination | RoomDetail | 'lamp' | 'clock' | 'curtains' | 'bookmark'
+export type RoomItem = Destination | RoomDetail | 'lamp' | 'ceilingLight' | 'clock' | 'curtains' | 'bookmark'
 export function isDestination(value: string | null): value is Destination {
   return destinations.includes(value as Destination)
 }
@@ -12,7 +12,7 @@ export const labels = {
 }
 export const itemLabels = {
   zh: { ...labels.zh, clock: '挂钟 · 看时间', lamp: '台灯 · 开关灯', note: '手写便签', bookmark: '续读书签',
-    curtains: '窗边 · 开合窗帘', tea: '杯子 · 茶歇随读' },
+    ceilingLight: '墙上开关 · 书房大灯', curtains: '窗边 · 开合窗帘', tea: '杯子 · 茶歇随读' },
   en: { ...labels.en, clock: 'Clock · Tell time', lamp: 'Lamp · Switch light', note: 'Desk note', bookmark: 'Reading ribbon',
-    curtains: 'Window · Draw curtains', tea: 'Cup · A tea-break read' },
+    ceilingLight: 'Wall switch · Ceiling light', curtains: 'Window · Draw curtains', tea: 'Cup · A tea-break read' },
 } satisfies Record<'zh' | 'en', Record<RoomItem, string>>

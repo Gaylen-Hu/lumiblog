@@ -26,7 +26,7 @@ vi.mock('@/components/study/room-scene', () => ({ createRoom: (host: HTMLElement
   options.onReady()
   return {
     setTarget: (target: Destination | null) => { scene.targets.push(target); if (!target) queueMicrotask(() => options.onSettled(null)) },
-    setMotion: vi.fn(), setPaused: (paused: boolean) => scene.paused.push(paused),
+    setMotion: vi.fn(), setCeilingLight: vi.fn(), setPaused: (paused: boolean) => scene.paused.push(paused),
     leaveClock: vi.fn(), dispose: () => { scene.disposed++; canvas.remove() },
   }
 } }))

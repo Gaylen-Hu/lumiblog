@@ -669,6 +669,21 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const pin = sphere([-1.85, 2.02, -3.77], [.018, .018, .012], '#c4a261'); pin.material = brass
   hit('portrait', [-.95, 2.45, -3.75], [.75, .92, .1])
   hit('portrait', [-1.86, 1.81, -3.79], [.40,.47,.08])
+  // A ceramic rocker on the picture wall, just above desk height.
+  const wallSwitch = new THREE.Group()
+  wallSwitch.position.set(-.86, 1.54, -3.903)
+  scene.add(wallSwitch)
+  rounded([0, 0, .014], [.17, .22, .028], brass, wallSwitch, .012)
+  rounded([0, 0, .031], [.154, .203, .021], mat('#e1d3b6'), wallSwitch, .009)
+  const rocker = rounded([0, 0, .053], [.105, .148, .027], mat('#f1e8d7'), wallSwitch, .009)
+  rounded([0, .041, .015], [.031, .008, .003], mat('#e6b26b', true), rocker, .001)
+  hit('ceilingLight', [0, 0, .061], [.30, .33, .075], wallSwitch)
+
+  cylinder([-.25, 4.74, -2.25], .32, .34, .10, '#8b704d')
+  const opal = new THREE.MeshStandardMaterial({color: '#eee4d2', emissive: '#fff0d9', roughness: .68})
+  extraMaterials.add(opal)
+  const diffuser = mesh(new THREE.SphereGeometry(1, 32, 12), opal, [-.25, 4.69, -2.25])
+  diffuser.scale.set(.315, .093, .315)
   // Textured, curled foliage with stems rooted in glazed pots. One shared
   // leaf mesh bends at its midrib; cutout materials avoid alpha sort issues.
   const foliage = [mat('#c4d5aa'), mat('#e6e6b9')]
@@ -989,6 +1004,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const daySky = hemi.color.clone(), nightSky = new THREE.Color('#a8bfe1')
   let environment = resolveEnvironment(Date.now(), 'auto')
   let night = environment.phase === 'night', lampOverride: boolean | null = null
+  let ceilingLightOn = false
   const precipitation = createPrecipitation(scene)
   const rainGlass = createRainGlass(scene, { gardenBreeze, gardenWeather: weatherGrade, nightBlend, tint: outsideMat.color })
   const solarPosition = new THREE.Vector3(environment.solar.east, environment.solar.up, -environment.solar.north)
@@ -1002,8 +1018,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     const screenedSun = THREE.MathUtils.lerp(1.05, .08, mix)
     sun.intensity = THREE.MathUtils.lerp(openSun, screenedSun, cover) * weatherDim *
       (.04 + Math.min(1, direct * 3) * (1 - environment.cloudCover * .8))
-    hemi.intensity = THREE.MathUtils.lerp(.99, .52, mix) * (1 - .13 * cover)
-    fill.intensity = THREE.MathUtils.lerp(2.8, .65, mix) * (1 - .18 * cover)
+    hemi.intensity = THREE.MathUtils.lerp(.99, .52, mix) * (1 - .13 * cover) + (ceilingLightOn ? .68 : 0)
+    fill.intensity = ceilingLightOn ? 30 : THREE.MathUtils.lerp(2.8, .65, mix) * (1 - .18 * cover)
   }
   function applyLight(mix: number) {
     renderer.shadowMap.needsUpdate = true
@@ -1493,7 +1509,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     const previewStep = reduced || !ambientMotion ? 1 : Math.min(delta / 420, 1)
     windowViewMix += THREE.MathUtils.clamp(previewGoal - windowViewMix, -previewStep, previewStep)
     diagnostics?.frame(delta, previousContinuous)
-    const curtainsMoving = curtainMotion.step(delta, reduced)
+    // Drawing the curtains is a deliberate gesture, independent of idle parallax.
+    const curtainsMoving = curtainMotion.step(delta, media.matches)
     if (curtainsMoving) {
       for (const updatePanel of curtainPanels) updatePanel()
       applyWindowLight(nightBlend.value)
@@ -1677,7 +1694,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   picture.castShadow = false
   loadArt('landscape', texture => { pictureMaterial.map = texture; pictureMaterial.needsUpdate = true })
   batchStaticScene(scene, new Set<THREE.Object3D>([
-    ...hits, curtains, diary, readingCase, caseTray, display,
+    ...hits, rocker, curtains, diary, readingCase, caseTray, display,
     ...drawers, ...markedVolumes.map(value => value.book), ...rails,
     ...plates.map(value => value.holder), printFrame, ...editionModels,
     hourHand, minuteHand, secondHand, ...leaves.map(value => value.mesh), ...steam,
@@ -1712,6 +1729,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     resetLamp() {
       lampOverride = null; applyLight(nightBlend.value)
       options.onLamp?.(lampOn()); requestFrame()
+    },
+    setCeilingLight(on: boolean) {
+      ceilingLightOn = on
+      rocker.rotation.x = on ? -.13 : .13
+      opal.emissiveIntensity = on ? 1.2 : 0
+      if (on) fill.position.set(diffuser.position.x, 4.48, diffuser.position.z)
+      else fill.position.set(-1.6, 3.1, .1)
+      applyWindowLight(nightBlend.value)
+      requestFrame()
     },
     toggleLamp() {
       lampOverride = !lampOn(); applyLight(nightBlend.value)

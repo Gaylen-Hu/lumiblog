@@ -89,6 +89,8 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const rainAudio = useRainAudio(environment.state.weather, sound)
   const [, setNight] = useState(false)
   const [lampOn, setLampOn] = useState(false)
+  const [ceilingLightOn, setCeilingLightOn] = useState(false)
+  const ceilingLightRef = useRef(false)
   const [curtainsDrawn, setCurtainsDrawn] = useState(false)
   const [hover, setHover] = useState<RoomItem | null>(null)
   const category = categories.find(c => c.id === route.category)?.id || ''
@@ -130,6 +132,12 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     rememberFocus()
     if (item === 'lamp') {
       controller.current?.toggleLamp()
+    } else if (item === 'ceilingLight') {
+      const on = !ceilingLightRef.current
+      ceilingLightRef.current = on
+      controller.current?.setCeilingLight(on)
+      setCeilingLightOn(on)
+      try { localStorage.setItem('study-ceiling-light', String(on)) } catch { /* Storage is optional. */ }
     } else if (item === 'curtains') {
       const drawn = controller.current?.toggleCurtains()
       if (drawn !== undefined) setCurtainsDrawn(drawn)
@@ -174,6 +182,8 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   useEffect(() => {
     try {
       setSimple(localStorage.getItem('study-simple') === 'true')
+      ceilingLightRef.current = localStorage.getItem('study-ceiling-light') === 'true'
+      setCeilingLightOn(ceilingLightRef.current)
       setMotion(localStorage.getItem('study-motion') !== 'false')
       qualityRef.current = localStorage.getItem('study-quality') === 'light' ? 'light' : 'auto'
       setQuality(qualityRef.current)
@@ -265,6 +275,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         },
       })
       controller.current.setEnvironment?.(environmentRef.current)
+      controller.current.setCeilingLight(ceilingLightRef.current)
       controller.current.setMotion(motionRef.current)
       controller.current.setQuality?.(qualityRef.current)
       const current = navigationRef.current.route
@@ -383,6 +394,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
       <nav className={styles.keyboardNav} aria-label={en ? 'Room objects' : '房间物件'}>{Object.entries(text).map(([key, value]) => <button key={key} onClick={() => choose(key as Destination)}>{value}</button>)}
         {ready && !simple && <button onClick={() => explore('clock')}>{en ? 'Wall clock' : '墙上挂钟'}</button>}
         {ready && !simple && <button onClick={() => explore('lamp')} aria-pressed={lampOn}>{en ? 'Reading lamp' : '阅读灯'}</button>}
+        {ready && !simple && <button onClick={() => explore('ceilingLight')} aria-pressed={ceilingLightOn}>{objects.ceilingLight}</button>}
         {ready && !simple && <button onClick={() => explore('curtains')} aria-pressed={curtainsDrawn}>{objects.curtains}</button>}
         <button onClick={() => explore('note')}>{objects.note}</button>
         {bookmark ? <Link className={noteStyles.keyboardRibbon} ref={ribbonLink} prefetch={false} href={bookmarkHref(locale,bookmark)}>{ribbonLabel}</Link>
