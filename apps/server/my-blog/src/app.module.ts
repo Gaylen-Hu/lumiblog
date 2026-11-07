@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EnvironmentModule } from './environment/environment.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
@@ -74,6 +75,7 @@ import { FriendLinkModule } from './friend-link/friend-link.module';
     AiModule,
     OssModule,
     PublicModule,
+    EnvironmentModule,
     SiteConfigModule,
     ApiKeyModule,
     ProjectModule,

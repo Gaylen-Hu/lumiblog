@@ -21,11 +21,17 @@ import { isDestination, itemLabels, labels, type ClockView, type Destination, ty
 import styles from './study.module.css'
 import type { RoomQuality } from './room-quality'
 import opening from './opening.module.css'
+import { useRainAudio } from './environment/useRainAudio'
+import { useEnvironment } from './environment/useEnvironment'
+import { presets, presetLabels, weatherLabels } from './environment/state'
 
 export type StudyRoomProps = { locale: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
 
 export default function StudyRoom({ locale, posts, projects, timeline, columns, name, bio }: StudyRoomProps) {
+  const environment = useEnvironment()
+  const environmentRef = useRef(environment.state)
+  environmentRef.current = environment.state
   const en = locale === 'en', text = labels[en ? 'en' : 'zh']
   const objects = itemLabels[en ? 'en' : 'zh']
   const notes = useMemo(() => deskNotes(timeline,en),[timeline,en])
@@ -78,7 +84,9 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
   const [lightQuality, setLightQuality] = useState(false)
   const [simple, setSimple] = useState(false), [motion, setMotion] = useState(true)
   const [sound, setSound] = useState(false), [retry, setRetry] = useState(0)
-  const [night, setNight] = useState(false)
+  const rainAudio = useRainAudio(environment.state.weather, sound)
+  const [, setNight] = useState(false)
+  const [lampOn, setLampOn] = useState(false)
   const [hover, setHover] = useState<RoomItem | null>(null)
   const category = categories.find(c => c.id === route.category)?.id || ''
   const [hoveredColumn, setHoveredColumn] = useState<string>()
@@ -183,9 +191,8 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
   }, [])
   useEffect(() => {
     const silence = () => {
-      if (!document.hidden) return
+      if (!document.hidden) { if (soundRef.current) void audio.current?.resume().catch(() => {}); return }
       playing.current?.stop(); playing.current = null
-      soundRef.current = false; setSound(false)
       void audio.current?.suspend().catch(() => {})
     }
     document.addEventListener('visibilitychange', silence)
@@ -234,7 +241,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         onHover: (item, slug) => { setHover(item); setHoveredColumn(slug) },
         onReveal: revealNavigationSound,
         onClockView: reflectClockView,
-        onNight: setNight,
+        onNight: setNight, onLamp: setLampOn,
         onShelfFrame: (x, y) => {
           room.current?.style.setProperty('--rail-x', x + '%')
           room.current?.style.setProperty('--rail-y', y + '%')
@@ -255,6 +262,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
           cameraSettled(current.key)
         },
       })
+      controller.current.setEnvironment?.(environmentRef.current)
       controller.current.setMotion(motionRef.current)
       controller.current.setQuality?.(qualityRef.current)
       const current = navigationRef.current.route
@@ -263,6 +271,9 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     }).catch(fail)
     return () => { cancelled = true; window.clearTimeout(timeout); controller.current?.dispose(); controller.current = null; reflectClockView('room'); setReady(false) }
   }, [simple, retry, revealNavigationSound, columns, projects, en, reflectClockView, notes, categories])
+  const { phase, season, weather, preset } = environment.state
+  const solarMinute = environment.time.hour * 60 + environment.time.minute
+  useEffect(() => { controller.current?.setEnvironment?.(environmentRef.current) }, [phase, season, weather, preset, solarMinute, environment.state.intensity, environment.state.windSpeedMps, environment.state.cloudCover, environment.state.timezone, environment.state.clockOffsetMs, ready])
   const modal = !isMagazine && (!!settled || menu || settings || !!detail)
   useEffect(() => { controller.current?.setBoxCount?.(readingBox.cards.length) },[readingBox.cards.length,ready])
   useEffect(() => { controller.current?.setPaused(modal || (isMagazine && cameraAtRest)) }, [modal, isMagazine, cameraAtRest, ready])
@@ -365,13 +376,13 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       </section>
       <footer className={styles.footer}>
         <div>
-          <span className={styles.roomCaption}><i className={styles.statusDot} />{night ? (en ? 'By lamplight' : '灯下书房') : (en ? 'Daylight in the study' : '日光书房')}</span>
+          <span className={styles.roomCaption}><i className={styles.statusDot} />{environment.city.name} · {preset !== 'auto' ? presetLabels[preset][en ? 1 : 0] : environment.freshness === 'unavailable' ? (en ? 'Weather unavailable' : '天气暂不可用') : weatherLabels[weather][en ? 1 : 0]}</span>
         </div>
         <div className={styles.footerActions}><button onClick={toggleSimple}>{simple ? (en ? '3D mode' : '3D 模式') : (en ? 'Simple view' : '简洁模式')}</button><button onClick={toggleSound} aria-pressed={sound} aria-label={sound ? (en ? 'Mute' : '关闭声音') : (en ? 'Enable sound' : '开启声音')}>{sound ? '♫' : '♪'}<span>{sound ? (en ? 'On' : '开') : (en ? 'Off' : '关')}</span></button></div>
       </footer>
       <nav className={styles.keyboardNav} aria-label={en ? 'Room objects' : '房间物件'}>{Object.entries(text).map(([key, value]) => <button key={key} onClick={() => choose(key as Destination)}>{value}</button>)}
         {ready && !simple && <button onClick={() => explore('clock')}>{en ? 'Wall clock' : '墙上挂钟'}</button>}
-        {ready && !simple && <button onClick={() => explore('lamp')} aria-pressed={night}>{en ? 'Reading lamp' : '阅读灯'}</button>}
+        {ready && !simple && <button onClick={() => explore('lamp')} aria-pressed={lampOn}>{en ? 'Reading lamp' : '阅读灯'}</button>}
         {!!notes.length && <button onClick={() => explore('note')}>{objects.note}</button>}
         {bookmark ? <Link className={noteStyles.keyboardRibbon} ref={ribbonLink} prefetch={false} href={bookmarkHref(locale,bookmark)}>{ribbonLabel}</Link>
           : <button onClick={() => explore('bookmark')}>{ribbonLabel}</button>}
@@ -439,7 +450,23 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
             <div><button onClick={() => chooseQuality('auto')} aria-pressed={quality === 'auto'}>{en ? 'Automatic' : '自动'}</button><button onClick={() => chooseQuality('light')} aria-pressed={quality === 'light'}>{en ? 'Lightweight' : '轻量'}</button></div>
             <p role="status">{quality === 'auto' && lightQuality ? (en ? 'Using lighter detail to keep the room responsive.' : '已自动降低画面细节，让操作更流畅。') : (en ? 'Lighter detail uses less power. Reading stays the same.' : '轻量模式降低画面细节和耗电，阅读内容不受影响。')}</p>
           </fieldset>
-          <p className={styles.note}>{en ? 'The lamp comes on at 23:00 local time. The brass lamp switches between lamplight and daylight.' : '当地时间 23:00 至次日 06:00 为灯下书房。点击铜台灯可切换日光与灯光。'}</p>
+          <fieldset className={styles.quality}>
+            <legend>{environment.city.name} · {environment.city.timezone}</legend>
+            <p>{String(environment.time.hour).padStart(2,'0')}:{String(environment.time.minute).padStart(2,'0')} · {preset === 'auto' ? environment.freshness === 'unavailable' ? (en ? 'Weather unavailable · neutral scene' : '天气暂不可用 · 中性窗景') : weatherLabels[weather][en ? 1 : 0] : (environment.selection === 'auto' ? (en ? 'Owner preset' : '博主预设') : (en ? 'Atmosphere preset' : '氛围预设'))}
+            {environment.freshness === 'stale' && preset === 'auto' ? (en ? ' · delayed data' : ' · 数据更新延迟') : ''}</p>
+            <div className={styles.environmentChoices}>{presets.map(value => <button key={value} aria-pressed={environment.selection === value} onClick={() => environment.select(value)}>{value === 'auto' ? (en ? 'Site default' : '跟随站点默认') : presetLabels[value][en ? 1 : 0]}</button>)}</div>
+            <button className={styles.rainAudioToggle} onClick={() => { if (!sound) toggleSound(); void rainAudio.toggle() }} aria-pressed={rainAudio.enabled}>{en ? 'Rain sound' : '雨声'}<span>{rainAudio.enabled ? 'ON' : 'OFF'}</span></button>
+            <label className={styles.rainVolume}>{en ? 'Rain volume' : '雨声音量'} <input type="range" min="0" max="100" value={Math.round(rainAudio.volume*100)} onChange={event => rainAudio.changeVolume(Number(event.target.value)/100)} /> <span>{Math.round(rainAudio.volume*100)}%</span></label>
+            <button className={styles.rainAudioToggle} onClick={() => controller.current?.resetLamp?.()}>{en ? 'Let the lamp follow the room' : '恢复台灯自动开关'}</button>
+            {rainAudio.failed && <p role="status">{en ? 'Rain sound unavailable. Try again.' : '雨声暂不可用，可再次点击重试。'}</p>}
+            {environment.weather && <p>
+              {Number.isFinite(environment.weather.temperatureC) && <span>{environment.weather.temperatureC}°C · </span>}
+              <a href="https://www.qweather.com" target="_blank" rel="noreferrer">QWeather</a>
+              {environment.weather.validAt != null && <span> · {en ? 'Valid at ' : '数据有效于 '}{new Intl.DateTimeFormat(en ? 'en-GB' : 'zh-CN', { timeZone: environment.city.timezone, hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(environment.weather.validAt)}</span>}
+              {Array.isArray(environment.weather.attributions) && environment.weather.attributions.filter(url => typeof url === 'string' && /^https:\/\//i.test(url)).map(url => <span key={url}> · <a href={url} target="_blank" rel="noreferrer">{en ? 'Data attribution' : '数据归因'}</a></span>)}
+            </p>}
+          </fieldset>
+          <p className={styles.note}>{en ? 'The clock follows the configured city timezone. The lamp switch only changes the lamp. Seasonal scenery is a prototype.' : '挂钟跟随博主城市时区，点击台灯只控制灯具。季节窗景目前为原型。'}</p>
         </div>}
         {settled === 'columns' && <>
           <p className={styles.intro}>{en ? 'Choose a series to see its articles in reading order.' : '选一本专栏，按顺序翻看其中的文章。'}</p>

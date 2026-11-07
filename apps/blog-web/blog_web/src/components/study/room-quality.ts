@@ -10,6 +10,7 @@ export class RoomFrameBudget {
   private elapsed = 0
   private frames = 0
   private slowWindows = 0
+  constructor(private readonly minimumFps = 24) {}
 
   reset() { this.elapsed = 0; this.frames = 0; this.slowWindows = 0 }
 
@@ -22,7 +23,7 @@ export class RoomFrameBudget {
     this.frames++
     if (this.elapsed < 2000) return false
     const fps = this.frames * 1000 / this.elapsed
-    this.slowWindows = fps < 24 ? this.slowWindows + 1 : 0
+    this.slowWindows = fps < this.minimumFps ? this.slowWindows + 1 : 0
     this.elapsed = 0; this.frames = 0
     return this.slowWindows >= 2
   }
