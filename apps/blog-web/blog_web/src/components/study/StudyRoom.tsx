@@ -23,7 +23,7 @@ import type { RoomQuality } from './room-quality'
 import opening from './opening.module.css'
 import { useRainAudio } from './environment/useRainAudio'
 import { useEnvironment } from './environment/useEnvironment'
-import { presets, presetLabels, weatherLabels } from './environment/state'
+import { presets, presetLabels, weatherLabels, type Weather } from './environment/state'
 
 export type StudyRoomProps = { locale: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
@@ -375,9 +375,6 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         <div className={styles.staticLatest}>{posts.slice(0, 3).map(post => <Link prefetch={false} href={`/${locale}/posts/${encodeURIComponent(post.slug)}`} key={post.id}>{post.title} <span>↗</span></Link>)}</div>
       </section>
       <footer className={styles.footer}>
-        <div>
-          <span className={styles.roomCaption}><i className={styles.statusDot} />{environment.city.name} · {preset !== 'auto' ? presetLabels[preset][en ? 1 : 0] : environment.freshness === 'unavailable' ? (en ? 'Weather unavailable' : '天气暂不可用') : weatherLabels[weather][en ? 1 : 0]}</span>
-        </div>
         <div className={styles.footerActions}><button onClick={toggleSimple}>{simple ? (en ? '3D mode' : '3D 模式') : (en ? 'Simple view' : '简洁模式')}</button><button onClick={toggleSound} aria-pressed={sound} aria-label={sound ? (en ? 'Mute' : '关闭声音') : (en ? 'Enable sound' : '开启声音')}>{sound ? '♫' : '♪'}<span>{sound ? (en ? 'On' : '开') : (en ? 'Off' : '关')}</span></button></div>
       </footer>
       <nav className={styles.keyboardNav} aria-label={en ? 'Room objects' : '房间物件'}>{Object.entries(text).map(([key, value]) => <button key={key} onClick={() => choose(key as Destination)}>{value}</button>)}
@@ -441,7 +438,29 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         {detail === 'tea' && <>{posts[teaIndex] && <Link prefetch={false} className={styles.entry} href={`/${locale}/posts/${encodeURIComponent(posts[teaIndex].slug)}`}><div><h3>{posts[teaIndex].title}</h3><p>{posts[teaIndex].excerpt}</p></div><span>↗</span></Link>}<Link prefetch={false} className={styles.more} href={`/${locale}/posts`}>{en ? 'Browse the bookshelf' : '去书架选一篇'} →</Link></>}
         {menu && <><nav className={styles.menuGrid}>{Object.entries(text).map(([key, value], index) => <button key={key} onClick={() => choose(key as Destination)}><span>0{index + 1}</span>{value}<i>↗</i></button>)}</nav><nav className={styles.extraLinks}>{links.map(([url, label]) => <Link prefetch={false} key={url} onNavigate={url === 'posts' ? e => { e.preventDefault(); choose('bookshelf') } : undefined} href={url === 'posts' ? `/${locale}?room=bookshelf` : `/${locale}/${url}`}>{label} ↗</Link>)}<Link prefetch={false} href={`/${locale}/classic`}>{en ? 'Original home' : '原版首页'} ↗</Link><Link prefetch={false} href={`/${en ? 'zh' : 'en'}`}>{en ? '中文' : 'English'} ↗</Link></nav></>}
         {settings && <div className={styles.settings}>
-          <p>{en ? 'A little movement, or a completely quiet room. Your choice.' : '一点点风，一点点光。也可以让房间完全安静下来。'}</p>
+          <fieldset className={styles.quality}>
+            <legend>{en ? 'Window weather' : '窗外天气'}</legend>
+            <p className={styles.cityWeather}>
+              {environment.city.name} · {environment.weather ? weatherLabels[environment.weather.condition][en ? 1 : 0] : (en ? 'Weather unavailable' : '实况暂不可用')}
+              {environment.weather?.temperatureC != null && Number.isFinite(environment.weather.temperatureC) && <> · {Math.round(environment.weather.temperatureC)}°C</>}
+              {environment.freshness === 'stale' && (en ? ' · delayed' : ' · 更新延迟')}
+            </p>
+            <div className={styles.weatherChoices}>
+              <button type="button" className={styles.followCity} aria-pressed={environment.selectedWeather === 'city'} onClick={() => environment.selectWeather('city')}>
+                {en ? 'Follow city weather' : '跟随城市实况'}
+              </button>
+              {(Object.keys(weatherLabels) as Weather[]).map(condition => (
+                <button type="button" key={condition} aria-pressed={environment.selectedWeather === condition} onClick={() => environment.selectWeather(condition)}>
+                  {weatherLabels[condition][en ? 1 : 0]}
+                </button>
+              ))}
+            </div>
+            {environment.weather && <p>
+              <a href="https://www.qweather.com" target="_blank" rel="noreferrer">QWeather</a>
+              {environment.weather.validAt != null && <span> · {en ? 'Valid at ' : '数据有效于 '}{new Intl.DateTimeFormat(en ? 'en-GB' : 'zh-CN', { timeZone: environment.city.timezone, hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(environment.weather.validAt)}</span>}
+              {Array.isArray(environment.weather.attributions) && environment.weather.attributions.filter(url => typeof url === 'string' && /^https:\/\//i.test(url)).map(url => <span key={url}> · <a href={url} target="_blank" rel="noreferrer">{en ? 'Data attribution' : '数据归因'}</a></span>)}
+            </p>}
+          </fieldset>
           <button onClick={() => { const next = !motion; try { localStorage.setItem('study-motion', String(next)) } catch { /* optional */ } setMotion(next && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) }} aria-pressed={motion}>{en ? 'Subtle movement' : '环境微动与视差'}<span>{motion ? 'ON' : 'OFF'}</span></button>
           <button onClick={toggleSound} aria-pressed={sound}>{en ? 'Interaction sounds' : '翻页与交互声音'}<span>{sound ? 'ON' : 'OFF'}</span></button>
           <button onClick={toggleSimple} aria-pressed={simple}>{en ? 'Simple view' : '简洁模式'}<span>{simple ? 'ON' : 'OFF'}</span></button>
@@ -451,20 +470,13 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
             <p role="status">{quality === 'auto' && lightQuality ? (en ? 'Using lighter detail to keep the room responsive.' : '已自动降低画面细节，让操作更流畅。') : (en ? 'Lighter detail uses less power. Reading stays the same.' : '轻量模式降低画面细节和耗电，阅读内容不受影响。')}</p>
           </fieldset>
           <fieldset className={styles.quality}>
-            <legend>{environment.city.name} · {environment.city.timezone}</legend>
-            <p>{String(environment.time.hour).padStart(2,'0')}:{String(environment.time.minute).padStart(2,'0')} · {preset === 'auto' ? environment.freshness === 'unavailable' ? (en ? 'Weather unavailable · neutral scene' : '天气暂不可用 · 中性窗景') : weatherLabels[weather][en ? 1 : 0] : (environment.selection === 'auto' ? (en ? 'Owner preset' : '博主预设') : (en ? 'Atmosphere preset' : '氛围预设'))}
-            {environment.freshness === 'stale' && preset === 'auto' ? (en ? ' · delayed data' : ' · 数据更新延迟') : ''}</p>
+            <legend>{en ? 'Room atmosphere' : '书房氛围'}</legend>
             <div className={styles.environmentChoices}>{presets.map(value => <button key={value} aria-pressed={environment.selection === value} onClick={() => environment.select(value)}>{value === 'auto' ? (en ? 'Site default' : '跟随站点默认') : presetLabels[value][en ? 1 : 0]}</button>)}</div>
             <button className={styles.rainAudioToggle} onClick={() => { if (!sound) toggleSound(); void rainAudio.toggle() }} aria-pressed={rainAudio.enabled}>{en ? 'Rain sound' : '雨声'}<span>{rainAudio.enabled ? 'ON' : 'OFF'}</span></button>
             <label className={styles.rainVolume}>{en ? 'Rain volume' : '雨声音量'} <input type="range" min="0" max="100" value={Math.round(rainAudio.volume*100)} onChange={event => rainAudio.changeVolume(Number(event.target.value)/100)} /> <span>{Math.round(rainAudio.volume*100)}%</span></label>
             <button className={styles.rainAudioToggle} onClick={() => controller.current?.resetLamp?.()}>{en ? 'Let the lamp follow the room' : '恢复台灯自动开关'}</button>
             {rainAudio.failed && <p role="status">{en ? 'Rain sound unavailable. Try again.' : '雨声暂不可用，可再次点击重试。'}</p>}
-            {environment.weather && <p>
-              {Number.isFinite(environment.weather.temperatureC) && <span>{environment.weather.temperatureC}°C · </span>}
-              <a href="https://www.qweather.com" target="_blank" rel="noreferrer">QWeather</a>
-              {environment.weather.validAt != null && <span> · {en ? 'Valid at ' : '数据有效于 '}{new Intl.DateTimeFormat(en ? 'en-GB' : 'zh-CN', { timeZone: environment.city.timezone, hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(environment.weather.validAt)}</span>}
-              {Array.isArray(environment.weather.attributions) && environment.weather.attributions.filter(url => typeof url === 'string' && /^https:\/\//i.test(url)).map(url => <span key={url}> · <a href={url} target="_blank" rel="noreferrer">{en ? 'Data attribution' : '数据归因'}</a></span>)}
-            </p>}
+
           </fieldset>
           <p className={styles.note}>{en ? 'The clock follows the configured city timezone. The lamp switch only changes the lamp. Seasonal scenery is a prototype.' : '挂钟跟随博主城市时区，点击台灯只控制灯具。季节窗景目前为原型。'}</p>
         </div>}

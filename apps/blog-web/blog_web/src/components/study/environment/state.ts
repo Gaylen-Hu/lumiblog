@@ -3,6 +3,7 @@ export const CITY = { name: '杭州', timezone: 'Asia/Shanghai', latitude: 30.27
 export type Phase = 'morning' | 'day' | 'dusk' | 'night'
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 export type Weather = 'clear' | 'cloudy' | 'overcast' | 'rain' | 'snow' | 'fog' | 'thunderstorm'
+export type WindowWeather = 'city' | Weather
 export type Preset = 'auto' | 'sunny' | 'rainy-night' | 'spring' | 'autumn' | 'snow'
 export type Environment = { phase: Phase; season: Season; weather: Weather; intensity: number; timezone: string; preset: Preset; clockOffsetMs?: number; solar: ReturnType<typeof solarDirection>; windSpeedMps: number; cloudCover: number }
 export type City = { name: string; timezone: string; latitude: number; longitude: number }
@@ -18,7 +19,7 @@ export function cityTime(epoch: number, timezone = CITY.timezone) {
   const parts = Object.fromEntries(formatter.formatToParts(epoch).map(p => [p.type, Number(p.value)]))
   return { year: parts.year, month: parts.month, day: parts.day, hour: parts.hour, minute: parts.minute, second: parts.second }
 }
-export function resolveEnvironment(epoch: number, preset: Preset, weather?: Weather, city: City = CITY): Environment {
+export function resolveEnvironment(epoch: number, preset: Preset, weather?: Weather, city: City = CITY, windowWeather?: Weather): Environment {
   const { month } = cityTime(epoch, city.timezone)
   const solar = solarTimes(epoch, city)
   const phase: Phase = epoch < solar.sunrise - 1800_000 || epoch >= solar.sunset + 1800_000 ? 'night' : epoch < solar.sunrise + 5400_000 ? 'morning' : epoch < solar.sunset - 3600_000 ? 'day' : 'dusk'
@@ -35,7 +36,12 @@ export function resolveEnvironment(epoch: number, preset: Preset, weather?: Weat
     const [east, up, north, daylight] = directions[preset]
     state.solar = { east, up, north, daylight }
   }
+  if (windowWeather) state.weather = windowWeather
   state.cloudCover = state.weather === 'clear' ? .1 : state.weather === 'cloudy' ? .5 : .9
+  if (state.weather === 'thunderstorm') {
+    state.intensity = .9
+    state.windSpeedMps = 8
+  }
   return state
 }
 // NOAA-style solar approximation. Date comes from the city, never the host timezone.
