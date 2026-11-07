@@ -87,6 +87,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
   const rainAudio = useRainAudio(environment.state.weather, sound)
   const [, setNight] = useState(false)
   const [lampOn, setLampOn] = useState(false)
+  const [curtainsDrawn, setCurtainsDrawn] = useState(false)
   const [hover, setHover] = useState<RoomItem | null>(null)
   const category = categories.find(c => c.id === route.category)?.id || ''
   const [hoveredColumn, setHoveredColumn] = useState<string>()
@@ -130,14 +131,14 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       controller.current?.toggleLamp()
     } else if (item === 'curtains') {
       const drawn = controller.current?.toggleCurtains()
-      setNotice({ text: drawn ? (en ? 'Curtains drawn' : '窗帘已合上') : (en ? 'Curtains open' : '窗帘已拉开') })
+      if (drawn !== undefined) setCurtainsDrawn(drawn)
     } else if (item === 'clock') {
       controller.current?.inspectClock()
     } else {
       if (item === 'tea' && posts.length) setTeaIndex(i => (i + 1) % posts.length)
       setDetail(item)
     }
-  }, [choose, en, posts.length, rememberFocus, notes.length])
+  }, [choose, posts.length, rememberFocus, notes.length])
   useEffect(() => { pickRef.current = explore }, [explore])
   useEffect(() => {
     if (!notice) return
@@ -226,7 +227,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       if (cancelled || timedOut || !host.current) return
       controller.current = createRoom(host.current, {
         columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, note: notes[0],
-        onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setFailed(false); setRecovering(false) },
+        onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
         onContextLost: () => {
           if (cancelled || timedOut) return
           if (recoveries.current >= 1) { fail(); return }
@@ -380,6 +381,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       <nav className={styles.keyboardNav} aria-label={en ? 'Room objects' : '房间物件'}>{Object.entries(text).map(([key, value]) => <button key={key} onClick={() => choose(key as Destination)}>{value}</button>)}
         {ready && !simple && <button onClick={() => explore('clock')}>{en ? 'Wall clock' : '墙上挂钟'}</button>}
         {ready && !simple && <button onClick={() => explore('lamp')} aria-pressed={lampOn}>{en ? 'Reading lamp' : '阅读灯'}</button>}
+        {ready && !simple && <button onClick={() => explore('curtains')} aria-pressed={curtainsDrawn}>{objects.curtains}</button>}
         {!!notes.length && <button onClick={() => explore('note')}>{objects.note}</button>}
         {bookmark ? <Link className={noteStyles.keyboardRibbon} ref={ribbonLink} prefetch={false} href={bookmarkHref(locale,bookmark)}>{ribbonLabel}</Link>
           : <button onClick={() => explore('bookmark')}>{ribbonLabel}</button>}

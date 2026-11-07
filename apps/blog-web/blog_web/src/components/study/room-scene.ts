@@ -8,6 +8,7 @@ import { cityTime, resolveEnvironment, type Environment } from './environment/st
 import { createPrecipitation } from './environment/precipitation'
 import { createRainGlass } from './environment/glass'
 import { gardenShader, gardenWeather } from './environment/garden-shader'
+import { CurtainMotion, createCurtainPanel } from './curtain'
 import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
 import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
@@ -211,31 +212,48 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   extraMaterials.add(outsideMat)
   const outside = mesh(new THREE.PlaneGeometry(20, 10), outsideMat, [5, 3, -2.6])
   outside.rotation.y = -Math.PI / 2; outside.castShadow = outside.receiveShadow = false
-  // Curtains are individual folds: inexpensive geometry, gently animated as a group.
-  const curtains = new THREE.Group(); curtains.position.set(eastX - .25, lintel + .09, windowMid); curtains.rotation.y = -Math.PI / 2; scene.add(curtains)
-  const curtainFabric = mat('#d4c4a9'); curtainFabric.map = woven; curtainFabric.side = THREE.DoubleSide
-  const curtainPanels: THREE.Group[] = []
+  const curtains = new THREE.Group()
+  const railX = eastX - .56
+  curtains.position.set(railX, lintel + .09, windowMid)
+  curtains.rotation.y = -Math.PI / 2
+  scene.add(curtains)
+  const curtainFabric = mat('#d4c4a9')
+  const curtainWeave = woven.clone()
+  curtainWeave.wrapS = curtainWeave.wrapT = THREE.RepeatWrapping
+  curtainWeave.repeat.set(4, 4)
+  textures.add(curtainWeave)
+  curtainFabric.map = curtainWeave
+  curtainFabric.color.set('#fff8eb')
+  curtainFabric.vertexColors = true
+  curtainFabric.side = THREE.DoubleSide
+  curtainFabric.roughness = 1
   const curtainSpan = (windowEnd - windowStart) / 2 + .28
-  let curtainsDrawn = false
-  for (const side of [-1, 1]) {
+  const curtainMotion = new CurtainMotion()
+  let lastCurtainShadow = 0
+  const loopGeometry = new THREE.TorusGeometry(.045, .009, 6, 12)
+  const curtainPanels = [-1, 1].map(side => {
     const panel = new THREE.Group()
     panel.position.x = side * curtainSpan
-    curtainPanels.push(panel); curtains.add(panel)
-    const cloth = new THREE.PlaneGeometry(.8, 2.9, 28, 22)
-    const positions = cloth.attributes.position
-    for (let i = 0; i < positions.count; i++) {
-      const x = positions.getX(i), y = positions.getY(i)
-      positions.setZ(i, Math.sin((x + .4) * 48) * (.035 + (1.45 - y) * .013))
-      positions.setY(i, y + (y < -1.4 ? Math.cos(x * 48) * .025 : 0))
-    }
-    cloth.computeVertexNormals()
-    mesh(cloth, curtainFabric, [-side * .4, -1.45, 0], panel)
-    for (let ring = 0; ring < 6; ring++) {
-      const loop = mesh(new THREE.TorusGeometry(.045, .009, 6, 12), brass, [-side * .4 - .33 + ring * .13, 0, 0], panel)
+    curtains.add(panel)
+    const cloth = createCurtainPanel(side, curtainSpan, 2.82)
+    mesh(cloth.geometry, curtainFabric, [0, 0, 0], panel)
+    const loops = Array.from({ length: cloth.folds + 1 }, (_, index) => {
+      const loop = mesh(loopGeometry, brass, [-side * cloth.headingWidth(0) * index / cloth.folds, 0, 0], panel)
       loop.rotation.y = Math.PI / 2
+      return loop
+    })
+    return () => {
+      const heading = curtainMotion.heading.position
+      cloth.shape(heading, curtainMotion.hem.position)
+      const width = cloth.headingWidth(heading)
+      loops.forEach((loop, index) => { loop.position.x = -side * width * index / cloth.folds })
     }
+  })
+  timber([railX, lintel + .1, windowMid], [.055, .055, windowEnd-windowStart+.55], true)
+  for (const z of [windowStart - .21, windowEnd + .21]) {
+    const bracketDepth = eastX - .08 - railX
+    mesh(new THREE.BoxGeometry(bracketDepth, .028, .03), brass, [railX + bracketDepth / 2, lintel + .12, z])
   }
-  timber([eastX - .25, lintel + .1, windowMid], [.055, .055, windowEnd-windowStart+.55], true)
   hit('curtains', [0, -1.45, 0], [curtainSpan * 2, 2.9, .10], curtains)
   // Bookshelf. The semantic hitbox stays stable while the spines move.
   const shelf = new THREE.Group(); shelf.position.set(-2.85, 0, -2.85); scene.add(shelf)
@@ -810,7 +828,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       v.setXYZ(j,.164*power(x,.89),.32*power(y,.56),.38*power(w,.55))
     }
     geo.computeVertexNormals()
-    const pillow=mesh(geo,pillowFabric[i],[.01,1.17,z],bench)
+    const pillow=mesh(geo,pillowFabric[i],[-.30,1.17,z],bench)
     pillow.rotation.set(i?-.10:.15,.06,-.24)
     const seam=Array.from({length:48},(_,k)=>{
       const t=k/48*Math.PI*2
@@ -952,20 +970,24 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const solarTarget = solarPosition.clone()
   let weatherDim = 1, targetDim = 1
   const lampOn = () => lampOverride ?? (environment.phase === 'night' || environment.phase === 'dusk')
+  function applyWindowLight(mix: number) {
+    const cover = (curtainMotion.heading.position + curtainMotion.hem.position) * .5
+    const direct = Math.max(0, solarPosition.x) * Math.max(0, solarPosition.y)
+    const openSun = THREE.MathUtils.lerp(3.65, .19, mix)
+    const screenedSun = THREE.MathUtils.lerp(1.05, .08, mix)
+    sun.intensity = THREE.MathUtils.lerp(openSun, screenedSun, cover) * weatherDim *
+      (.04 + Math.min(1, direct * 3) * (1 - environment.cloudCover * .8))
+    hemi.intensity = THREE.MathUtils.lerp(.99, .52, mix) * (1 - .13 * cover)
+    fill.intensity = THREE.MathUtils.lerp(2.8, .65, mix) * (1 - .18 * cover)
+  }
   function applyLight(mix: number) {
     renderer.shadowMap.needsUpdate = true
     nightBlend.value = mix
     sun.color.lerpColors(daySun,moon,mix)
-    sun.intensity = THREE.MathUtils.lerp(curtainsDrawn ? 1.05 : 3.65,curtainsDrawn ? .08 : .19,mix)
     hemi.color.lerpColors(daySky,nightSky,mix)
-    hemi.intensity = THREE.MathUtils.lerp(.99,.52,mix)
-    fill.intensity = THREE.MathUtils.lerp(2.8,.65,mix)
     scene.environmentIntensity = THREE.MathUtils.lerp(.29,.10,mix)
-    sun.intensity *= weatherDim
-    // The east window receives direct sunlight only while the sun is east and above the horizon.
-    const direct = Math.max(0, solarPosition.x) * Math.max(0, solarPosition.y)
     sun.position.copy(sun.target.position).addScaledVector(solarPosition, 10)
-    sun.intensity *= .04 + Math.min(1, direct * 3) * (1 - environment.cloudCover * .8)
+    applyWindowLight(mix)
     if (mix < .8 && solarPosition.y < .3) sun.color.lerp(new THREE.Color('#ffbc81'), .6)
     outsideMat.color.set(environment.season === 'autumn' ? '#e5ceb0' : environment.season === 'winter' ? '#cbd6dc' : '#e0e9dd')
     lamp.intensity = lampOn() ? 4.2 : 0
@@ -1442,8 +1464,19 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (clockTimer === undefined) syncWallClock()
     const delta = now - lastTime; lastTime = now
     diagnostics?.frame(delta, previousContinuous)
-    const glassMoving = rainGlass.update(delta, !reduced && !target && !curtainsDrawn && quality !== 'light' && !autoLight)
-    const weatherMoving = precipitation.update(delta, !reduced && !target && !curtainsDrawn, quality === 'light' || autoLight)
+    const curtainsMoving = curtainMotion.step(delta, reduced)
+    if (curtainsMoving) {
+      for (const updatePanel of curtainPanels) updatePanel()
+      applyWindowLight(nightBlend.value)
+      const hem = curtainMotion.hem.position
+      if (Math.abs(hem - lastCurtainShadow) >= .08 || hem === Number(curtainMotion.drawn)) {
+        renderer.shadowMap.needsUpdate = true
+        lastCurtainShadow = hem
+      }
+    }
+    const windowVisible = curtainMotion.hem.position < .99
+    const glassMoving = rainGlass.update(delta, !reduced && !target && windowVisible && quality !== 'light' && !autoLight)
+    const weatherMoving = precipitation.update(delta, !reduced && !target && windowVisible, quality === 'light' || autoLight)
     const targetNight = 1-environment.solar.daylight
     const lightMoving = Math.abs(nightBlend.value - targetNight) > .001 || Math.abs(weatherDim-targetDim) > .001 || solarPosition.distanceToSquared(solarTarget) > .000001
     if (lightMoving) {
@@ -1460,7 +1493,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       wisp.scale.set(.09+.05*phase,.13+.06*phase,1)
       wisp.material.opacity = .46 * Math.sin(phase * Math.PI)
     })
-    const animated = (!target && !reduced && ambientMotion) || transitioning || lightMoving || weatherMoving || glassMoving
+    const animated = (!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving
     if (quality === 'auto' && !autoLight && resolutionCap > 1 && resolutionBudget.sample(delta, animated)) {
       resolutionCap = Math.max(1, Math.min(resolutionCap, renderer.getPixelRatio()) - .5)
       resolutionBudget.reset(); frameBudget.reset(); resize()
@@ -1537,19 +1570,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (hinge.rotation.z !== angle) { hinge.rotation.z = angle; renderer.shadowMap.needsUpdate = true }
     if (!target && !reduced && ambientMotion) {
       const time = now * .001
-      if (!curtainsDrawn) gardenBreeze.value.set(Math.sin(time * .28) * .009, Math.sin(time * .19) * .004)
-      curtains.rotation.z = Math.sin(time * .5) * .002
+      if (windowVisible) gardenBreeze.value.set(Math.sin(time * .28) * .009, Math.sin(time * .19) * .004)
       for (const leaf of leaves) leaf.mesh.rotation.z = .3 + Math.sin(time * .7 + leaf.angle) * .035
     }
     if (reduced || !ambientMotion) gardenBreeze.value.set(0, 0)
-    const desiredWidth = curtainsDrawn ? curtainSpan / .8 : 1
-    const width = curtainPanels[0].scale.x
-    const curtainsMoving = Math.abs(width - desiredWidth) > .004
-    if (curtainsMoving) {
-      const nextWidth = reduced ? desiredWidth : THREE.MathUtils.damp(width, desiredWidth, 10, Math.min(delta / 1000, .1))
-      for (const panel of curtainPanels) panel.scale.x = nextWidth
-      renderer.shadowMap.needsUpdate = true
-    }
     if (catalogAnimating) drawCatalogCue(delta)
     previousContinuous = !!((!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || catalogAnimating)
     diagnostics?.mode(`${quality === 'light' || autoLight ? 'light' : 'auto'}:${previousContinuous ? 'animated' : 'idle'}:${environment.preset}`)
@@ -1584,7 +1608,6 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }, true, 'daylight')
   wood.color.set('#ead4af'); darkWood.color.set('#c7ad87'); floorMaterial.color.set('#dbc7a7')
   loadArt('linen', texture => {
-    curtainFabric.map = texture; curtainFabric.color.set('#fff6e7'); curtainFabric.needsUpdate = true
     for(const m of [throwMaterial,cushionCloth,fabric,...pillowFabric]) { m.map=texture; m.needsUpdate=true }
   }, true)
   loadArt('bookcloth', texture => {
@@ -1638,10 +1661,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       options.onLamp?.(lampOn()); requestFrame(); return lampOn()
     },
     toggleCurtains() {
-      curtainsDrawn = !curtainsDrawn
-      applyLight(nightBlend.value)
+      curtainMotion.drawn = !curtainMotion.drawn
       requestFrame()
-      return curtainsDrawn
+      return curtainMotion.drawn
     },
     setMotion(value: boolean) { reduced = !value || media.matches; clearClockTimer(); requestFrame() },
     setPaused(value: boolean) {
