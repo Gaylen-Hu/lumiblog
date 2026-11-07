@@ -6,6 +6,7 @@ import RoomAlbum from './RoomAlbum'
 import { useStudyNavigation } from './StudyNavigation'
 import { openStudyObject, closeStudyObject } from './study-route'
 import RoomJournal from './RoomJournal'
+import Logo from '../Logo'
 import RoomPortfolio from './RoomPortfolio'
 import DeskNote from './DeskNote'
 import ShelfCatalog, { type ShelfSelection } from './ShelfCatalog'
@@ -23,12 +24,12 @@ import type { RoomQuality } from './room-quality'
 import opening from './opening.module.css'
 import { useRainAudio } from './environment/useRainAudio'
 import { useEnvironment } from './environment/useEnvironment'
-import { presets, presetLabels, weatherLabels, type Weather } from './environment/state'
+import RoomSettings from './RoomSettings'
 
-export type StudyRoomProps = { locale: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
+export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
 
-export default function StudyRoom({ locale, posts, projects, timeline, columns, name, bio }: StudyRoomProps) {
+export default function StudyRoom({ locale, siteName, posts, projects, timeline, columns, name, bio }: StudyRoomProps) {
   const environment = useEnvironment()
   const environmentRef = useRef(environment.state)
   environmentRef.current = environment.state
@@ -125,7 +126,6 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       else choose('bookshelf')
       return
     }
-    if (item === 'note' && !notes.length) return
     rememberFocus()
     if (item === 'lamp') {
       controller.current?.toggleLamp()
@@ -138,7 +138,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       if (item === 'tea' && posts.length) setTeaIndex(i => (i + 1) % posts.length)
       setDetail(item)
     }
-  }, [choose, posts.length, rememberFocus, notes.length])
+  }, [choose, posts.length, rememberFocus])
   useEffect(() => { pickRef.current = explore }, [explore])
   useEffect(() => {
     if (!notice) return
@@ -226,7 +226,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     import('./room-scene').then(({ createRoom }) => {
       if (cancelled || timedOut || !host.current) return
       controller.current = createRoom(host.current, {
-        columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, note: notes[0],
+        columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, siteName, note: notes[0],
         onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
         onContextLost: () => {
           if (cancelled || timedOut) return
@@ -271,13 +271,14 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       controller.current.setTarget(current.target, current.column)
     }).catch(fail)
     return () => { cancelled = true; window.clearTimeout(timeout); controller.current?.dispose(); controller.current = null; reflectClockView('room'); setReady(false) }
-  }, [simple, retry, revealNavigationSound, columns, projects, en, reflectClockView, notes, categories])
+  }, [simple, retry, revealNavigationSound, columns, projects, en, siteName, reflectClockView, notes, categories])
   const { phase, season, weather, preset } = environment.state
   const solarMinute = environment.time.hour * 60 + environment.time.minute
   useEffect(() => { controller.current?.setEnvironment?.(environmentRef.current) }, [phase, season, weather, preset, solarMinute, environment.state.intensity, environment.state.windSpeedMps, environment.state.cloudCover, environment.state.timezone, environment.state.clockOffsetMs, ready])
   const modal = !isMagazine && (!!settled || menu || settings || !!detail)
+  useEffect(() => { controller.current?.setWindowPreview?.(modal && settings) }, [modal, settings, ready])
   useEffect(() => { controller.current?.setBoxCount?.(readingBox.cards.length) },[readingBox.cards.length,ready])
-  useEffect(() => { controller.current?.setPaused(modal || (isMagazine && cameraAtRest)) }, [modal, isMagazine, cameraAtRest, ready])
+  useEffect(() => { controller.current?.setPaused((modal && !settings) || (isMagazine && cameraAtRest)) }, [modal, settings, isMagazine, cameraAtRest, ready])
   useEffect(() => {
     if (!inspectingClock) return
     clockBack.current?.focus({preventScroll:true})
@@ -340,7 +341,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     : settled ? text[settled].split(' · ')[1] : detail ? (en ? 'A tea-break read' : '茶歇，读一篇')
     : menu ? (en ? 'Where would you like to go?' : '想去哪里看看？') : (en ? 'Make yourself comfortable' : '让自己舒服一点')
   const imprints: Record<Destination, string> = {
-    bookshelf: 'THE READING ROOM', diary: 'A JOURNAL OF ORDINARY DAYS', computer: 'LUMI / WORKSPACE',
+    bookshelf: 'THE READING ROOM', diary: 'A JOURNAL OF ORDINARY DAYS', computer: 'WORKSPACE',
     columns: 'COLLECTED EDITIONS', album: 'MOMENTS, KEPT ON PAPER', portrait: 'A NOTE FROM THE HOST', drawer: 'LITTLE THINGS TO KEEP', readingBox: 'PERSONAL READING FILE',
   }
   const openingWords: Record<Destination, string> = en ? {
@@ -359,7 +360,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     <div className={styles.vignette} aria-hidden="true" />
     <div className={styles.shell} inert={busy || undefined}>
       <header className={styles.header}>
-        <Link prefetch={false} className={styles.brand} href={`/${locale}`} aria-label={en ? 'Study home' : '书房首页'}><span className={styles.brandIcon}>✳</span><span>LumiBlog<small>{en ? 'A LITTLE ROOM ON THE INTERNET' : '互联网里的一间小书房'}</small></span></Link>
+        <Link prefetch={false} className={styles.brand} href={`/${locale}`} aria-label={siteName}><Logo height={28} /><strong>{siteName}<span className="text-blue-500">.</span></strong></Link>
         <div className={styles.actions}>
           <button onClick={() => { previousFocus.current = document.activeElement as HTMLElement; setSettings(true) }} aria-label={en ? 'Settings' : '环境设置'}>☷</button>
           <button data-room-menu onClick={() => { previousFocus.current = document.activeElement as HTMLElement; setMenu(true) }}>☰ <span>{en ? 'Explore' : '导航'}</span></button>
@@ -382,7 +383,7 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         {ready && !simple && <button onClick={() => explore('clock')}>{en ? 'Wall clock' : '墙上挂钟'}</button>}
         {ready && !simple && <button onClick={() => explore('lamp')} aria-pressed={lampOn}>{en ? 'Reading lamp' : '阅读灯'}</button>}
         {ready && !simple && <button onClick={() => explore('curtains')} aria-pressed={curtainsDrawn}>{objects.curtains}</button>}
-        {!!notes.length && <button onClick={() => explore('note')}>{objects.note}</button>}
+        <button onClick={() => explore('note')}>{objects.note}</button>
         {bookmark ? <Link className={noteStyles.keyboardRibbon} ref={ribbonLink} prefetch={false} href={bookmarkHref(locale,bookmark)}>{ribbonLabel}</Link>
           : <button onClick={() => explore('bookmark')}>{ribbonLabel}</button>}
       </nav>
@@ -396,13 +397,12 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
     </button>}
     {active && !settled && <><button className={styles.cancel} onClick={close}>{en ? '← Back to the room' : '← 返回书房'}</button>
       <span role="status" className={active === 'computer' ? styles.visuallyHidden : styles.objectNotice}>{openingWords[active]}…</span></>}
-    {showPortfolio && <RoomPortfolio projects={projects} locale={locale} open={settled === 'computer'}
+    {showPortfolio && <RoomPortfolio siteName={siteName} projects={projects} locale={locale} open={settled === 'computer'}
       motion={motion} onClose={close} panelRef={panel} />}
     {detail === 'note' && <div className={`${styles.overlay} ${noteStyles.stage}`}>
       <div className={noteStyles.paper} role="dialog" aria-modal="true" aria-labelledby="desk-note-title" ref={panel} data-room-scroll>
         <button className={noteStyles.back} onClick={close} aria-label={en ? 'Put the note back' : '放回便签'}>↶</button>
-        <h2 id="desk-note-title">{objects.note}</h2>
-        <DeskNote notes={notes} locale={locale} />
+        <DeskNote notes={notes} locale={locale} siteName={siteName} />
       </div>
     </div>}
     {settled === 'bookshelf' && <ShelfCatalog locale={locale} posts={posts} path={navigation.catalogPath} motion={motion}
@@ -423,11 +423,20 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
       ))}</div>
       {!filteredPosts.length && <p className={styles.empty}>{noContent}</p>}<Link prefetch={false} className={styles.more} href={`/${locale}/posts`}>{en ? 'All writing' : '查看全部文章'} →</Link><Link prefetch={false} className={styles.more} href={`/${locale}/columns`}>{en ? 'Browse collections' : '按专栏阅读'} →</Link>
     </ShelfCatalog>}
-    {modal && detail !== 'note' && settled !== 'bookshelf' && settled !== 'computer' && <div className={`${styles.overlay} ${settled === 'readingBox' ? boxSkin.stage : opening.stage}`} data-object={settled || undefined} data-motion={motion ? 'full' : 'reduced'}>
+    {modal && settings && <RoomSettings en={en} panel={panel} close={close}
+      environment={environment} rainAudio={rainAudio} sound={sound} toggleSound={toggleSound}
+      motion={motion} toggleMotion={() => {
+        const next = !motion
+        try { localStorage.setItem('study-motion', String(next)) } catch { /* optional */ }
+        setMotion(next && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      }}
+      simple={simple} toggleSimple={toggleSimple} quality={quality} chooseQuality={chooseQuality}
+      lightQuality={lightQuality} resetLamp={() => controller.current?.resetLamp?.()} />}
+    {modal && !settings && detail !== 'note' && settled !== 'bookshelf' && settled !== 'computer' && <div className={`${styles.overlay} ${settled === 'readingBox' ? boxSkin.stage : opening.stage}`} data-object={settled || undefined} data-motion={motion ? 'full' : 'reduced'}>
       <div className={`${styles.panel} ${settled === 'readingBox' ? boxSkin.panel : opening.surface}`} data-object={settled || undefined} role="dialog" aria-modal="true" aria-labelledby="room-panel-title" ref={panel}>
         <button className={styles.close} inert={!!navigation.catalogPath} onClick={close} aria-label={en ? 'Close and return' : '关闭并返回'}>×</button>
         <header className={opening.heading}>
-          <span className={styles.eyebrow}>{settled ? imprints[settled] : menu ? 'MAKE YOURSELF AT HOME' : settings ? 'ROOM PREFERENCES' : 'A SMALL PERSONAL COLLECTION'}</span>
+          <span className={styles.eyebrow}>{settled ? imprints[settled] : menu ? 'MAKE YOURSELF AT HOME' : 'A SMALL PERSONAL COLLECTION'}</span>
           <h2 id="room-panel-title">{panelTitle}</h2>
         </header>
         <div className={opening.contents} inert={!!navigation.catalogPath} data-room-scroll>
@@ -439,49 +448,6 @@ export default function StudyRoom({ locale, posts, projects, timeline, columns, 
         </nav>}
         {detail === 'tea' && <>{posts[teaIndex] && <Link prefetch={false} className={styles.entry} href={`/${locale}/posts/${encodeURIComponent(posts[teaIndex].slug)}`}><div><h3>{posts[teaIndex].title}</h3><p>{posts[teaIndex].excerpt}</p></div><span>↗</span></Link>}<Link prefetch={false} className={styles.more} href={`/${locale}/posts`}>{en ? 'Browse the bookshelf' : '去书架选一篇'} →</Link></>}
         {menu && <><nav className={styles.menuGrid}>{Object.entries(text).map(([key, value], index) => <button key={key} onClick={() => choose(key as Destination)}><span>0{index + 1}</span>{value}<i>↗</i></button>)}</nav><nav className={styles.extraLinks}>{links.map(([url, label]) => <Link prefetch={false} key={url} onNavigate={url === 'posts' ? e => { e.preventDefault(); choose('bookshelf') } : undefined} href={url === 'posts' ? `/${locale}?room=bookshelf` : `/${locale}/${url}`}>{label} ↗</Link>)}<Link prefetch={false} href={`/${locale}/classic`}>{en ? 'Original home' : '原版首页'} ↗</Link><Link prefetch={false} href={`/${en ? 'zh' : 'en'}`}>{en ? '中文' : 'English'} ↗</Link></nav></>}
-        {settings && <div className={styles.settings}>
-          <fieldset className={styles.quality}>
-            <legend>{en ? 'Window weather' : '窗外天气'}</legend>
-            <p className={styles.cityWeather}>
-              {environment.city.name} · {environment.weather ? weatherLabels[environment.weather.condition][en ? 1 : 0] : (en ? 'Weather unavailable' : '实况暂不可用')}
-              {environment.weather?.temperatureC != null && Number.isFinite(environment.weather.temperatureC) && <> · {Math.round(environment.weather.temperatureC)}°C</>}
-              {environment.freshness === 'stale' && (en ? ' · delayed' : ' · 更新延迟')}
-            </p>
-            <div className={styles.weatherChoices}>
-              <button type="button" className={styles.followCity} aria-pressed={environment.selectedWeather === 'city'} onClick={() => environment.selectWeather('city')}>
-                {en ? 'Follow city weather' : '跟随城市实况'}
-              </button>
-              {(Object.keys(weatherLabels) as Weather[]).map(condition => (
-                <button type="button" key={condition} aria-pressed={environment.selectedWeather === condition} onClick={() => environment.selectWeather(condition)}>
-                  {weatherLabels[condition][en ? 1 : 0]}
-                </button>
-              ))}
-            </div>
-            {environment.weather && <p>
-              <a href="https://www.qweather.com" target="_blank" rel="noreferrer">QWeather</a>
-              {environment.weather.validAt != null && <span> · {en ? 'Valid at ' : '数据有效于 '}{new Intl.DateTimeFormat(en ? 'en-GB' : 'zh-CN', { timeZone: environment.city.timezone, hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).format(environment.weather.validAt)}</span>}
-              {Array.isArray(environment.weather.attributions) && environment.weather.attributions.filter(url => typeof url === 'string' && /^https:\/\//i.test(url)).map(url => <span key={url}> · <a href={url} target="_blank" rel="noreferrer">{en ? 'Data attribution' : '数据归因'}</a></span>)}
-            </p>}
-          </fieldset>
-          <button onClick={() => { const next = !motion; try { localStorage.setItem('study-motion', String(next)) } catch { /* optional */ } setMotion(next && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) }} aria-pressed={motion}>{en ? 'Subtle movement' : '环境微动与视差'}<span>{motion ? 'ON' : 'OFF'}</span></button>
-          <button onClick={toggleSound} aria-pressed={sound}>{en ? 'Interaction sounds' : '翻页与交互声音'}<span>{sound ? 'ON' : 'OFF'}</span></button>
-          <button onClick={toggleSimple} aria-pressed={simple}>{en ? 'Simple view' : '简洁模式'}<span>{simple ? 'ON' : 'OFF'}</span></button>
-          <fieldset className={styles.quality}>
-            <legend>{en ? 'Room detail' : '画面质量'}</legend>
-            <div><button onClick={() => chooseQuality('auto')} aria-pressed={quality === 'auto'}>{en ? 'Automatic' : '自动'}</button><button onClick={() => chooseQuality('light')} aria-pressed={quality === 'light'}>{en ? 'Lightweight' : '轻量'}</button></div>
-            <p role="status">{quality === 'auto' && lightQuality ? (en ? 'Using lighter detail to keep the room responsive.' : '已自动降低画面细节，让操作更流畅。') : (en ? 'Lighter detail uses less power. Reading stays the same.' : '轻量模式降低画面细节和耗电，阅读内容不受影响。')}</p>
-          </fieldset>
-          <fieldset className={styles.quality}>
-            <legend>{en ? 'Room atmosphere' : '书房氛围'}</legend>
-            <div className={styles.environmentChoices}>{presets.map(value => <button key={value} aria-pressed={environment.selection === value} onClick={() => environment.select(value)}>{value === 'auto' ? (en ? 'Site default' : '跟随站点默认') : presetLabels[value][en ? 1 : 0]}</button>)}</div>
-            <button className={styles.rainAudioToggle} onClick={() => { if (!sound) toggleSound(); void rainAudio.toggle() }} aria-pressed={rainAudio.enabled}>{en ? 'Rain sound' : '雨声'}<span>{rainAudio.enabled ? 'ON' : 'OFF'}</span></button>
-            <label className={styles.rainVolume}>{en ? 'Rain volume' : '雨声音量'} <input type="range" min="0" max="100" value={Math.round(rainAudio.volume*100)} onChange={event => rainAudio.changeVolume(Number(event.target.value)/100)} /> <span>{Math.round(rainAudio.volume*100)}%</span></label>
-            <button className={styles.rainAudioToggle} onClick={() => controller.current?.resetLamp?.()}>{en ? 'Let the lamp follow the room' : '恢复台灯自动开关'}</button>
-            {rainAudio.failed && <p role="status">{en ? 'Rain sound unavailable. Try again.' : '雨声暂不可用，可再次点击重试。'}</p>}
-
-          </fieldset>
-          <p className={styles.note}>{en ? 'The clock follows the configured city timezone. The lamp switch only changes the lamp. Seasonal scenery is a prototype.' : '挂钟跟随博主城市时区，点击台灯只控制灯具。季节窗景目前为原型。'}</p>
-        </div>}
         {settled === 'columns' && <>
           <p className={styles.intro}>{en ? 'Choose a series to see its articles in reading order.' : '选一本专栏，按顺序翻看其中的文章。'}</p>
           <div className={opening.editions}>

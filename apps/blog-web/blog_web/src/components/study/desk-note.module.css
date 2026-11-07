@@ -18,6 +18,11 @@
 .noteFoot{display:flex;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid #73603942}
 .noteFoot a,.noteFoot button{display:inline-flex;align-items:center;min-height:44px;font:13px/1.5 system-ui,sans-serif;cursor:pointer;color:#594b35}
 .noteFoot button{background:none;border:0}.noteFoot a{margin-left:auto;padding-right:12px;text-decoration:underline;text-underline-offset:4px}
+.seal{display:flex;align-items:center;gap:6px;min-height:44px;margin:4px 0 8px auto;padding:4px 9px;background:transparent;color:#805a40;border:0;cursor:pointer;font:600 16px/1.4 Georgia,'KaiTi',serif;transform:rotate(-3deg)}
+.seal svg{height:22px;width:auto}
+.seal:hover,.seal:focus-visible{color:#863d2b;text-decoration:underline;text-underline-offset:4px}
+.story{padding:9px 0 4px;color:#504232;font-size:16px;line-height:1.95}
+.story p{margin:12px 0}
 .noteFoot a::after{content:'';position:absolute;bottom:0;right:0;width:22px;height:22px;background:linear-gradient(135deg,#d2b574 50%,#efe0bc 51%);box-shadow:-1px -1px 2px #89734030}
 .slip{display:block;border-left:3px solid #a65343;padding:8px 12px;margin:0 0 18px;background:#e6ddc9;color:#493f32;text-decoration:none;font-size:14px;line-height:1.6}
 .slip small{display:block;color:#705443;font:11px/1.8 system-ui,sans-serif}

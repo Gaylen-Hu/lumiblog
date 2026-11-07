@@ -1,3 +1,4 @@
+import { logoPaths } from '../logo-paths'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
@@ -7,7 +8,7 @@ import type { DeskNote } from './desk-notes'
 import { cityTime, resolveEnvironment, type Environment } from './environment/state'
 import { createPrecipitation } from './environment/precipitation'
 import { createRainGlass } from './environment/glass'
-import { gardenShader, gardenWeather } from './environment/garden-shader'
+import { gardenBackdrop, gardenShader, gardenWeather } from './environment/garden-shader'
 import { CurtainMotion, createCurtainPanel } from './curtain'
 import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
@@ -22,6 +23,7 @@ export type RoomOptions = {
   columns: readonly { title: string; slug: string }[]
   seriesLabel: string
   projects: readonly { title: string }[]
+  siteName: string
   en: boolean
   onPortfolioFrame: (ink: number, scale: number) => void
   onShelfFrame: (x: number, y: number) => void
@@ -125,6 +127,27 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   function timber(at: number[], size: number[], dark = false, parent: THREE.Object3D = scene) {
     return rounded(at, size, dark ? darkWood : wood, parent, .012)
   }
+  // The same clipped artwork as the site's SVG, printed into the two existing textures.
+  function printImprint(ctx: CanvasRenderingContext2D, centerX: number, top: number, height: number) {
+    ctx.save()
+    ctx.font = `600 ${height * .78}px Georgia, "Songti SC", serif`
+    const scale = height / 205
+    const logoWidth = 284 * scale
+    const gap = height * .3
+    const left = centerX - (logoWidth + gap + ctx.measureText(options.siteName).width) / 2
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(options.siteName, left + logoWidth + gap, top + height * .55)
+    ctx.translate(left, top)
+    ctx.beginPath()
+    ctx.rect(0, 0, logoWidth, height)
+    ctx.clip()
+    ctx.scale(scale, scale)
+    ctx.translate(-138, 640 - 201)
+    ctx.scale(.1, -.1)
+    for (const d of logoPaths) ctx.fill(new Path2D(d))
+    ctx.restore()
+  }
   function paintedTexture(width: number, height: number, paint: (ctx: CanvasRenderingContext2D) => void) {
     const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height
     paint(canvas.getContext('2d')!)
@@ -180,7 +203,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   box([-4, 2.4, 0], [.16, 4.8, 12], '#b4a18a')
   // North is the picture wall; the east bay opens directly above the bench.
   const eastX = 3.18, windowStart = -3.6, windowEnd = 1.25, sill = 1.12, lintel = 3.72
-  box([0, 2.4, -4], [8, 4.8, .16], '#b9a58e')
+  box([(eastX - 4) / 2, 2.4, -4], [eastX + 4, 4.8, .16], '#b9a58e')
   box([eastX, sill / 2, -.5], [.16, sill, 7], '#b8a78d')
   box([eastX, (4.8 + lintel) / 2, -.5], [.16, 4.8 - lintel, 7], '#b8a78d')
   for (const [start, end] of [[-4, windowStart], [windowEnd, 6]]) {
@@ -189,7 +212,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   box([0, 4.83, 0], [8, .08, 12], '#eee9dc')
   for (const x of [-3.9, eastX - .09]) timber([x, .12, -.5], [.08, .24, 7])
   timber([0, .12, -3.87], [8, .24, .09])
-  for (let y = .48; y < 4.8; y += .38) box([-.25, y, -3.914], [7.5, .009, .009], '#cbbda8')
+  for (let y = .48; y < 4.8; y += .38) box([(eastX - 4) / 2, y, -3.914], [eastX + 4, .009, .009], '#cbbda8')
   const windowMid = (windowStart + windowEnd) / 2
   for (const z of [windowStart, windowStart + (windowEnd-windowStart)/3, windowEnd - (windowEnd-windowStart)/3, windowEnd]) {
     timber([eastX - .09, (lintel + sill) / 2, z], [.15, lintel - sill, .08])
@@ -197,8 +220,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   for (const y of [sill, 2.47, lintel]) timber([eastX - .09, y, windowMid], [.15, .085, windowEnd - windowStart + .15])
   timber([eastX - .18, sill, windowMid], [.4, .09, windowEnd-windowStart+.3])
   const outsideMat = new THREE.MeshBasicMaterial({ color: '#e0e9dd', fog: false, toneMapped: false })
-  // The painting already separates the near canopy from the defocused trees.
-  // Grade its existing texture sample; window frames and curtains use other materials.
+  // Only outdoor pixels receive the weather grade.
   const gardenBreeze = { value: new THREE.Vector2() }
   const weatherGrade = { value: new THREE.Vector3(...gardenWeather.cloudy) }
   const nightBlend = {value:0}
@@ -210,7 +232,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       '#include <map_fragment>\n#ifdef USE_MAP\n diffuseColor.rgb = gradeGarden(diffuseColor.rgb, vMapUv);\n#endif')
   }
   extraMaterials.add(outsideMat)
-  const outside = mesh(new THREE.PlaneGeometry(20, 10), outsideMat, [5, 3, -2.6])
+  const outside = mesh(new THREE.PlaneGeometry(gardenBackdrop.width, gardenBackdrop.height), outsideMat,
+    [gardenBackdrop.x, gardenBackdrop.y, gardenBackdrop.z])
   outside.rotation.y = -Math.PI / 2; outside.castShadow = outside.receiveShadow = false
   const curtains = new THREE.Group()
   const railX = eastX - .56
@@ -282,7 +305,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       ctx.save();ctx.translate(80,277);ctx.rotate(-Math.PI/2)
       ctx.font=(index%2?'bold 31px':'26px')+' Georgia, serif'
       ctx.fillText(bookTitles[index],0,8,250);ctx.restore()
-      ctx.font='17px Georgia';ctx.fillText('LUMI',80,485)
+      ctx.font='17px Georgia';ctx.fillText(options.siteName,80,485,120)
     })
     return material
   })
@@ -367,8 +390,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const deskStart = scene.children.length
   const desk = new THREE.Group(); desk.position.set(.5, 0, -2.45); scene.add(desk)
   const deskSurfaceY = 1
-  if (options.note) {
-    const {excerpt,date} = options.note
+  {
+    const excerpt = options.note?.excerpt ?? (options.en ? 'From the study' : '书房手记')
+    const date = options.note?.date ?? ''
     const paperArt = paintedTexture(512,412, ctx => {
       const stock = ctx.createLinearGradient(0,0,440,412)
       stock.addColorStop(0,'#fff2c2'); stock.addColorStop(1,'#ebce83')
@@ -383,6 +407,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       }
       if (line) lines.push(line)
       lines.slice(0,4).forEach((text,index) => ctx.fillText(index === 3 && lines.length > 4 ? text.slice(0,-1)+'…' : text,34,145 + index*57))
+      ctx.fillStyle='#866045'; printImprint(ctx,330,341,38)
       ctx.fillStyle='#d6b87a'; ctx.beginPath(); ctx.moveTo(512,351); ctx.lineTo(512,412); ctx.lineTo(451,412); ctx.fill()
     })
     const paper = new THREE.MeshStandardMaterial({map:paperArt,side:THREE.DoubleSide,roughness:1})
@@ -473,7 +498,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       ctx.fillStyle='#eee2c5';ctx.textAlign='center';ctx.font='38px Georgia, serif';ctx.fillText('日 记',192,233)
       ctx.font='italic 19px Georgia';ctx.fillText('Everyday notes',192,270)
       ctx.strokeStyle='#d7c292';ctx.beginPath();ctx.moveTo(164,298);ctx.lineTo(220,298);ctx.stroke()
-      ctx.fillStyle='#d6c394';ctx.font='14px Georgia';ctx.fillText('VOL.  I',192,449)
+      ctx.fillStyle='#d6c394';printImprint(ctx,192,395,38)
     })})
   extraMaterials.add(foil)
   const stamp = mesh(new THREE.PlaneGeometry(.61,.80),foil,[.30,.016,0],hinge)
@@ -555,7 +580,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   rounded([0, .246, 0], [.84, .498, .031], mat('#313838'), lid, .012)
   const screenMaterial = new THREE.MeshStandardMaterial({ roughness:.42, metalness:.06 })
   extraMaterials.add(screenMaterial)
-  screenMaterial.map = paintedTexture(768,424,ctx => paintPortfolioCover(ctx, options.projects.map(p=>p.title), options.en))
+  screenMaterial.map = paintedTexture(768,424,ctx => paintPortfolioCover(ctx, options.projects.map(p=>p.title), options.en, options.siteName))
   screenMaterial.emissive.set('#cbe5ff'); screenMaterial.emissiveMap = screenMaterial.map; screenMaterial.emissiveIntensity = .52
   const screenGlass = new THREE.PlaneGeometry(.79,.435)
   const display = mesh(screenGlass, screenMaterial, [0,.248,.0165], lid)
@@ -989,7 +1014,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     sun.position.copy(sun.target.position).addScaledVector(solarPosition, 10)
     applyWindowLight(mix)
     if (mix < .8 && solarPosition.y < .3) sun.color.lerp(new THREE.Color('#ffbc81'), .6)
-    outsideMat.color.set(environment.season === 'autumn' ? '#e5ceb0' : environment.season === 'winter' ? '#cbd6dc' : '#e0e9dd')
+    outsideMat.color.set(environment.weather === 'snow' ? '#f1f5fa' : environment.season === 'autumn' ? '#e5ceb0' : environment.season === 'winter' ? '#cbd6dc' : '#e0e9dd')
     lamp.intensity = lampOn() ? 4.2 : 0
     bulbMaterial.emissiveIntensity = lampOn() ? 1.4 : 0
     lining.emissiveIntensity = lampOn() ? .32 : 0
@@ -1005,6 +1030,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     options.onClockView(view)
   }
   let yaw = 0, pitch = 0, hingeFrom = 0, ambientMotion = true
+  let previewWindow = false, windowViewMix = 0
   let quality: RoomQuality = 'auto', autoLight = false
   let presented = false
   const frameBudget = new RoomFrameBudget()
@@ -1463,6 +1489,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     }
     if (clockTimer === undefined) syncWallClock()
     const delta = now - lastTime; lastTime = now
+    const previewGoal = previewWindow ? 1 : 0
+    const previewStep = reduced || !ambientMotion ? 1 : Math.min(delta / 420, 1)
+    windowViewMix += THREE.MathUtils.clamp(previewGoal - windowViewMix, -previewStep, previewStep)
     diagnostics?.frame(delta, previousContinuous)
     const curtainsMoving = curtainMotion.step(delta, reduced)
     if (curtainsMoving) {
@@ -1558,7 +1587,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       camera.position.copy(home)
       if (!reduced && ambientMotion && window.innerWidth > 700 && (!drag || drag.grab)) { camera.position.x += pointerX * .035; camera.position.y -= pointerY * .018 }
       camera.lookAt(homeLook)
-      camera.rotateY(yaw); camera.rotateX(pitch)
+      const blend = THREE.MathUtils.smoothstep(windowViewMix, 0, 1)
+      camera.rotateY(THREE.MathUtils.lerp(yaw, -.68, blend))
+      camera.rotateX(THREE.MathUtils.lerp(pitch, .035, blend))
     }
     const reveal = reduced || !transitioning ? 1 : target === 'diary'
       ? THREE.MathUtils.smoothstep(progress,.12,.81) : THREE.MathUtils.smoothstep(progress,.65,1)
@@ -1578,19 +1609,23 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     previousContinuous = !!((!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || catalogAnimating)
     diagnostics?.mode(`${quality === 'light' || autoLight ? 'light' : 'auto'}:${previousContinuous ? 'animated' : 'idle'}:${environment.preset}`)
     if (!drawScene()) return
-    if (catalogAnimating) requestFrame()
+    if (catalogAnimating || windowViewMix !== previewGoal) requestFrame()
     if (!target && !reduced && ambientMotion || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving) requestFrame()
   }
   // Generated albedo assets progressively replace procedural fallbacks.
   // Track every texture for teardown, including late completion after navigation.
-  function loadArt(name: string, apply: (texture: THREE.Texture) => void, repeat = false, series = 'v1') {
+  function loadArt(name: string, apply: (texture: THREE.Texture) => void, repeat = false, series = 'v1', onError?: () => void) {
     const texture = new THREE.TextureLoader().load(`/study-assets/${series}/${name}.webp`, loaded => {
       if (disposed) { loaded.dispose(); return }
       loaded.colorSpace = THREE.SRGBColorSpace
       loaded.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy())
       if (repeat) loaded.wrapS = loaded.wrapT = THREE.RepeatWrapping
       apply(loaded); requestFrame()
-    }, undefined, () => { /* Keep the existing procedural material on failure. */ })
+    }, undefined, () => {
+      textures.delete(texture)
+      texture.dispose()
+      if (!disposed) onError?.()
+    })
     textures.add(texture)
   }
   loadArt('kingfisher', texture => {
@@ -1599,7 +1634,29 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   loadArt('leaf', texture => {
     for(const m of foliage){m.map=texture;m.needsUpdate=true}
   }, false, 'daylight')
-  loadArt('garden', texture => { outsideMat.map = texture; rainGlass.setTexture(texture); outsideMat.needsUpdate = true }, false, 'daylight')
+  let garden: THREE.Texture | null = null
+  let snowyGarden: THREE.Texture | null = null
+  let snowRequested = false
+  function updateGarden() {
+    const snow = environment.weather === 'snow'
+    const texture = snow && snowyGarden ? snowyGarden : garden
+    weatherGrade.value.set(...gardenWeather[environment.weather])
+    if (snow && snowyGarden) weatherGrade.value.z = 0 // The photograph contains the settled snow.
+    if (texture !== outsideMat.map) {
+      const mapPresenceChanged = Boolean(texture) !== Boolean(outsideMat.map)
+      outsideMat.map = texture
+      rainGlass.setTexture(texture)
+      if (mapPresenceChanged) outsideMat.needsUpdate = true
+    }
+    if (snow && !snowRequested) {
+      snowRequested = true
+      loadArt('garden-snow', loaded => {
+        snowyGarden = loaded
+        updateGarden() // The visitor may already have switched back to clear weather.
+      }, false, 'daylight', () => { snowRequested = false })
+    }
+  }
+  loadArt('garden', loaded => { garden = loaded; updateGarden() }, false, 'daylight')
   loadArt('oak', texture => {
     wood.map = darkWood.map = texture
     wood.color.set('#f1e5d2'); darkWood.color.set('#b59a7c')
@@ -1645,7 +1702,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     leaveClock,
     setEnvironment(value: Environment) {
       environment = value; night = value.phase === 'night'
-      weatherGrade.value.set(...gardenWeather[value.weather])
+      updateGarden()
       solarTarget.set(value.solar.east, value.solar.up, -value.solar.north)
       precipitation.set(value); rainGlass.set(value.weather === 'rain' || value.weather === 'thunderstorm', value.intensity);
       targetDim = ['overcast','rain','snow','fog','thunderstorm'].includes(value.weather) ? .15 : value.weather === 'cloudy' ? .65 : 1
@@ -1665,6 +1722,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       requestFrame()
       return curtainMotion.drawn
     },
+    setWindowPreview(value: boolean) { previewWindow = value; requestFrame() },
     setMotion(value: boolean) { reduced = !value || media.matches; clearClockTimer(); requestFrame() },
     setPaused(value: boolean) {
       const now = performance.now(); frameBudget.reset()

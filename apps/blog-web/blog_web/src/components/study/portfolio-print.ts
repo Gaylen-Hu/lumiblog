@@ -16,13 +16,13 @@ export function editionPrint(index: number) {
     lines:`M67 43 l97 -33 69 26 -97 33 Z ${sheets} M101 43 l46 -16 M113 47 l63 -22 M125 51 l56 -19` }
 }
 
-export function paintPortfolioCover(ctx: CanvasRenderingContext2D, titles: readonly string[], en: boolean) {
+export function paintPortfolioCover(ctx: CanvasRenderingContext2D, titles: readonly string[], en: boolean, siteName: string) {
   ctx.fillStyle = '#f3eee3'; ctx.fillRect(0,0,768,424)
-  ctx.fillStyle = '#34574f'; ctx.font = '16px Georgia'; ctx.fillText('LumiBlog',51,35)
+  ctx.fillStyle = '#34574f'; ctx.font = '16px Georgia'; ctx.fillText(siteName,51,35)
   ctx.fillRect(51,47,666,1)
   ctx.font = '48px Georgia, "SimSun", serif'; ctx.fillText(en ? 'Works' : '作品',50,119)
   ctx.font = 'italic 25px Georgia'; ctx.fillText('Selected Works',en ? 198 : 165,116)
-  ctx.fillStyle = '#786c5a'; ctx.font = '12px monospace'; ctx.fillText('LUMI WORKSPACE',52,148)
+  ctx.fillStyle = '#786c5a'; ctx.font = '12px monospace'; ctx.fillText('WORKSPACE',52,148)
   titles.slice(0,2).forEach((title,index) => {
     const x=51+index*341, y=174, print=editionPrint(index)
     ctx.fillStyle='#fcf9f1'; ctx.fillRect(x,y,325,202)

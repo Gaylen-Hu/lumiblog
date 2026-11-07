@@ -12,7 +12,7 @@ export default function StudyRoomEntry({ data }: { data: StudyRoomProps }) {
   useEffect(() => { register?.(data) }, [data, register])
   const en = data.locale === 'en'
   return <main className="study-home-fallback">
-    <p className="study-imprint">A LITTLE ROOM ON THE INTERNET</p>
+    <p className="study-imprint">{data.siteName}</p>
     <h1>{data.name}</h1><p>{data.bio}</p>
     <p role="status">{en ? 'Opening the study…' : '正在打开书房…'}</p>
     <nav aria-label={en ? 'Content navigation' : '内容导航'}>

@@ -1,14 +1,17 @@
 import type { Weather } from './state'
 
+// Both the outdoor mesh and the raindrop refraction project onto this plane.
+export const gardenBackdrop = { x: 3.8, y: 2.45, z: -1.95, width: 10.8, height: 5.4 }
+
 // Shade, aerial haze and the amount of pale snow caught on the canopy.
 export const gardenWeather: Record<Weather, [number, number, number]> = {
   clear: [0, 0, 0],
-  cloudy: [.18, .08, 0],
-  overcast: [.42, .18, 0],
-  fog: [.18, .82, 0],
-  rain: [.48, .28, 0],
-  thunderstorm: [.76, .36, 0],
-  snow: [.16, .32, .8],
+  cloudy: [.18, .018, 0],
+  overcast: [.42, .035, 0],
+  fog: [.18, .74, 0],
+  rain: [.48, .09, 0],
+  thunderstorm: [.76, .14, 0],
+  snow: [.16, .19, .8],
 }
 
 // Shared by the exterior painting and its refracted samples on the window.
@@ -20,8 +23,7 @@ vec3 gradeGarden(vec3 garden, vec2 uv) {
   float luminance = dot(garden, vec3(0.2126, 0.7152, 0.0722));
   float foliage = smoothstep(0.012, 0.095, garden.g - garden.b);
   float distanceHint = smoothstep(-0.22, 0.42, uv.x - uv.y + 0.51);
-  vec3 graded = mix(garden, vec3(luminance), foliage * distanceHint * 0.13);
-  graded = mix(graded, vec3(0.66, 0.76, 0.77), 0.016 + distanceHint * 0.087);
+  vec3 graded = garden;
   vec2 canopy = (uv - vec2(0.38, 0.62) - gardenBreeze) * vec2(1.8, 1.0);
   float softLight = 1.0 - smoothstep(0.02, 0.19, length(canopy));
   graded = mix(graded, vec3(0.91, 0.86, 0.66), foliage * softLight * 0.095);

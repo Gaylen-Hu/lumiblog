@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { gardenShader } from './garden-shader'
+import { gardenBackdrop, gardenShader } from './garden-shader'
 
 // Analytic sliding beads/trails refract the existing painting. Room owns texture.
 export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { value: THREE.Vector2 }; gardenWeather: { value: THREE.Vector3 }; nightBlend: { value: number }; tint: THREE.Color }) {
@@ -38,9 +38,9 @@ export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { va
           : vec2(0.0);
         if(h<0.005 || wet<0.005) discard;
         vec3 ray=glassWorld-cameraPosition;
-        float distanceToPainting=(5.0-glassWorld.x)/max(ray.x,0.001);
+        float distanceToPainting=(${gardenBackdrop.x}-glassWorld.x)/max(ray.x,0.001);
         vec3 hit=glassWorld+ray*distanceToPainting;
-        vec2 uv=vec2((hit.z+2.6)/20.0+0.5,(hit.y-3.0)/10.0+0.5);
+        vec2 uv=(hit.zy-vec2(${gardenBackdrop.z},${gardenBackdrop.y}))/vec2(${gardenBackdrop.width},${gardenBackdrop.height})+0.5;
         uv=clamp(uv+normal*vec2(0.05,0.09),0.001,0.999);
         vec3 color=gradeGarden(texture2D(gardenMap,uv).rgb*tint,uv);
         float glint=max(0.0,dot(normal,vec2(-0.6,0.8)));
@@ -54,7 +54,7 @@ export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { va
   mesh.visible = false; scene.add(mesh)
   return {
     set(wet: boolean, intensity = .55) { target = wet ? .35 + .65 * THREE.MathUtils.clamp(intensity, 0, 1) : 0 },
-    setTexture(texture: THREE.Texture) { uniforms.gardenMap.value = texture },
+    setTexture(texture: THREE.Texture | null) { uniforms.gardenMap.value = texture },
     update(delta: number, animate: boolean) {
       const dt = Math.min(.05, Math.max(0, delta / 1000))
       uniforms.wet.value = animate ? THREE.MathUtils.damp(uniforms.wet.value, target, .8, dt) : target

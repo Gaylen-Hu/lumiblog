@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const directory = path.join(root, 'apps/blog-web/blog_web/public/study-assets')
 const manifest = path.join(root, 'docs/design-draft/V1资产清单.json')
 const active = {
+  'daylight/garden-snow.webp': '雪天按需加载的同机位庭院积雪景观',
   'daylight/garden.webp': '窗外花园远景', 'daylight/kingfisher.webp': '翠鸟装饰画',
   'daylight/leaf.webp': '程序叶片底色', 'daylight/oak.webp': '家具与地板木纹',
   'v1/bookcloth.webp': '书封与日记封面', 'v1/landscape.webp': '墙面装饰画',

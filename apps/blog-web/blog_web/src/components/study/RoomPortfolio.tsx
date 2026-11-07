@@ -15,8 +15,8 @@ function Print({index}: {index: number}) {
   </div>
 }
 
-export default function RoomPortfolio({projects, locale, open, motion, onClose, panelRef}: {
-  projects: Project[]; locale: string; open: boolean; motion: boolean; onClose: () => void; panelRef: Ref<HTMLDivElement>
+export default function RoomPortfolio({siteName, projects, locale, open, motion, onClose, panelRef}: {
+  siteName: string; projects: Project[]; locale: string; open: boolean; motion: boolean; onClose: () => void; panelRef: Ref<HTMLDivElement>
 }) {
   const en = locale === 'en'
   return <div className={s.folio} data-open={open} data-motion={motion} data-room-scroll
@@ -24,12 +24,12 @@ export default function RoomPortfolio({projects, locale, open, motion, onClose, 
     aria-labelledby="portfolio-title" aria-hidden={!open || undefined} inert={!open}>
     <div className={s.sheet}>
       <header className={s.masthead}>
-        <div className={s.imprint}><b>LumiBlog</b><span>Studio Editions</span></div>
+        <div className={s.imprint}><b>{siteName}</b><span>Studio Editions</span></div>
         <button type="button" onClick={onClose} className={s.back}><span aria-hidden="true">↶</span>{en ? 'Back to the study' : '返回书房'}</button>
       </header>
       <div className={s.titleBlock}>
         <div className={s.titles}><h2 id="portfolio-title">{en ? 'Portfolio' : '作品'}</h2><i lang="en">Selected Works</i></div>
-        <p><span>LUMI WORKSPACE</span>{en ? 'Ideas, made into things you can use.' : '把想法变成可以使用的东西。'}</p>
+        <p><span>WORKSPACE</span>{en ? 'Ideas, made into things you can use.' : '把想法变成可以使用的东西。'}</p>
       </div>
       <div className={s.projects}>
         {projects.map((project, index) => <Link prefetch={false} className={s.card} key={project.id}

@@ -1,9 +1,17 @@
 {
   "assets": [
     {
+      "file": "daylight/garden-snow.webp",
+      "bytes": 620094,
+      "sha256": "6af22f61cd28ebaed1b89b1c436c9fef52cda3e2d866180729410e7f39f3021f",
+      "source": "项目内 ImageGen 生成记录",
+      "usage": "雪天按需加载的同机位庭院积雪景观",
+      "runtime": true
+    },
+    {
       "file": "daylight/garden.webp",
-      "bytes": 53642,
-      "sha256": "88dc075a53a1b96bf2f1b25e26ea891c3989879558237c3bca11a35a77d436be",
+      "bytes": 826218,
+      "sha256": "40512b9f19af6acc1fccc1786efe77c9dfb2ecba067972368d2dabee0dd86504",
       "source": "项目内 ImageGen 生成记录",
       "usage": "窗外花园远景",
       "runtime": true
