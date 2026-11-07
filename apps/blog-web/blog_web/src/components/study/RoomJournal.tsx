@@ -5,6 +5,7 @@ import MediaPreview from '@/components/media/MediaPreview'
 import { useMediaViewer } from '@/components/media/useMediaViewer'
 import { mediaFormat, validMediaUrls } from '@/components/media/media'
 import Link from 'next/link'
+import RoomImprint from './RoomImprint'
 import type { TimelineEntry } from '@/lib/api'
 import styles from './journal.module.css'
 
@@ -32,7 +33,7 @@ function JournalPhoto({ src, title, en, full = false }: { src: string; title: st
   </span>
 }
 
-function PagePreview({ entry, number, en }: { entry?: Entry; number: number; en: boolean }) {
+function PagePreview({ entry, number, en, siteName }: { entry?: Entry; number: number; en: boolean; siteName: string }) {
   if (!entry) return <span className={`${styles.paper} ${styles.lastPage}`}>
     <span aria-hidden="true">❧</span><span>{en ? 'To be continued…' : '故事还在继续……'}</span>
   </span>
@@ -49,12 +50,12 @@ function PagePreview({ entry, number, en }: { entry?: Entry; number: number; en:
           : `${entry.date} / ${String(index + 1).padStart(2, '0')}`}</span>
       </span>)}
     </span>}
-    <span className={styles.pageFoot}><span>{String(number).padStart(2, '0')}</span><span>{en ? 'Read this day' : '读这一天'} ↗</span></span>
+    <span className={styles.pageFoot}><span className={styles.folio}>{String(number).padStart(2, '0')}{number === 1 && <RoomImprint siteName={siteName} />}</span><span>{en ? 'Read this day' : '读这一天'} ↗</span></span>
   </span>
 }
 
-export default function RoomJournal({ timeline, locale, motion = true, onTurn }: {
-  timeline: TimelineEntry[]; locale: string; motion?: boolean; onTurn?: () => void
+export default function RoomJournal({ timeline, locale, siteName, motion = true, onTurn }: {
+  timeline: TimelineEntry[]; locale: string; siteName: string; motion?: boolean; onTurn?: () => void
 }) {
   const en = locale === 'en'
   const entries = useMemo<Entry[]>(() => timeline.map(entry => {
@@ -170,8 +171,8 @@ export default function RoomJournal({ timeline, locale, motion = true, onTurn }:
       {entry ? <button className={styles.pageButton} onClick={() => read(entry)}
         ref={node => { if (node) pageButtons.current.set(entry.id, node); else pageButtons.current.delete(entry.id) }}
         aria-label={en ? `Read page ${entryIndex + 1}: ${entry.title}` : `阅读第 ${entryIndex + 1} 页：${entry.title}`}>
-        <PagePreview entry={entry} number={entryIndex + 1} en={en} />
-      </button> : <PagePreview number={entryIndex + 1} en={en} />}
+        <PagePreview siteName={siteName} entry={entry} number={entryIndex + 1} en={en} />
+      </button> : <PagePreview siteName={siteName} number={entryIndex + 1} en={en} />}
     </article>
   }
   // The leaf's front is the outgoing page and its back is the incoming page.
@@ -224,8 +225,8 @@ export default function RoomJournal({ timeline, locale, motion = true, onTurn }:
         <span className={styles.ribbon} aria-hidden="true" />
         {turning && <div className={styles.turningLeaf} data-turning-leaf data-direction={turning.forward ? 'next' : 'previous'}
           aria-hidden="true" inert onAnimationEnd={event => { if (event.target === event.currentTarget) finishTurn() }}>
-          <div className={styles.leafFront}><PagePreview entry={entries[front]} number={front + 1} en={en} /></div>
-          <div className={styles.leafBack}><PagePreview entry={entries[back]} number={back + 1} en={en} /></div>
+          <div className={styles.leafFront}><PagePreview siteName={siteName} entry={entries[front]} number={front + 1} en={en} /></div>
+          <div className={styles.leafBack}><PagePreview siteName={siteName} entry={entries[back]} number={back + 1} en={en} /></div>
         </div>}
       </div>
       <footer className={styles.footer}>

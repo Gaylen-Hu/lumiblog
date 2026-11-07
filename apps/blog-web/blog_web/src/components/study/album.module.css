@@ -16,3 +16,5 @@
   .tile{padding:5px 5px 8px}
   .caption{font-size:14px}
 }
+
+.printFoot{display:flex;align-items:center;justify-content:space-between;gap:3px 8px;flex-wrap:wrap}

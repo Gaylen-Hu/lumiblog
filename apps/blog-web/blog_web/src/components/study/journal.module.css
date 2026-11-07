@@ -108,3 +108,5 @@
 }
 @media(prefers-reduced-motion:reduce){.journal *{animation:none!important;transition:none!important}}
 @media(max-height:650px){.paper[data-has-photos=true] .excerpt{display:none}.pageTitle{-webkit-line-clamp:1;font-size:23px}.pageTitle{margin-top:0}.journal{--start:18px}}
+
+.folio{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}

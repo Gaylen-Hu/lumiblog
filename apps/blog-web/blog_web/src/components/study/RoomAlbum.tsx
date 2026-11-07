@@ -5,6 +5,7 @@ import MediaPreview from '@/components/media/MediaPreview'
 import { useMediaViewer } from '@/components/media/useMediaViewer'
 import { mediaFormat, validMediaUrls, type MediaItem } from '@/components/media/media'
 import Link from 'next/link'
+import RoomImprint from './RoomImprint'
 import type { TimelineEntry } from '@/lib/api'
 import styles from './album.module.css'
 
@@ -25,7 +26,7 @@ function journalPhotos(timeline: TimelineEntry[], en: boolean) {
   return photos
 }
 
-export default function RoomAlbum({ timeline, locale, motion }: { timeline: TimelineEntry[]; locale: string; motion: boolean }) {
+export default function RoomAlbum({ timeline, locale, motion, siteName }: { timeline: TimelineEntry[]; locale: string; motion: boolean; siteName: string }) {
   const en = locale === 'en'
   const photos = useMemo(() => journalPhotos(timeline, en), [timeline, en])
   const tiles = useRef(new Map<number, HTMLButtonElement>())
@@ -45,7 +46,8 @@ export default function RoomAlbum({ timeline, locale, motion }: { timeline: Time
         aria-label={en ? `View item ${i + 1}, ${item.title}` : `查看第 ${i + 1} ${mediaFormat(item.src) ? '项媒体' : '张照片'}，${item.title}`}
         onClick={event => media.openAt(i, event.currentTarget)}>
         <span className={styles.thumb}><MediaPreview src={item.src} en={en} sizes="(max-width: 600px) 42vw, 260px" /></span>
-        <span className={styles.caption}>{item.title}</span><time>{item.date}</time>
+        <span className={styles.caption}>{item.title}</span>
+        <span className={styles.printFoot}><time>{item.date}</time>{i === 0 && <RoomImprint siteName={siteName} />}</span>
       </button>)}
     </div>
     {media.viewer}

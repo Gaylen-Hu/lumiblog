@@ -4,8 +4,8 @@
 .panel[data-object=readingBox]>div{overflow:auto;overscroll-behavior:contain;min-height:0}
 .file{font-family:Georgia,'Songti SC','SimSun',serif}
 .caption{font-size:14px;line-height:1.9;color:#645944;margin:0 0 19px}
-.count{border-block:1px solid #a9956c77;padding:8px 1px;color:#77684e;font:10px/1.4 system-ui,sans-serif;letter-spacing:.16em}
-.count b{float:right;font-variant-numeric:tabular-nums}
+.count{display:flex;align-items:center;justify-content:space-between;gap:8px;border-block:1px solid #a9956c77;padding:8px 1px;color:#77684e;font:10px/1.4 system-ui,sans-serif;letter-spacing:.16em}
+.count>span:last-child{margin-inline-start:auto}.count b{margin-inline-start:4px;font-variant-numeric:tabular-nums}
 .file ol{list-style:none;padding:0;margin:0}
 .file li{display:flex;align-items:center;gap:6px;border-bottom:1px solid #b6a38066}
 .file li a{display:flex;align-items:baseline;gap:9px;flex:1;min-width:0;overflow-wrap:anywhere;padding:13px 0;color:inherit;text-decoration:none}

@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
+import RoomImprint from './RoomImprint'
 import skin from './reading-box.module.css'
 
 export type ReadingCard = { slug: string; title: string }
@@ -49,12 +50,12 @@ export function ArticleReadingCard({ locale, slug, title }: ReadingCard & { loca
   const { cards, put } = useReadingBox(locale)
   return <SaveReadingCard en={locale === 'en'} card={{slug,title}} saved={cards.some(card => card.slug === slug)} onChange={put} />
 }
-export function ReadingBoxContents({ cards, locale, choose, remove }: { cards: ReadingCard[]; locale: string; choose: () => void; remove: (card: ReadingCard, keep: boolean) => void }) {
+export function ReadingBoxContents({ cards, locale, siteName, choose, remove }: { siteName?: string; cards: ReadingCard[]; locale: string; choose: () => void; remove: (card: ReadingCard, keep: boolean) => void }) {
   const en = locale === 'en'
   const [announcement,setAnnouncement] = useState('')
   return <div className={skin.file}>
     <p className={skin.caption}>{cards.length ? (en ? 'Set aside for another afternoon.' : '上次收下的篇目，今天想读哪一篇？') : (en ? 'A place for the articles you want to return to. Pick one from the shelf and choose “Read later”.' : '看到想读的文章，就在书架目录里点「放入待阅匣」。下次来，它还在这里。')}</p>
-    <p className={skin.count}>{en ? 'ON FILE' : '匣内存笺'} <b>{String(cards.length).padStart(2,'0')}</b></p>
+    <p className={skin.count}>{siteName && <RoomImprint siteName={siteName} />}<span>{en ? 'ON FILE' : '匣内存笺'} <b>{String(cards.length).padStart(2,'0')}</b></span></p>
     {!!cards.length && <ol>{cards.map((card,i) => <li key={card.slug}>
       <Link prefetch={false} href={`/${locale}/posts/${encodeURIComponent(card.slug)}`}><small>{String(i+1).padStart(2,'0')}</small><strong>{card.title}</strong><span aria-hidden="true">↗</span></Link>
       <button type="button" aria-label={(en ? 'Remove · ' : '移出 · ') + card.title} onClick={e => {
