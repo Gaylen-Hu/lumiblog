@@ -37,7 +37,7 @@ describe('V2 solar lighting and resource lifetime', () => {
   })
   it('reuses the room texture, dries gradually, and stops animation under reduced motion', () => {
     const scene=new THREE.Scene(), texture=new THREE.Texture(), release=vi.spyOn(texture,'dispose')
-    const glass=createRainGlass(scene,{gardenBreeze:{value:new THREE.Vector2()},nightBlend:{value:0},tint:new THREE.Color('white')})
+    const glass=createRainGlass(scene,{gardenBreeze:{value:new THREE.Vector2()},gardenWeather:{value:new THREE.Vector3()},nightBlend:{value:0},tint:new THREE.Color('white')})
     glass.set(true); glass.update(16,true)
     expect(scene.children[0].visible).toBe(false)
     glass.setTexture(texture); glass.update(16,false)

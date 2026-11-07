@@ -7,7 +7,7 @@ import type { DeskNote } from './desk-notes'
 import { cityTime, resolveEnvironment, type Environment } from './environment/state'
 import { createPrecipitation } from './environment/precipitation'
 import { createRainGlass } from './environment/glass'
-import { gardenShader } from './environment/garden-shader'
+import { gardenShader, gardenWeather } from './environment/garden-shader'
 import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
 import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
@@ -199,9 +199,11 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   // The painting already separates the near canopy from the defocused trees.
   // Grade its existing texture sample; window frames and curtains use other materials.
   const gardenBreeze = { value: new THREE.Vector2() }
+  const weatherGrade = { value: new THREE.Vector3(...gardenWeather.cloudy) }
   const nightBlend = {value:0}
   outsideMat.onBeforeCompile = shader => {
     shader.uniforms.gardenBreeze = gardenBreeze
+    shader.uniforms.gardenWeather = weatherGrade
     shader.uniforms.nightBlend = nightBlend
     shader.fragmentShader = gardenShader + shader.fragmentShader.replace('#include <map_fragment>',
       '#include <map_fragment>\n#ifdef USE_MAP\n diffuseColor.rgb = gradeGarden(diffuseColor.rgb, vMapUv);\n#endif')
@@ -945,7 +947,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   let environment = resolveEnvironment(Date.now(), 'auto')
   let night = environment.phase === 'night', lampOverride: boolean | null = null
   const precipitation = createPrecipitation(scene)
-  const rainGlass = createRainGlass(scene, { gardenBreeze, nightBlend, tint: outsideMat.color })
+  const rainGlass = createRainGlass(scene, { gardenBreeze, gardenWeather: weatherGrade, nightBlend, tint: outsideMat.color })
   const solarPosition = new THREE.Vector3(environment.solar.east, environment.solar.up, -environment.solar.north)
   const solarTarget = solarPosition.clone()
   let weatherDim = 1, targetDim = 1
@@ -1620,6 +1622,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     leaveClock,
     setEnvironment(value: Environment) {
       environment = value; night = value.phase === 'night'
+      weatherGrade.value.set(...gardenWeather[value.weather])
       solarTarget.set(value.solar.east, value.solar.up, -value.solar.north)
       precipitation.set(value); rainGlass.set(value.weather === 'rain' || value.weather === 'thunderstorm', value.intensity);
       targetDim = ['overcast','rain','snow','fog','thunderstorm'].includes(value.weather) ? .15 : value.weather === 'cloudy' ? .65 : 1

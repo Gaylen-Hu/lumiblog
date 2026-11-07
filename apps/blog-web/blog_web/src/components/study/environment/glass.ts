@@ -2,9 +2,9 @@ import * as THREE from 'three'
 import { gardenShader } from './garden-shader'
 
 // Analytic sliding beads/trails refract the existing painting. Room owns texture.
-export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { value: THREE.Vector2 }; nightBlend: { value: number }; tint: THREE.Color }) {
+export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { value: THREE.Vector2 }; gardenWeather: { value: THREE.Vector3 }; nightBlend: { value: number }; tint: THREE.Color }) {
   const geometry = new THREE.PlaneGeometry(4.85, 2.6)
-  const uniforms = { time: { value: 0 }, wet: { value: 0 }, gardenMap: { value: null as THREE.Texture | null }, tint: { value: shared.tint }, gardenBreeze: shared.gardenBreeze, nightBlend: shared.nightBlend }
+  const uniforms = { time: { value: 0 }, wet: { value: 0 }, gardenMap: { value: null as THREE.Texture | null }, tint: { value: shared.tint }, gardenBreeze: shared.gardenBreeze, gardenWeather: shared.gardenWeather, nightBlend: shared.nightBlend }
   let target = 0
   const material = new THREE.ShaderMaterial({
     uniforms, transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
