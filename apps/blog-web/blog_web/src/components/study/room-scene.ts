@@ -1554,7 +1554,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       const duration = onScreenTrack ? Math.max(1, (target ? 1550*(1-screenStart) : 1200*screenStart))
         : clockView === 'returning' ? clockReturnMs : target === 'clock' ? 1250
         : target === 'diary' ? 1500 : target === 'drawer' ? 1350 : target === 'bookshelf' ? 1250 : 1050
-      progress = reduced ? 1 : THREE.MathUtils.clamp((now - startTime) / duration, 0, 1)
+      const clockFlight = clockView === 'approaching' || clockView === 'returning'
+      // A visitor starts this camera move explicitly, even in an otherwise still room.
+      const skipFlight = clockFlight ? media.matches : reduced
+      progress = skipFlight ? 1 : THREE.MathUtils.clamp((now - startTime) / duration, 0, 1)
       const t = progress * progress * (3 - 2 * progress)
       if (onScreenTrack) {
         screenU = THREE.MathUtils.lerp(screenStart,target ? 1 : 0,progress)
@@ -1588,7 +1591,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
         edition.position.z = THREE.MathUtils.lerp(objectStarts.editions[index], target === 'columns' && index === openingEdition ? -3.36 : -3.65, gesture)
         edition.rotation.y = (edition.position.z + 3.65) * -.45
       })
-      renderer.shadowMap.needsUpdate = true
+      if (!clockFlight) renderer.shadowMap.needsUpdate = true
       if (progress === 1) {
         transitioning = false
         if (!target) onScreenTrack = false
