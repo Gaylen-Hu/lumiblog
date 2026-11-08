@@ -15,7 +15,7 @@ export class RoomFrameBudget {
   reset() { this.elapsed = 0; this.frames = 0; this.slowWindows = 0 }
 
   sample(delta: number, animated: boolean) {
-    if (!animated || !Number.isFinite(delta) || delta <= 0 || delta > 250) {
+    if (!animated || !Number.isFinite(delta) || delta <= 0) {
       this.reset()
       return false
     }
@@ -25,6 +25,6 @@ export class RoomFrameBudget {
     const fps = this.frames * 1000 / this.elapsed
     this.slowWindows = fps < this.minimumFps ? this.slowWindows + 1 : 0
     this.elapsed = 0; this.frames = 0
-    return this.slowWindows >= 2
+    return this.slowWindows >= 3
   }
 }

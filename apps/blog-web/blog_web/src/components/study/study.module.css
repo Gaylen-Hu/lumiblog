@@ -1,3 +1,5 @@
+.performanceTip{position:absolute;z-index:8;left:1.25rem;bottom:4.5rem;max-width:min(23rem,calc(100vw - 2.5rem));padding:1rem 1.15rem;background:#efe7d6;color:#453c30;box-shadow:0 3px 14px #24190e38;border-radius:3px;pointer-events:auto;font: .92rem/1.55 Georgia,serif}
+.performanceTip p{margin:0 0 .6rem}.performanceTip button{padding:.28rem .5rem;margin-right:.35rem;border:1px solid #93816b;background:transparent;color:inherit;cursor:pointer}
 .study{position:relative;min-height:100svh;background:#292d31;color:#f4ead9;overflow:hidden;font-family:Georgia,'Songti SC','SimSun',serif;color-scheme:dark}
 .canvas{position:absolute;inset:0;touch-action:pan-y;opacity:0;transition:opacity 1.4s ease}.canvas canvas{width:100%;height:100%;display:block;touch-action:pinch-zoom}.live .canvas{opacity:1}
 .vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 53% 44%,transparent 38%,#201b2345 100%),linear-gradient(180deg,#171c2440,transparent 18%,transparent 78%,#161b2560);z-index:1}

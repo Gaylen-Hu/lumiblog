@@ -8,6 +8,17 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // Older local tabs cached unversioned dev chunks as immutable.
   deploymentId: process.env.NODE_ENV === 'development' ? 'study-daylight-preview' : undefined,
+  async rewrites() {
+    // In production nginx owns /api/v1. A local preview may explicitly target a local mailbox.
+    const local = process.env.LETTERS_PREVIEW_API
+    if (!local || !/^http:\/\/127\.0\.0\.1:\d+$/.test(local)) return []
+    const routes = [{source:'/api/v1/public/letters',destination:local+'/v1/public/letters'}]
+    const publicApi = process.env.NEXT_PUBLIC_API_URL
+    if (publicApi && /^https:\/\/[^?#@]+\/v1\/public$/.test(publicApi)) {
+      routes.push({source:'/api/v1/public/environment',destination:publicApi+'/environment'})
+    }
+    return routes
+  },
   images: {
     remotePatterns: [
       {

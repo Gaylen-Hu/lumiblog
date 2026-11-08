@@ -25,6 +25,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto, PaginatedUserListDto } from './dto/query-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { AdminRoleGuard, AdminOrOwnProfileGuard } from '../auth/guards/admin-role.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 interface AuthenticatedRequest {
@@ -53,6 +54,7 @@ export class UserController {
   @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
   @ApiResponse({ status: 400, description: '参数错误' })
   @ApiResponse({ status: 409, description: '邮箱已存在' })
+  @UseGuards(AdminRoleGuard)
   @Post()
   async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
     return this.userService.create(createUserDto);
@@ -78,6 +80,7 @@ export class UserController {
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 200, description: '更新成功', type: UserResponseDto })
   @ApiResponse({ status: 404, description: '用户不存在' })
+  @UseGuards(AdminOrOwnProfileGuard)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
     return this.userService.update(id, updateUserDto);
@@ -87,6 +90,7 @@ export class UserController {
   @ApiParam({ name: 'id', description: '用户 ID' })
   @ApiResponse({ status: 204, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
+  @UseGuards(AdminRoleGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string): Promise<void> {

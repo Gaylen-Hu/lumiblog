@@ -5,8 +5,9 @@ export default function access(
   initialState: { currentUser?: API.CurrentUser } | undefined,
 ) {
   const { currentUser } = initialState ?? {};
+  const role = currentUser?.role?.toLowerCase();
   return {
-    canAdmin: currentUser?.role === 'admin',
-    canEditor: currentUser?.role === 'admin' || currentUser?.role === 'editor',
+    canAdmin: role === 'admin',
+    canEditor: role === 'admin' || role === 'editor',
   };
 }

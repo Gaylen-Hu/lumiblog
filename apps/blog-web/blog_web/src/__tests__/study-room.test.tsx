@@ -9,15 +9,17 @@ import { localLightPeriod } from '@/components/study/room-light'
 import { findBookmarkedBlock, readBookmark, writeBookmark } from '@/lib/reading-bookmark'
 
 const mocked = vi.hoisted(() => ({ setCeilingLight: vi.fn(), fail: false, holdReady: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
+let slowRoom: () => boolean
 let loseContext: () => void
 let presentFrame: () => void
 let pickItem: (item: RoomItem, columnSlug?: string) => void
 let finishDrawerSlide: () => void
 let clockPhase: (view: ClockView) => void
 vi.mock('@/components/study/room-scene', () => ({
-  createRoom: (_host: HTMLElement, options: { onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void; onQuality: (light: boolean) => void }) => {
+  createRoom: (_host: HTMLElement, options: { onSlowRoom: typeof slowRoom; onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void }) => {
     if (mocked.fail) throw new Error('WebGL unavailable')
     mocked.created++
+    slowRoom = options.onSlowRoom
     loseContext = options.onContextLost
     presentFrame = options.onReady
     pickItem = options.onPick
@@ -26,7 +28,7 @@ vi.mock('@/components/study/room-scene', () => ({
     return {
       setMotion: vi.fn(),
       setCeilingLight: mocked.setCeilingLight,
-      setQuality: (value: string) => { mocked.quality.push(value); options.onQuality(value === 'light') },
+      setQuality: (value: string) => { mocked.quality.push(value) },
       setPaused: vi.fn(),
       inspectClock: () => clockPhase('approaching'),
       leaveClock: () => clockPhase('returning'),
@@ -75,6 +77,24 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root.unmount()) })
 
 describe('书房的内容与恢复流程', () => {
+  it('低帧只在自由观察时提示一次，主动恢复画质后仍记住选择', async () => {
+    await mount()
+    await click('环境设置')
+    expect(slowRoom()).toBe(false)
+    await click('关闭并返回')
+    await act(async () => { expect(slowRoom()).toBe(true) })
+    expect(mocked.quality).not.toContain('light')
+    await click('开启性能模式')
+    expect(mocked.quality.at(-1)).toBe('light')
+    await click('环境设置')
+    await click('室内设置')
+    await click('完整效果')
+    expect(mocked.quality.at(-1)).toBe('auto')
+    await act(async () => root.unmount())
+    await mount()
+    await act(async () => { slowRoom() })
+    expect(document.body.textContent).not.toContain('画面有些卡。')
+  })
   it('墙上开关和键盘入口共用大灯状态，重新进入后记住选择', async () => {
     await mount()
     expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(false)
@@ -141,7 +161,7 @@ describe('书房的内容与恢复流程', () => {
     await mount()
     await click('环境设置')
     await click('室内设置')
-    await click('轻量')
+    await click('性能模式')
     expect(localStorage.getItem('study-quality')).toBe('light')
     expect(mocked.quality.at(-1)).toBe('light')
     await act(async () => root.unmount())
@@ -149,7 +169,7 @@ describe('书房的内容与恢复流程', () => {
     expect(mocked.quality.at(-1)).toBe('light')
     await click('环境设置')
     await click('室内设置')
-    await click('自动')
+    await click('完整效果')
     expect(mocked.quality.at(-1)).toBe('auto')
     expect(localStorage.getItem('study-quality')).toBe('auto')
   })

@@ -2,30 +2,33 @@ import { describe, expect, it } from 'vitest'
 import { RoomFrameBudget, roomPixelRatio } from '@/components/study/room-quality'
 
 describe('持续性能预算', () => {
-  it('30 FPS 时先降低像素负载，仍保留动画与阴影', () => {
-    const resolution = new RoomFrameBudget(50), fallback = new RoomFrameBudget()
-    let lowerResolution = false, disableAnimation = false
+  it('稳定 30 FPS 不触发性能提示', () => {
+    const fallback = new RoomFrameBudget()
+    let disableAnimation = false
     for (let i = 0; i < 130; i++) {
-      lowerResolution ||= resolution.sample(1000/30, true)
       disableAnimation ||= fallback.sample(1000/30, true)
     }
-    expect(lowerResolution).toBe(true)
     expect(disableAnimation).toBe(false)
   })
-  it('短暂卡顿不切档，运行一段时间后连续低帧率仍可触发降级', () => {
+  it('短暂卡顿不提示，连续三个低帧率窗口才提示', () => {
     const budget = new RoomFrameBudget()
     for (let i = 0; i < 600; i++) expect(budget.sample(16.7, true)).toBe(false)
-    for (let i = 0; i < 79; i++) expect(budget.sample(50, true)).toBe(false)
+    for (let i = 0; i < 119; i++) expect(budget.sample(50, true)).toBe(false)
     expect(budget.sample(50, true)).toBe(true)
   })
-  it('正常帧率、暂停、空闲走钟和异常大步长打断低帧率计数', () => {
-    for (const [delta, animated] of [[16.7, true], [1000, false], [1000, true], [NaN, true]] as const) {
+  it('正常帧率、空闲走钟和无效采样打断低帧计数', () => {
+    for (const [delta, animated] of [[16.7, true], [1000, false], [NaN, true]] as const) {
       const budget = new RoomFrameBudget()
       for (let i = 0; i < 40; i++) budget.sample(50, true)
       if (delta === 16.7) for (let i = 0; i < 120; i++) budget.sample(delta, animated)
       else budget.sample(delta, animated)
       for (let i = 0; i < 40; i++) expect(budget.sample(50, true)).toBe(false)
     }
+  })
+  it('持续的整秒长帧也计入提示阈值', () => {
+    const budget = new RoomFrameBudget()
+    for (let i = 0; i < 5; i++) expect(budget.sample(1000, true)).toBe(false)
+    expect(budget.sample(1000, true)).toBe(true)
   })
   it('暂停恢复会清空上一段采样，不累计后台时间', () => {
     const budget = new RoomFrameBudget()

@@ -25,6 +25,8 @@ import type { RoomQuality } from './room-quality'
 import opening from './opening.module.css'
 import { useRainAudio } from './environment/useRainAudio'
 import { useEnvironment } from './environment/useEnvironment'
+import LetterPaper from './LetterPaper'
+import letterPaper from './letter-paper.module.css'
 import RoomSettings from './RoomSettings'
 
 export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
@@ -83,7 +85,9 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const recoveries = useRef(0)
   const [quality, setQuality] = useState<RoomQuality>('auto')
   const qualityRef = useRef<RoomQuality>('auto')
-  const [lightQuality, setLightQuality] = useState(false)
+  const [showQualityTip, setShowQualityTip] = useState(false)
+  const tipSeen = useRef(false)
+  const roomBusy = useRef(true)
   const [simple, setSimple] = useState(false), [motion, setMotion] = useState(true)
   const [sound, setSound] = useState(false), [retry, setRetry] = useState(0)
   const rainAudio = useRainAudio(environment.state.weather, sound)
@@ -97,6 +101,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const [hoveredColumn, setHoveredColumn] = useState<string>()
   const selectedColumn = route.column
   const [detail, setDetail] = useState<RoomDetail | null>(null)
+  const [writing, setWriting] = useState(false)
   const [notice, setNotice] = useState<{ text: string } | null>(null)
   const [teaIndex, setTeaIndex] = useState(-1)
   const activeRef = useRef(active), motionRef = useRef(motion)
@@ -106,7 +111,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const close = useCallback(() => {
     if (navigationRef.current.catalogPath) { window.history.back(); return }
     if (navigationRef.current.route.mode === 'object') closeStudyObject(locale)
-    setMenu(false); setSettings(false); setDetail(null)
+    setMenu(false); setSettings(false); setDetail(null); setWriting(false)
   }, [locale])
   const rememberFocus = useCallback(() => {
     const focused = document.activeElement as HTMLElement | null
@@ -181,6 +186,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   }, [revealSound])
   useEffect(() => {
     try {
+      tipSeen.current = localStorage.getItem('study-performance-tip') === 'seen'
       setSimple(localStorage.getItem('study-simple') === 'true')
       ceilingLightRef.current = localStorage.getItem('study-ceiling-light') === 'true'
       setCeilingLightOn(ceilingLightRef.current)
@@ -214,6 +220,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     if (playing.current) { playing.current.stop(); playing.current = null }
     setMenu(false); setSettings(false); setDetail(null); setHover(null); setNotice(null)
     setSettled(null); setCameraAtRest(false)
+    setWriting(false)
     if (simple || failed) {
       setPortfolioTrip(false); setSettled(activeRef.current); setCameraAtRest(true)
       navigationRef.current.cameraSettled(route.key)
@@ -248,7 +255,14 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
           controller.current?.dispose(); controller.current = null
           setRetry(value => value + 1)
         },
-        onQuality: setLightQuality,
+        onSlowRoom: () => {
+          if (tipSeen.current) return true
+          if (roomBusy.current) return false
+          tipSeen.current = true
+          try { localStorage.setItem('study-performance-tip','seen') } catch { /* Session only. */ }
+          setShowQualityTip(true)
+          return true
+        },
         onError: fail, onPick: (item, slug) => pickRef.current(item, slug),
         onHover: (item, slug) => { setHover(item); setHoveredColumn(slug) },
         onReveal: revealNavigationSound,
@@ -342,6 +356,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const links = [
     ['posts', en ? 'Writing' : '文章'], ['timeline', en ? 'Life' : '日常'],
     ['projects', en ? 'Projects' : '作品'], ['about', en ? 'About' : '关于'],
+    ['letters', en ? 'Write a letter' : '给我写信'],
     ['columns', en ? 'Collections' : '专栏'], ['links', en ? 'Friends' : '朋友'],
   ]
   const filteredPosts = category ? posts.filter(p => p.category?.id === category) : posts
@@ -367,6 +382,10 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const resumeTitle = en ? 'Continue reading' : '接着读'
   const ribbonLabel = bookmark ? `${resumeTitle} · ${bookmark.title}` : (en ? 'Reading ribbon · Choose a book' : '书签 · 选一篇开始读')
   const busy = isMagazine || modal || !!active || portfolioTrip || inspectingClock
+  useLayoutEffect(() => {
+    roomBusy.current = busy || simple || failed || !ready
+    if (roomBusy.current || quality === 'light') setShowQualityTip(false)
+  }, [busy, simple, failed, ready, quality])
   return <main className={`${styles.study} ${ready && !simple ? styles.live : ''}`} ref={room} data-magazine={isMagazine || undefined} data-portfolio={showPortfolio || undefined} data-busy={busy || undefined} data-motion={motion ? 'full' : 'reduced'}>
     <div className={styles.canvas} ref={host} />
     <div className={styles.vignette} aria-hidden="true" />
@@ -388,6 +407,12 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         {simple && <button className={styles.enter} onClick={toggleSimple}>{en ? 'Enter the 3D study' : '进入 3D 书房'} <span>→</span></button>}
         <div className={styles.staticLatest}>{posts.slice(0, 3).map(post => <Link prefetch={false} href={`/${locale}/posts/${encodeURIComponent(post.slug)}`} key={post.id}>{post.title} <span>↗</span></Link>)}</div>
       </section>
+      {showQualityTip && !busy && !simple && <aside className={styles.performanceTip}>
+        <p role="status">{en ? 'The room seems slow. Try fewer effects or switch to simple view.' : '画面有些卡。可以减少部分效果，或用简洁模式继续逛。'}</p>
+        <button onClick={() => { chooseQuality('light'); setShowQualityTip(false) }}>{en ? 'Use performance mode' : '开启性能模式'}</button>
+        <button onClick={() => { toggleSimple(); setShowQualityTip(false) }}>{en ? 'Simple view' : '简洁模式'}</button>
+        <button onClick={() => setShowQualityTip(false)} aria-label={en ? 'Dismiss suggestion' : '关闭提示'}>×</button>
+      </aside>}
       <footer className={styles.footer}>
         <div className={styles.footerActions}><button onClick={toggleSimple}>{simple ? (en ? '3D mode' : '3D 模式') : (en ? 'Simple view' : '简洁模式')}</button><button onClick={toggleSound} aria-pressed={sound} aria-label={sound ? (en ? 'Mute' : '关闭声音') : (en ? 'Enable sound' : '开启声音')}>{sound ? '♫' : '♪'}<span>{sound ? (en ? 'On' : '开') : (en ? 'Off' : '关')}</span></button></div>
       </footer>
@@ -444,7 +469,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         setMotion(next && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
       }}
       simple={simple} toggleSimple={toggleSimple} quality={quality} chooseQuality={chooseQuality}
-      lightQuality={lightQuality} resetLamp={() => controller.current?.resetLamp?.()} />}
+      resetLamp={() => controller.current?.resetLamp?.()} />}
     {modal && !settings && detail !== 'note' && settled !== 'bookshelf' && settled !== 'computer' && <div className={`${styles.overlay} ${settled === 'readingBox' ? boxSkin.stage : opening.stage}`} data-object={settled || undefined} data-motion={motion ? 'full' : 'reduced'}>
       <div className={`${styles.panel} ${settled === 'readingBox' ? boxSkin.panel : opening.surface}`} data-object={settled || undefined} role="dialog" aria-modal="true" aria-labelledby="room-panel-title" ref={panel}>
         <button className={styles.close} inert={!!navigation.catalogPath} onClick={close} aria-label={en ? 'Close and return' : '关闭并返回'}>×</button>
@@ -456,6 +481,8 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         <div className={opening.contents} inert={!!navigation.catalogPath} data-room-scroll>
         {settled === 'readingBox' && <ReadingBoxContents siteName={(!ready || simple) ? siteName : undefined} locale={locale} cards={readingBox.cards} remove={readingBox.put} choose={() => choose('bookshelf')} />}
         {settled === 'album' && <RoomAlbum siteName={siteName} timeline={timeline} locale={locale} motion={motion} />}
+        {settled === 'drawer' && <button className={letterPaper.sealLink} onClick={()=>setWriting(true)}><i aria-hidden="true"/><span>{en?'Write to the host':'给我写信'}</span></button>}
+        {settled === 'drawer' && writing && <LetterPaper locale={locale} onClose={()=>setWriting(false)}/>}
         {settled === 'drawer' && <nav className={opening.keepsakes}>
           <Link prefetch={false} href={`/${locale}/columns`}><small>01 / READ</small><strong>{en ? 'Collections' : '翻看专栏'}</strong><span>{en ? 'A few things worth keeping.' : '收在一起，慢慢读。'}</span><i aria-hidden="true">↗</i></Link>
           <Link prefetch={false} href={`/${locale}/links`}><small>02 / VISIT</small><strong>{en ? 'Friends' : '拜访朋友'}</strong><span>{en ? 'Other little corners of the web.' : '去朋友的小天地坐坐。'}</span><i aria-hidden="true">↗</i></Link>

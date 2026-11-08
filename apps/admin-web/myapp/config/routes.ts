@@ -40,6 +40,13 @@ export default [
         redirect: '/content/articles',
       },
       {
+        name: 'letters',
+        path: '/content/letters',
+        component: './content/letters',
+        access: 'canAdmin',
+        icon: 'mail',
+      },
+      {
         name: 'articles',
         icon: 'read',
         path: '/content/articles',

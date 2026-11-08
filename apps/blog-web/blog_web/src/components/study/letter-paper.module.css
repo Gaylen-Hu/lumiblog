@@ -1,0 +1,282 @@
+.page,
+.dialog {
+  color-scheme: light;
+  color: #433a2d;
+  font:
+    16px/1.55 Georgia,
+    'Songti SC',
+    'Noto Serif CJK SC',
+    serif;
+}
+.page {
+  min-height: 100svh;
+  background: #d7cebb;
+  padding: clamp(18px, 4vw, 64px) 14px;
+  background-image: linear-gradient(115deg, #ebe4d5, #c9bba1);
+}
+.dialog {
+  padding: 0;
+  border: 0;
+  background: none;
+  width: min(640px, 94vw);
+  max-height: 90svh;
+  overflow: auto;
+  margin: auto;
+  box-shadow: 0 16px 60px #19140a55;
+}
+.dialog::backdrop {
+  background: #28231bc9;
+}
+.sheet {
+  max-width: 640px;
+  margin: auto;
+  background: #f7f1e4;
+  border: 1px solid #bba98c;
+  padding: clamp(22px, 4vw, 46px);
+  box-shadow: 0 6px 24px #49391e22;
+}
+.heading,
+.tabs,
+.pair {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.heading {
+  justify-content: space-between;
+  font-size: 13px;
+  color: #675b47;
+}
+.heading button {
+  font-size: 24px;
+  line-height: 1;
+}
+.sheet h1 {
+  font-size: clamp(1.8rem, 4vw, 2.65rem);
+  font-weight: 500;
+  margin: 16px 0 12px;
+  color: #473929;
+}
+.sheet h2 {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+.sheet button,
+.sheet a,
+.sheet summary {
+  cursor: pointer;
+  color: inherit;
+}
+.sheet button {
+  font: inherit;
+  background: transparent;
+  border: 0;
+}
+.sheet :focus-visible {
+  outline: 2px solid #796747;
+  outline-offset: 3px;
+}
+.tabs {
+  border-bottom: 1px solid #d0c3ab;
+  margin-bottom: 20px;
+}
+.tabs button {
+  padding: 6px 0;
+  border-bottom: 2px solid transparent;
+}
+.tabs button[aria-pressed='true'] {
+  border-color: #90523d;
+  color: #6e3c2f;
+}
+.form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.form label {
+  display: block;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.form textarea,
+.form input:not([type='checkbox']),
+.form select {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #af9f87;
+  border-radius: 0;
+  background: transparent;
+  color: #443527;
+  padding: 5px 3px;
+  font: inherit;
+}
+.form textarea {
+  font-size: 17px;
+  line-height: 1.9;
+  resize: vertical;
+  background: repeating-linear-gradient(
+    transparent 0,
+    transparent calc(1.9em - 1px),
+    #d8cbbb 1.9em
+  );
+  min-height: 8em;
+}
+.pair {
+  margin: 14px 0 4px;
+  align-items: flex-end;
+}
+.pair label {
+  flex: 1;
+  min-width: 0;
+}
+.form small,
+.delivered details,
+.post footer {
+  color: #726856;
+  font-size: 13px;
+}
+.sheet summary {
+  font-size: 14px;
+}
+.form details,
+.delivered details {
+  margin: 14px 0;
+}
+.form .permission {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.permission input {
+  accent-color: #884431;
+}
+.form [role='status']:empty {
+  display: none;
+}
+.form .send,
+.delivered > button {
+  margin-top: 12px;
+  padding: 9px 24px;
+  border-radius: 3px;
+  background: #824632;
+  color: #fff5dd;
+}
+.post {
+  padding: 12px 0;
+  border-bottom: 1px solid #d4c7af;
+}
+.post p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.post footer {
+  text-align: right;
+}
+.delivered {
+  padding: 16px 0;
+}
+.delivered code {
+  display: block;
+  overflow-wrap: anywhere;
+  user-select: all;
+  color: #594a38;
+}
+.envelope,
+.sealLink {
+  position: relative;
+  background: #e6d6b4;
+}
+.envelope {
+  width: 110px;
+  height: 66px;
+  border: 1px solid #b9a484;
+  margin: 10px 0 24px;
+  animation: fold 0.54s ease-out;
+}
+.envelope::before,
+.sealLink::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #f1e3c6;
+  clip-path: polygon(0 0, 100% 0, 50% 68%);
+  pointer-events: none;
+}
+.envelope i,
+.sealLink i {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  width: 17px;
+  height: 17px;
+  background: #944331;
+  border: 2px double #bc7763;
+  border-radius: 48% 45% 51% 44%;
+  box-shadow: 0 1px 2px #63352455;
+}
+.sealLink {
+  display: block;
+  cursor: pointer;
+  color: #574333;
+  border: 1px solid #bba784;
+  min-height: 94px;
+  margin: 0 8px 10px;
+  width: calc(100% - 16px);
+  text-align: left;
+  box-shadow: 0 3px 8px #503d2620;
+}
+.sealLink span {
+  position: absolute;
+  left: 16px;
+  bottom: 10px;
+  font:
+    17px Georgia,
+    'Songti SC',
+    serif;
+}
+.sealLink i {
+  top: 45%;
+}
+@keyframes fold {
+  from {
+    transform: perspective(240px) rotateX(65deg);
+    opacity: 0.25;
+  }
+  to {
+    transform: rotateX(0);
+    opacity: 1;
+  }
+}
+@media (max-width: 520px) {
+  .pair {
+    display: grid;
+    gap: 8px;
+  }
+  .sheet {
+    padding: 22px 19px;
+  }
+  .dialog {
+    max-height: 92svh;
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 601px) {
+  .dialog[open] .sheet {
+    transform-origin: 50% 92%;
+    animation: lift-sheet 320ms ease-out;
+  }
+  .envelope i { animation: press-seal 180ms ease-out 300ms both; }
+}
+@keyframes lift-sheet {
+  from { transform: perspective(850px) translateY(15px) rotateX(8deg); opacity: .65; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes press-seal {
+  from { transform: scale(1.14); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .envelope {
+    animation: none;
+  }
+}

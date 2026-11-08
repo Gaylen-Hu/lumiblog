@@ -93,7 +93,7 @@ jobs:
           pnpm exec jest --runInBand
           pnpm build
           mkdir -p ../../../_artifacts
-          tar -czf ../../../_artifacts/server.tar.gz dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc
+          tar -czf ../../../_artifacts/server.tar.gz dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc scripts/replay-letter-privacy.cjs scripts/prune-letter-tombstones.cjs
       - name: Build V2 administration
         if: ${{ inputs.deploy_environment }}
         working-directory: apps/admin-web/myapp

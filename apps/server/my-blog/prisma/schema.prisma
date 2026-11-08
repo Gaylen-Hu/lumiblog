@@ -43,6 +43,32 @@ enum MediaType {
   other
 }
 
+model StudyLetter {
+  id           String   @id @db.Uuid
+  publicId     String   @unique @default(uuid()) @db.Uuid
+  createdAt    DateTime @default(now())
+  fingerprint  String?
+  nickname     String?
+  body         String?
+  contact      String?
+  emailKey     String?
+  claimDigest  String?  @unique
+  visitorId    String?
+  topic        String?
+  allowPublic  Boolean  @default(false)
+  status       String
+  publishedAt  DateTime?
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  readAt       DateTime?
+  handledAt    DateTime?
+  deletedAt    DateTime?
+
+  @@index([status, publishedAt, publicId])
+  @@index([emailKey, createdAt])
+  @@map("study_letters")
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
