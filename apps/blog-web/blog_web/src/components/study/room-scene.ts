@@ -1739,7 +1739,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       environment = value; night = value.phase === 'night'
       updateGarden()
       solarTarget.set(value.solar.east, value.solar.up, -value.solar.north)
-      precipitation.set(value); rainGlass.set(value.weather === 'rain' || value.weather === 'thunderstorm', value.intensity);
+      precipitation.set(value)
+      rainGlass.set(value.weather, value.intensity)
       targetDim = ['overcast','rain','snow','fog','thunderstorm'].includes(value.weather) ? .15 : value.weather === 'cloudy' ? .65 : 1
       applyLight(nightBlend.value); options.onNight(night)
       options.onLamp?.(lampOn()); requestFrame()
