@@ -7,7 +7,7 @@ export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { va
   const uniforms = { time: { value: 0 }, wet: { value: 0 }, gardenMap: { value: null as THREE.Texture | null }, tint: { value: shared.tint }, gardenBreeze: shared.gardenBreeze, gardenWeather: shared.gardenWeather, nightBlend: shared.nightBlend }
   let target = 0
   const material = new THREE.ShaderMaterial({
-    uniforms, transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
+    uniforms, transparent: true, depthWrite: false, toneMapped: false,
     vertexShader: `varying vec2 glassUv; varying vec3 glassWorld;
       void main(){ glassUv=uv; vec4 world=modelMatrix*vec4(position,1.0); glassWorld=world.xyz; gl_Position=projectionMatrix*viewMatrix*world; }`,
     fragmentShader: `
@@ -55,12 +55,12 @@ export function createRainGlass(scene: THREE.Scene, shared: { gardenBreeze: { va
   return {
     set(wet: boolean, intensity = .55) { target = wet ? .35 + .65 * THREE.MathUtils.clamp(intensity, 0, 1) : 0 },
     setTexture(texture: THREE.Texture | null) { uniforms.gardenMap.value = texture },
-    update(delta: number, animate: boolean) {
+    update(delta: number, animate: boolean, visible = true) {
       const dt = Math.min(.05, Math.max(0, delta / 1000))
       uniforms.wet.value = animate ? THREE.MathUtils.damp(uniforms.wet.value, target, .8, dt) : target
       if (Math.abs(uniforms.wet.value-target)<.002) uniforms.wet.value=target
-      mesh.visible = uniforms.gardenMap.value !== null && uniforms.wet.value > .005
-      if (animate) uniforms.time.value += dt
+      mesh.visible = visible && uniforms.gardenMap.value !== null && uniforms.wet.value > .005
+      if (animate && mesh.visible) uniforms.time.value += dt
       return animate && mesh.visible
     },
     dispose() { scene.remove(mesh); geometry.dispose(); material.dispose() },

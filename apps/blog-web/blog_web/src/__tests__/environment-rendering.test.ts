@@ -28,6 +28,7 @@ describe('V2 solar lighting and resource lifetime', () => {
     for(let i=0;i<400;i++) rain.update(50,true,false)
     const lines=scene.children[0] as THREE.LineSegments
     const positions=lines.geometry.getAttribute('position')
+    expect((positions as THREE.BufferAttribute).version).toBe(0)
     for(let i=0;i<positions.count;i++) expect(positions.getX(i)).toBeGreaterThan(3.18)
     expect(lines.visible).toBe(true)
     rain.update(16,true,true); expect(lines.visible).toBe(false)
@@ -45,6 +46,9 @@ describe('V2 solar lighting and resource lifetime', () => {
     expect(pane.visible).toBe(true)
     const time=pane.material.uniforms.time.value
     glass.update(1000,false); expect(pane.material.uniforms.time.value).toBe(time)
+    glass.update(16,true,false); expect(pane.visible).toBe(false)
+    expect(pane.material.uniforms.time.value).toBe(time)
+    glass.update(16,true,true); expect(pane.visible).toBe(true)
     glass.set(false); glass.update(50,true); expect(pane.visible).toBe(true)
     for(let i=0;i<200;i++) glass.update(50,true)
     expect(pane.visible).toBe(false)
