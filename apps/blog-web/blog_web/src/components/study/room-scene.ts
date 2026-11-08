@@ -669,9 +669,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const pin = sphere([-1.85, 2.02, -3.77], [.018, .018, .012], '#c4a261'); pin.material = brass
   hit('portrait', [-.95, 2.45, -3.75], [.75, .92, .1])
   hit('portrait', [-1.86, 1.81, -3.79], [.40,.47,.08])
-  // A ceramic rocker on the picture wall, just above desk height.
+  // The west wall faces +X. Mount the rocker on the aisle side of the bookcase.
   const wallSwitch = new THREE.Group()
-  wallSwitch.position.set(-.86, 1.54, -3.903)
+  wallSwitch.position.set(-3.92, 1.32, 1.06)
+  wallSwitch.rotation.y = Math.PI / 2
   scene.add(wallSwitch)
   rounded([0, 0, .014], [.17, .22, .028], brass, wallSwitch, .012)
   rounded([0, 0, .031], [.154, .203, .021], mat('#e1d3b6'), wallSwitch, .009)
@@ -1046,6 +1047,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     options.onClockView(view)
   }
   let yaw = 0, pitch = 0, hingeFrom = 0, ambientMotion = true
+  const limitYaw = (angle: number) => THREE.MathUtils.clamp(angle, -.65, 1.28)
   let previewWindow = false, windowViewMix = 0
   let quality: RoomQuality = 'auto', autoLight = false
   let presented = false
@@ -1061,7 +1063,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     observationKey = key; yaw = 0; pitch = 0
     try {
       const saved = JSON.parse(sessionStorage.getItem(key) || '{}')
-      if (Number.isFinite(saved.yaw)) yaw=THREE.MathUtils.clamp(saved.yaw,-.65,.65)
+      if (Number.isFinite(saved.yaw)) yaw = limitYaw(saved.yaw)
       if (Number.isFinite(saved.pitch)) pitch=THREE.MathUtils.clamp(saved.pitch,-.22,.22)
     } catch { /* Optional observation memory. */ }
   }
@@ -1383,7 +1385,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
           placeDiary(local.x,local.z); renderer.shadowMap.needsUpdate = true
         }
       } else if (drag.moved) {
-        yaw = THREE.MathUtils.clamp(yaw - (event.clientX - drag.lastX) * .002, -.65, .65)
+        yaw = limitYaw(yaw - (event.clientX - drag.lastX) * .002)
         pitch = THREE.MathUtils.clamp(pitch - (event.clientY - drag.lastY) * .0015, -.22, .22)
       }
       drag.lastX = event.clientX; drag.lastY = event.clientY
