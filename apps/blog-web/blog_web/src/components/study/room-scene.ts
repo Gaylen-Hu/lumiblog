@@ -1016,6 +1016,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const rainGlass = createRainGlass(scene, { gardenBreeze, gardenWeather: weatherGrade, nightBlend, tint: outsideMat.color })
   const solarPosition = new THREE.Vector3(environment.solar.east, environment.solar.up, -environment.solar.north)
   const solarTarget = solarPosition.clone()
+  const lastShadowSun = new THREE.Vector3(Infinity, 0, 0)
+  // A change in brightness alone does not change the directional shadow depths.
+  const halfShadowTexel = (sun.shadow.camera.right - sun.shadow.camera.left) / (2 * sun.shadow.mapSize.x)
   let weatherDim = 1, targetDim = 1
   const lampOn = () => lampOverride ?? (environment.phase === 'night' || environment.phase === 'dusk')
   function applyWindowLight(mix: number) {
@@ -1029,12 +1032,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     fill.intensity = ceilingLightOn ? 30 : THREE.MathUtils.lerp(2.8, .65, mix) * (1 - .18 * cover)
   }
   function applyLight(mix: number) {
-    renderer.shadowMap.needsUpdate = true
     nightBlend.value = mix
     sun.color.lerpColors(daySun,moon,mix)
     hemi.color.lerpColors(daySky,nightSky,mix)
     scene.environmentIntensity = THREE.MathUtils.lerp(.29,.10,mix)
     sun.position.copy(sun.target.position).addScaledVector(solarPosition, 10)
+    if (sun.position.distanceToSquared(lastShadowSun) > halfShadowTexel * halfShadowTexel) {
+      renderer.shadowMap.needsUpdate = true
+      lastShadowSun.copy(sun.position)
+    }
     applyWindowLight(mix)
     if (mix < .8 && solarPosition.y < .3) sun.color.lerp(new THREE.Color('#ffbc81'), .6)
     outsideMat.color.set(environment.weather === 'snow' ? '#f1f5fa' : environment.season === 'autumn' ? '#e5ceb0' : environment.season === 'winter' ? '#cbd6dc' : '#e0e9dd')
@@ -1529,7 +1535,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       }
     }
     const windowVisible = curtainMotion.hem.position < .99
-    const glassMoving = rainGlass.update(delta, !reduced && !target && windowVisible && quality !== 'light')
+    const glassMoving = rainGlass.update(delta, !reduced && !target, windowVisible && quality !== 'light')
     const weatherMoving = precipitation.update(delta, !reduced && !target && windowVisible, quality === 'light')
     const targetNight = 1-environment.solar.daylight
     const lightMoving = Math.abs(nightBlend.value - targetNight) > .001 || Math.abs(weatherDim-targetDim) > .001 || solarPosition.distanceToSquared(solarTarget) > .000001
@@ -1660,6 +1666,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }, false, 'daylight')
   loadArt('leaf', texture => {
     for(const m of foliage){m.map=texture;m.needsUpdate=true}
+    // The cutout changes the leaf silhouettes in the cached shadow map.
+    renderer.shadowMap.needsUpdate = true
   }, false, 'daylight')
   let garden: THREE.Texture | null = null
   let snowyGarden: THREE.Texture | null = null
@@ -1731,7 +1739,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       environment = value; night = value.phase === 'night'
       updateGarden()
       solarTarget.set(value.solar.east, value.solar.up, -value.solar.north)
-      precipitation.set(value); rainGlass.set(value.weather === 'rain' || value.weather === 'thunderstorm', value.intensity);
+      precipitation.set(value)
+      rainGlass.set(value.weather, value.intensity)
       targetDim = ['overcast','rain','snow','fog','thunderstorm'].includes(value.weather) ? .15 : value.weather === 'cloudy' ? .65 : 1
       applyLight(nightBlend.value); options.onNight(night)
       options.onLamp?.(lampOn()); requestFrame()

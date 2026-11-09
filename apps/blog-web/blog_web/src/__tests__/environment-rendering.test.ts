@@ -28,6 +28,7 @@ describe('V2 solar lighting and resource lifetime', () => {
     for(let i=0;i<400;i++) rain.update(50,true,false)
     const lines=scene.children[0] as THREE.LineSegments
     const positions=lines.geometry.getAttribute('position')
+    expect((positions as THREE.BufferAttribute).version).toBe(0)
     for(let i=0;i<positions.count;i++) expect(positions.getX(i)).toBeGreaterThan(3.18)
     expect(lines.visible).toBe(true)
     rain.update(16,true,true); expect(lines.visible).toBe(false)
@@ -38,16 +39,38 @@ describe('V2 solar lighting and resource lifetime', () => {
   it('reuses the room texture, dries gradually, and stops animation under reduced motion', () => {
     const scene=new THREE.Scene(), texture=new THREE.Texture(), release=vi.spyOn(texture,'dispose')
     const glass=createRainGlass(scene,{gardenBreeze:{value:new THREE.Vector2()},gardenWeather:{value:new THREE.Vector3()},nightBlend:{value:0},tint:new THREE.Color('white')})
-    glass.set(true); glass.update(16,true)
+    glass.set('rain'); glass.update(16,true)
     expect(scene.children[0].visible).toBe(false)
     glass.setTexture(texture); glass.update(16,false)
     const pane=scene.children[0] as THREE.Mesh<THREE.PlaneGeometry,THREE.ShaderMaterial>
     expect(pane.visible).toBe(true)
     const time=pane.material.uniforms.time.value
     glass.update(1000,false); expect(pane.material.uniforms.time.value).toBe(time)
-    glass.set(false); glass.update(50,true); expect(pane.visible).toBe(true)
+    glass.update(16,true,false); expect(pane.visible).toBe(false)
+    expect(pane.material.uniforms.time.value).toBe(time)
+    glass.update(16,true,true); expect(pane.visible).toBe(true)
+    glass.set('clear'); glass.update(50,true); expect(pane.visible).toBe(true)
     for(let i=0;i<200;i++) glass.update(50,true)
     expect(pane.visible).toBe(false)
     glass.dispose(); expect(scene.children).toHaveLength(0); expect(release).not.toHaveBeenCalled()
+  })
+  it('removes wet glass immediately on snowfall and resumes only rain on a thunderstorm', () => {
+    const scene = new THREE.Scene()
+    const particles = createPrecipitation(scene)
+    const glass = createRainGlass(scene, { gardenBreeze: { value: new THREE.Vector2() }, gardenWeather: { value: new THREE.Vector3() }, nightBlend: { value: 1 }, tint: new THREE.Color('white') })
+    const texture = new THREE.Texture()
+    glass.setTexture(texture)
+    const [rain, flakes, pane] = scene.children
+    for (const weather of ['rain', 'snow', 'thunderstorm', 'snow'] as const) {
+      particles.set(resolveEnvironment(Date.now(), 'rainy-night', undefined, undefined, weather))
+      glass.set(weather)
+      if (weather === 'snow') expect(pane.visible).toBe(false)
+      particles.update(16, true, false)
+      glass.update(16, true)
+      expect([rain.visible, flakes.visible, pane.visible]).toEqual(weather === 'snow' ? [false, true, false] : [true, false, true])
+    }
+    particles.dispose()
+    glass.dispose()
+    texture.dispose()
   })
 })
