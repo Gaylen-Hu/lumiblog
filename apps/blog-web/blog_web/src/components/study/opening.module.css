@@ -74,6 +74,12 @@
   .stage[data-object=drawer]{align-items:flex-end;padding-bottom:24px;background:linear-gradient(0deg,#2b302433,transparent)}.surface[data-object=drawer]{padding:30px 19px 22px;border-width:7px}.surface[data-object=drawer] .heading h2{font-size:23px}.keepsakes{gap:12px;padding:5px 0}.keepsakes a{padding:20px 14px;min-height:160px}.keepsakes strong{font-size:18px}
 }
 .stage[data-motion=reduced],.stage[data-motion=reduced] *{animation:none!important;transition:none!important}
+/* Pulling the drawer is an explicit action, including in the simple room. */
+@media (prefers-reduced-motion: no-preference) {
+  .stage[data-object=drawer][data-motion=reduced] > .surface {
+    animation: drawerContents .65s cubic-bezier(.2,.7,.2,1) both !important;
+  }
+}
 @media(prefers-reduced-motion:reduce){.stage,.stage *{animation:none!important;transition:none!important}}
 
 @media(max-width:700px){

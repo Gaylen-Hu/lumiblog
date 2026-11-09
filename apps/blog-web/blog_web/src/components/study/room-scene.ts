@@ -1103,6 +1103,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   let transitioning = false, pausedAt = 0, hiddenAt = 0
   let onScreenTrack = false, screenU = 0, screenStart = 0
   const drawerStarts = drawers.map(() => 0)
+  let drawerFlight = false
   let pickedDrawer = 0, openingDrawer = 0
   let pickedEdition = 0, openingEdition = 0
   // Capture every moving part at the interruption point, so closing never snaps.
@@ -1268,8 +1269,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (plate.name) plate.label.material = categoryLabel(plate.name)
     }
     rails.forEach((rail, side) => { rail.visible = side === (next === 'bookshelf' ? pickedTier?.shelfIndex ?? 0 : 0) })
-    target = next; revealPlayed = false; hingeFrom = hinge.rotation.z; cancel()
     drawers.forEach((drawer, index) => { drawerStarts[index] = drawer.position.z })
+    drawerFlight = next === 'drawer' || target === 'drawer' || drawerStarts.some(z => z > 0)
+    target = next; revealPlayed = false; hingeFrom = hinge.rotation.z; cancel()
     markedVolumes.forEach(v => { v.start = v.book.position.z - v.rest })
     chosenVolume = next === 'bookshelf' ? markedVolumes.find(v => v.shelfIndex === (pickedTier?.shelfIndex ?? 0) && v.tier === (pickedTier?.tier ?? 2)) : undefined
     pickedTier = undefined
@@ -1566,9 +1568,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
         : clockView === 'returning' ? clockReturnMs : target === 'clock' ? 1250
         : target === 'diary' ? 1500 : target === 'drawer' ? 1350 : target === 'bookshelf' ? 1250 : 1050
       const clockFlight = clockView === 'approaching' || clockView === 'returning'
-      // A visitor starts this camera move explicitly, even in an otherwise still room.
-      const skipFlight = clockFlight ? media.matches : reduced
-      progress = skipFlight ? 1 : THREE.MathUtils.clamp((now - startTime) / duration, 0, 1)
+      // Deliberate drawer and clock gestures still work when ambient movement is off.
+      const skipFlight = clockFlight || drawerFlight ? media.matches : reduced
+      if (skipFlight) progress = 1
+      else if (drawerFlight) {
+        // Let the closed drawer reach the screen first. Shader compilation or a
+        // suspended tab must not consume the opening or closing in a single frame.
+        const frameMs = presented ? THREE.MathUtils.clamp(Math.min(delta, now - startTime), 0, 80) : 0
+        progress = Math.min(1, progress + frameMs / duration)
+      } else progress = THREE.MathUtils.clamp((now - startTime) / duration, 0, 1)
       const t = progress * progress * (3 - 2 * progress)
       if (onScreenTrack) {
         screenU = THREE.MathUtils.lerp(screenStart,target ? 1 : 0,progress)

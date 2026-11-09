@@ -1,8 +1,11 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { webcrypto } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import StudyRoom from '@/components/study/StudyRoom'
+import { LetterDeliveryProvider } from '@/components/study/LetterDelivery'
 import { isDestination, type ClockView, type RoomItem } from '@/components/study/model'
 import { clockHandAngles } from '@/components/study/wall-clock'
 import { localLightPeriod } from '@/components/study/room-light'
@@ -59,7 +62,7 @@ async function finishJournalTurn() {
 }
 let root: Root
 async function mount(overrides: Partial<typeof props> = {}) {
-  await act(async () => { root = createRoot(document.body.appendChild(document.createElement('div'))); root.render(<StudyRoom {...props} {...overrides} />) })
+  await act(async () => { root = createRoot(document.body.appendChild(document.createElement('div'))); root.render(<LetterDeliveryProvider><StudyRoom {...props} {...overrides} /></LetterDeliveryProvider>) })
 }
 async function click(label: string) {
   const button = Array.from(document.querySelectorAll('button')).find(b => b.textContent === label || b.getAttribute('aria-label') === label)
@@ -224,7 +227,7 @@ describe('书房的内容与恢复流程', () => {
     expect(findBookmarkedBlock(blocks.slice(0,1),mark)).toBe(0)
   })
   it('未执行 JavaScript 时已输出可访问的内容链接', () => {
-    const html = renderToString(<StudyRoom {...props} />)
+    const html = renderToString(<LetterDeliveryProvider><StudyRoom {...props} /></LetterDeliveryProvider>)
     expect(html).toContain('href="/zh/posts"')
     expect(html).toContain('href="/zh/timeline"')
     expect(html).toContain('href="/zh/about"')
@@ -271,6 +274,40 @@ describe('书房的内容与恢复流程', () => {
     await act(async () => finishDrawerSlide())
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(mocked.targets.at(-1)).toBeNull()
+  })
+  it('来信送达后信纸自动收起，读者能在原抽屉取回凭条', async () => {
+    window.history.replaceState(null, '', '/zh?room=drawer')
+    await mount()
+    await act(async () => finishDrawerSlide())
+    const send = vi.fn().mockResolvedValue(Response.json({ received: true }, { status: 201 }))
+    vi.stubGlobal('fetch', send)
+    vi.stubGlobal('crypto', webcrypto)
+    // jsdom does not implement the native modal dialog methods.
+    const prototype = HTMLDialogElement.prototype
+    Object.assign(prototype, {
+      showModal(this: HTMLDialogElement) { this.open = true },
+      close(this: HTMLDialogElement) { this.open = false },
+    })
+    try {
+      await click('给我写信')
+      fireEvent.change(screen.getByLabelText('正文'), { target: { value: '抽屉来信' } })
+      fireEvent.change(screen.getByLabelText('落款昵称'), { target: { value: '读者' } })
+      fireEvent.change(screen.getByLabelText('联系邮箱'), { target: { value: 'reader@example.test' } })
+      fireEvent.click(screen.getByRole('button', { name: '封缄寄出' }))
+      await screen.findByText('信已送达')
+      await waitFor(() => expect(document.querySelector('dialog')).toBeNull(), { timeout: 3000 })
+      expect(window.location.search).toBe('?room=drawer')
+      expect(screen.getByText('已私密寄出，仅博主可查看。')).toBeInTheDocument()
+      fireEvent.click(screen.getByText('查看寄信凭条'))
+      const receipt = document.querySelector('details[open] code')?.textContent
+      expect(receipt).toMatch(/^[a-f0-9]{64}$/)
+      const posted = JSON.parse(send.mock.calls[0][1].body)
+      expect(JSON.stringify(posted)).not.toContain(receipt)
+    } finally {
+      vi.unstubAllGlobals()
+      Reflect.deleteProperty(prototype, 'showModal')
+      Reflect.deleteProperty(prototype, 'close')
+    }
   })
   it('WebGL 启动失败时文字入口和物件内容仍可使用', async () => {
     mocked.fail = true
