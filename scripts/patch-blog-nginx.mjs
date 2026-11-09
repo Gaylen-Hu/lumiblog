@@ -27,7 +27,7 @@ function directives(source) {
       stack.pop()
     } else if (token === ';' || token === '{') {
       if (!words.length) throw new Error('Empty Nginx directive')
-      const node = { head: words.join(' '), start, children: [] }
+      const node = { head: words.join(' '), start, end: match.index, children: [] }
       stack.at(-1).push(node)
       if (token === '{') stack.push(node.children)
       words = []
@@ -71,6 +71,17 @@ export function patchBlogNginx(source) {
       (server.children.some(node => node.head === 'return 404') &&
        !server.children.some(node => node.head.startsWith('location ')))) continue
 
+    // Production runs Nginx 1.18, where HTTP/2 is a TLS listener option.
+    // Keep an explicitly configured server-level policy on newer installations.
+    if (!server.children.some(node => node.head.startsWith('http2 '))) {
+      for (const listener of server.children.filter(node => node.head.startsWith('listen '))) {
+        const options = listener.head.split(' ').slice(2)
+        if (options.includes('ssl') && !options.includes('http2') && !options.includes('quic')) {
+          edits.push({ at: listener.end, text: ' http2' })
+        }
+      }
+    }
+
     const anchor = server.children.find(node => node.head === (blog ? 'location /api/' : 'location /'))
     if (!anchor) throw new Error('Backend API anchor not found; manual configuration required')
     const blocks = []
@@ -104,7 +115,9 @@ export function patchBlogNginx(source) {
     if (blocks.length) edits.push({ at: anchor.start, text: blocks.join('\n\n    ') + '\n\n    ' })
   }
   if (!servingBlog) throw new Error('Blog virtual host not found; manual configuration required')
-  for (const { at, text } of edits.reverse()) source = source.slice(0, at) + text + source.slice(at)
+  for (const { at, text } of edits.sort((a, b) => b.at - a.at)) {
+    source = source.slice(0, at) + text + source.slice(at)
+  }
   return zones.length ? source : zone + ';\n\n' + source
 }
 
