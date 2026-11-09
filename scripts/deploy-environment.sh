@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# V2 additive schema + API/admin/blog release, preserving every previous release.
+# Additive schema + API/admin/blog release, preserving every previous release.
 set -Eeuo pipefail
 umask 027
 APP_HOME=/home/myblog
 APP_USER=myblog
 ARTIFACTS_DIR="${ARTIFACTS_DIR:?}"
+export RELEASE_LETTERS="${RELEASE_LETTERS:-false}"
+[[ "$RELEASE_LETTERS" == true || "$RELEASE_LETTERS" == false ]]
+if [[ "$RELEASE_LETTERS" == true ]]; then REQUIRE_WEATHER=false; fi
 REVISION="$(cat "$ARTIFACTS_DIR/revision.txt")"
 [[ "$(id -u)" == 0 && "$REVISION" =~ ^[a-f0-9]{40}$ ]]
 for command in node pnpm pg_dump pg_restore nginx systemctl curl; do command -v "$command" >/dev/null; done
@@ -39,7 +42,12 @@ chown -R "$APP_USER:$APP_USER" "$RELEASE" "$ADMIN"
 runuser -u "$APP_USER" -- bash -c "cd '$RELEASE' && pnpm install --frozen-lockfile && pnpm exec prisma generate"
 cp -p "$SITE" "$BACKUP/nginx.before"
 cp -p "$DROPIN" "$BACKUP/dropin.before"
-if [[ -f "$WEATHER" ]]; then cp -p "$WEATHER" "$BACKUP/weather.before"; fi
+if [[ "$RELEASE_LETTERS" != true && -f "$WEATHER" ]]; then cp -p "$WEATHER" "$BACKUP/weather.before"; fi
+if [[ "$RELEASE_LETTERS" == true ]]; then
+  test -f "$RELEASE/scripts/replay-letter-privacy.cjs"
+  test -f "$RELEASE/scripts/prune-letter-tombstones.cjs"
+  test -f "$ARTIFACTS_DIR/prepare-letter-settings.mjs"
+fi
 # Only the new table is allowed; backup and migration preflight precede switching.
 node "$ARTIFACTS_DIR/prepare-environment-db.mjs" "$PREVIOUS" "$RELEASE" "$BACKUP/database.dump"
 node --input-type=module - "$SITE" "$BACKUP/nginx.next" <<'NODE'
@@ -56,19 +64,32 @@ rollback() {
   local code=$?; trap - ERR; set +e
   if [[ "$BLOG_SWITCHED" == true ]]; then ARTIFACTS_DIR="$ARTIFACTS_DIR" bash "$ARTIFACTS_DIR/deploy-blog.sh" rollback; fi
   cp -p "$BACKUP/nginx.before" "$SITE"; cp -p "$BACKUP/dropin.before" "$DROPIN"
-  if [[ -f "$BACKUP/weather.before" ]]; then cp -p "$BACKUP/weather.before" "$WEATHER"; else rm -f -- "$WEATHER"; fi
+  if [[ "$RELEASE_LETTERS" != true ]]; then
+    if [[ -f "$BACKUP/weather.before" ]]; then cp -p "$BACKUP/weather.before" "$WEATHER"; else rm -f -- "$WEATHER"; fi
+  fi
   switch_to "$PREVIOUS" "$CURRENT"
   if [[ -n "$OLD_ADMIN" ]]; then switch_to "$OLD_ADMIN" "$ADMIN_CURRENT"; else rm -f -- "$ADMIN_CURRENT"; fi
   systemctl daemon-reload; systemctl restart myblog-api.service; nginx -t && systemctl reload nginx
   wait_api || printf 'CRITICAL: API rollback health check failed\n' >&2
-  printf 'V2 release rolled back. Additive environment table retained. Private backup: %s\n' "$BACKUP" >&2
+  printf 'Release rolled back. Additive tables and mailbox recovery data retained. Private backup: %s\n' "$BACKUP" >&2
   exit "$code"
 }
 trap rollback ERR
-# This small file contains only weather settings; never replace the main .env.
-test -f "$ARTIFACTS_DIR/weather.env"
-install -m 0600 -o root -g root "$ARTIFACTS_DIR/weather.env" "$WEATHER"
-printf '[Service]\nWorkingDirectory=%s\nExecStart=\nExecStart=%s %s/dist/src/main.js\nEnvironmentFile=%s\n' "$CURRENT" "$(command -v node)" "$CURRENT" "$WEATHER" > "$DROPIN"
+if [[ "$RELEASE_LETTERS" == true ]]; then
+  # Keep the live service's command and environment (including weather) and
+  # switch its existing server-current link. A rerun doesn't duplicate the entry.
+  grep -Fxq "WorkingDirectory=$CURRENT" "$DROPIN"
+  if ! grep -Fxq 'EnvironmentFile=/etc/myblog/letters.env' "$DROPIN"; then
+    printf '\n[Service]\nEnvironmentFile=/etc/myblog/letters.env\n' >> "$DROPIN"
+  fi
+else
+  test -f "$ARTIFACTS_DIR/weather.env"
+  install -m 0600 -o root -g root "$ARTIFACTS_DIR/weather.env" "$WEATHER"
+  printf '[Service]\nWorkingDirectory=%s\nExecStart=\nExecStart=%s %s/dist/src/main.js\nEnvironmentFile=%s\n' "$CURRENT" "$(command -v node)" "$CURRENT" "$WEATHER" > "$DROPIN"
+  if grep -Fxq 'EnvironmentFile=/etc/myblog/letters.env' "$BACKUP/dropin.before"; then
+    printf 'EnvironmentFile=/etc/myblog/letters.env\n' >> "$DROPIN"
+  fi
+fi
 switch_to "$RELEASE" "$CURRENT"; switch_to "$ADMIN" "$ADMIN_CURRENT"
 cp "$BACKUP/nginx.next" "$SITE"
 nginx -t; systemctl daemon-reload; systemctl restart myblog-api.service; wait_api
@@ -79,5 +100,11 @@ test "$(curl -fsS https://badmin.new-universe.cn/revision.txt)" = "$REVISION"
 ARTIFACTS_DIR="$ARTIFACTS_DIR" bash "$ARTIFACTS_DIR/deploy-blog.sh"
 BLOG_SWITCHED=true
 node "$ARTIFACTS_DIR/smoke-environment.mjs" https://api.new-universe.cn "$REQUIRE_WEATHER"
+if [[ "$RELEASE_LETTERS" == true ]]; then
+  curl -fsS --retry 4 --retry-all-errors --max-time 10 --resolve www.new-universe.cn:443:127.0.0.1 'https://www.new-universe.cn/api/v1/public/letters' \
+    | node -e 'let s=""; process.stdin.on("data",x=>s+=x).on("end",()=>{const data=JSON.parse(s);if(!Array.isArray(data.items)||!("next" in data)) process.exit(1)})'
+  test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:3000/v1/admin/letters/search)" = 401
+  test "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 --resolve www.new-universe.cn:443:127.0.0.1 -H 'Content-Type: application/json' -d '{}' https://www.new-universe.cn/api/v1/public/letters)" = 400
+fi
 trap - ERR
-printf 'V2 API/admin/blog released %s; private rollback backup %s\n' "$REVISION" "$BACKUP"
+printf 'API/admin/blog released %s; private rollback backup %s\n' "$REVISION" "$BACKUP"
