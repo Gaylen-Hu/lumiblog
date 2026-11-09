@@ -7,6 +7,35 @@ export function roomDiagnostics(host: HTMLElement, renderer: WebGLRenderer) {
   let started = created, draws = 0, frames = 0, elapsed = 0, slow = 0, cpu = 0, first = 0
   let mode = 'starting', disposed = false
   let baselineStart = 0, baselineFrames = 0, browserRafFps: number | null = null
+  let probe = 0, lastProbe = 0, browserFrames = 0, browserElapsed = 0
+  let foregroundStart = document.hasFocus() && !document.hidden ? created : null
+  let foregroundMs = 0
+  function foreground() {
+    const now = performance.now()
+    if (foregroundStart !== null) foregroundMs += now - foregroundStart
+    foregroundStart = document.hasFocus() && !document.hidden ? now : null
+    lastProbe = 0
+    syncProbe()
+  }
+  // Independent page RAF during continuous foreground drawing only. A clock
+  // tick or a stalled room loop must not be mistaken for the browser's cadence.
+  function sampleBrowser(now: number) {
+    probe = 0
+    if (lastProbe) { browserFrames++; browserElapsed += now - lastProbe }
+    lastProbe = now
+    syncProbe()
+  }
+  function syncProbe() {
+    if (!disposed && foregroundStart !== null && mode.includes(':animated:') && !baselineStart) {
+      if (!probe) probe = requestAnimationFrame(sampleBrowser)
+    } else {
+      if (probe) cancelAnimationFrame(probe)
+      probe = lastProbe = 0
+    }
+  }
+  window.addEventListener('focus', foreground)
+  window.addEventListener('blur', foreground)
+  document.addEventListener('visibilitychange', foreground)
   const histogram = new Uint32Array(1001)
   const gl = renderer.getContext(), extension = gl.getExtension('WEBGL_debug_renderer_info')
   const device = extension ? gl.getParameter(extension.UNMASKED_RENDERER_WEBGL) as string : gl.getParameter(gl.RENDERER) as string
@@ -29,19 +58,26 @@ export function roomDiagnostics(host: HTMLElement, renderer: WebGLRenderer) {
       frameP50Ms: frames ? percentile(.5) : null, frameP95Ms: frames ? percentile(.95) : null,
       framesOver50Ms: slow, renderCpuMeanMs: draws ? +(cpu/draws).toFixed(2) : null,
       firstFrameMs: +first.toFixed(1), mode, browserRafFps, hidden: document.hidden, focused: document.hasFocus(), disposed,
+      foregroundSeconds: +((foregroundMs + (foregroundStart === null ? 0 : performance.now() - foregroundStart)) / 1000).toFixed(1),
+      browserFpsDuringAnimation: browserElapsed ? +(browserFrames * 1000 / browserElapsed).toFixed(1) : null,
       memory: { ...renderer.info.memory }, programs: renderer.info.programs?.length ?? 0,
       calls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       pixelRatio: renderer.getPixelRatio(), viewport: [innerWidth, innerHeight], device,
     }, null, 2)
   }
-  reset.onclick = () => { started = performance.now(); draws = frames = elapsed = slow = cpu = 0; histogram.fill(0); publish() }
-  baseline.onclick = () => { baselineStart = performance.now(); baselineFrames = 0; browserRafFps = null }
+  reset.onclick = () => {
+    started = performance.now(); draws = frames = elapsed = slow = cpu = 0
+    foregroundMs = browserElapsed = browserFrames = lastProbe = 0
+    if (foregroundStart !== null) foregroundStart = started
+    histogram.fill(0); publish()
+  }
+  baseline.onclick = () => { baselineStart = performance.now(); baselineFrames = 0; browserRafFps = null; syncProbe() }
   const timer = window.setInterval(publish, 1000)
   return {
     baselineFrame(now: number) {
       if (!baselineStart) return false
       baselineFrames++
-      if (now - baselineStart >= 5000) { browserRafFps = +(baselineFrames*1000/(now-baselineStart)).toFixed(1); baselineStart = 0; publish() }
+      if (now - baselineStart >= 5000) { browserRafFps = +(baselineFrames*1000/(now-baselineStart)).toFixed(1); baselineStart = 0; syncProbe(); publish() }
       return true
     },
     frame(delta: number, continuous: boolean) {
@@ -50,7 +86,12 @@ export function roomDiagnostics(host: HTMLElement, renderer: WebGLRenderer) {
       histogram[Math.min(1000, Math.round(delta))]++
     },
     draw(milliseconds: number) { draws++; cpu += milliseconds; if (!first) first = performance.now()-created },
-    mode(value: string) { mode = value },
-    dispose() { disposed = true; window.clearInterval(timer); publish(); panel.remove() },
+    mode(value: string) { if (value !== mode) { mode = value; syncProbe() } },
+    dispose() {
+      disposed = true; syncProbe(); window.clearInterval(timer)
+      window.removeEventListener('focus', foreground); window.removeEventListener('blur', foreground)
+      document.removeEventListener('visibilitychange', foreground)
+      publish(); panel.remove()
+    },
   }
 }

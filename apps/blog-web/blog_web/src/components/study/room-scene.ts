@@ -1016,6 +1016,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const rainGlass = createRainGlass(scene, { gardenBreeze, gardenWeather: weatherGrade, nightBlend, tint: outsideMat.color })
   const solarPosition = new THREE.Vector3(environment.solar.east, environment.solar.up, -environment.solar.north)
   const solarTarget = solarPosition.clone()
+  const lastShadowSun = new THREE.Vector3(Infinity, 0, 0)
+  // A change in brightness alone does not change the directional shadow depths.
+  const halfShadowTexel = (sun.shadow.camera.right - sun.shadow.camera.left) / (2 * sun.shadow.mapSize.x)
   let weatherDim = 1, targetDim = 1
   const lampOn = () => lampOverride ?? (environment.phase === 'night' || environment.phase === 'dusk')
   function applyWindowLight(mix: number) {
@@ -1029,12 +1032,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     fill.intensity = ceilingLightOn ? 30 : THREE.MathUtils.lerp(2.8, .65, mix) * (1 - .18 * cover)
   }
   function applyLight(mix: number) {
-    renderer.shadowMap.needsUpdate = true
     nightBlend.value = mix
     sun.color.lerpColors(daySun,moon,mix)
     hemi.color.lerpColors(daySky,nightSky,mix)
     scene.environmentIntensity = THREE.MathUtils.lerp(.29,.10,mix)
     sun.position.copy(sun.target.position).addScaledVector(solarPosition, 10)
+    if (sun.position.distanceToSquared(lastShadowSun) > halfShadowTexel * halfShadowTexel) {
+      renderer.shadowMap.needsUpdate = true
+      lastShadowSun.copy(sun.position)
+    }
     applyWindowLight(mix)
     if (mix < .8 && solarPosition.y < .3) sun.color.lerp(new THREE.Color('#ffbc81'), .6)
     outsideMat.color.set(environment.weather === 'snow' ? '#f1f5fa' : environment.season === 'autumn' ? '#e5ceb0' : environment.season === 'winter' ? '#cbd6dc' : '#e0e9dd')
@@ -1097,6 +1103,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   let transitioning = false, pausedAt = 0, hiddenAt = 0
   let onScreenTrack = false, screenU = 0, screenStart = 0
   const drawerStarts = drawers.map(() => 0)
+  let drawerFlight = false
   let pickedDrawer = 0, openingDrawer = 0
   let pickedEdition = 0, openingEdition = 0
   // Capture every moving part at the interruption point, so closing never snaps.
@@ -1262,8 +1269,9 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (plate.name) plate.label.material = categoryLabel(plate.name)
     }
     rails.forEach((rail, side) => { rail.visible = side === (next === 'bookshelf' ? pickedTier?.shelfIndex ?? 0 : 0) })
-    target = next; revealPlayed = false; hingeFrom = hinge.rotation.z; cancel()
     drawers.forEach((drawer, index) => { drawerStarts[index] = drawer.position.z })
+    drawerFlight = next === 'drawer' || target === 'drawer' || drawerStarts.some(z => z > 0)
+    target = next; revealPlayed = false; hingeFrom = hinge.rotation.z; cancel()
     markedVolumes.forEach(v => { v.start = v.book.position.z - v.rest })
     chosenVolume = next === 'bookshelf' ? markedVolumes.find(v => v.shelfIndex === (pickedTier?.shelfIndex ?? 0) && v.tier === (pickedTier?.tier ?? 2)) : undefined
     pickedTier = undefined
@@ -1529,7 +1537,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       }
     }
     const windowVisible = curtainMotion.hem.position < .99
-    const glassMoving = rainGlass.update(delta, !reduced && !target && windowVisible && quality !== 'light')
+    const glassMoving = rainGlass.update(delta, !reduced && !target, windowVisible && quality !== 'light')
     const weatherMoving = precipitation.update(delta, !reduced && !target && windowVisible, quality === 'light')
     const targetNight = 1-environment.solar.daylight
     const lightMoving = Math.abs(nightBlend.value - targetNight) > .001 || Math.abs(weatherDim-targetDim) > .001 || solarPosition.distanceToSquared(solarTarget) > .000001
@@ -1560,9 +1568,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
         : clockView === 'returning' ? clockReturnMs : target === 'clock' ? 1250
         : target === 'diary' ? 1500 : target === 'drawer' ? 1350 : target === 'bookshelf' ? 1250 : 1050
       const clockFlight = clockView === 'approaching' || clockView === 'returning'
-      // A visitor starts this camera move explicitly, even in an otherwise still room.
-      const skipFlight = clockFlight ? media.matches : reduced
-      progress = skipFlight ? 1 : THREE.MathUtils.clamp((now - startTime) / duration, 0, 1)
+      // Deliberate drawer and clock gestures still work when ambient movement is off.
+      const skipFlight = clockFlight || drawerFlight ? media.matches : reduced
+      if (skipFlight) progress = 1
+      else if (drawerFlight) {
+        // Let the closed drawer reach the screen first. Shader compilation or a
+        // suspended tab must not consume the opening or closing in a single frame.
+        const frameMs = presented ? THREE.MathUtils.clamp(Math.min(delta, now - startTime), 0, 80) : 0
+        progress = Math.min(1, progress + frameMs / duration)
+      } else progress = THREE.MathUtils.clamp((now - startTime) / duration, 0, 1)
       const t = progress * progress * (3 - 2 * progress)
       if (onScreenTrack) {
         screenU = THREE.MathUtils.lerp(screenStart,target ? 1 : 0,progress)
@@ -1660,6 +1674,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }, false, 'daylight')
   loadArt('leaf', texture => {
     for(const m of foliage){m.map=texture;m.needsUpdate=true}
+    // The cutout changes the leaf silhouettes in the cached shadow map.
+    renderer.shadowMap.needsUpdate = true
   }, false, 'daylight')
   let garden: THREE.Texture | null = null
   let snowyGarden: THREE.Texture | null = null
@@ -1731,7 +1747,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       environment = value; night = value.phase === 'night'
       updateGarden()
       solarTarget.set(value.solar.east, value.solar.up, -value.solar.north)
-      precipitation.set(value); rainGlass.set(value.weather === 'rain' || value.weather === 'thunderstorm', value.intensity);
+      precipitation.set(value)
+      rainGlass.set(value.weather, value.intensity)
       targetDim = ['overcast','rain','snow','fog','thunderstorm'].includes(value.weather) ? .15 : value.weather === 'cloudy' ? .65 : 1
       applyLight(nightBlend.value); options.onNight(night)
       options.onLamp?.(lampOn()); requestFrame()

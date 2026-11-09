@@ -27,7 +27,9 @@ vec3 gradeGarden(vec3 garden, vec2 uv) {
   vec2 canopy = (uv - vec2(0.38, 0.62) - gardenBreeze) * vec2(1.8, 1.0);
   float softLight = 1.0 - smoothstep(0.02, 0.19, length(canopy));
   graded = mix(graded, vec3(0.91, 0.86, 0.66), foliage * softLight * 0.095);
-  vec3 moonlight = vec3(0.006, 0.013, 0.025) + luminance * vec3(0.055, 0.090, 0.155);
+  // Keep the garden's leaf and soil colours legible under the cool night sky.
+  vec3 moonlight = vec3(0.003, 0.006, 0.011)
+    + mix(graded, vec3(luminance), 0.22) * vec3(0.105, 0.16, 0.19);
   vec3 exterior = mix(graded, moonlight, nightBlend);
   exterior *= vec3(1.0) - gardenWeather.x * vec3(0.65, 0.53, 0.40);
   vec3 skyLight = mix(vec3(0.70, 0.77, 0.79), vec3(0.044, 0.067, 0.09), nightBlend);

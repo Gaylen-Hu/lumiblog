@@ -1,4 +1,5 @@
 import StudyShell from '@/components/study/StudyShell'
+import { LetterDeliveryProvider } from '@/components/study/LetterDelivery'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
@@ -121,7 +122,9 @@ export default async function LocaleLayout({
         <SiteJsonLd config={config} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
-            <StudyShell locale={locale}>{children}</StudyShell>
+            <LetterDeliveryProvider>
+              <StudyShell locale={locale}>{children}</StudyShell>
+            </LetterDeliveryProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
         <Analytics />
