@@ -1500,7 +1500,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       requestFrame()
     }, period - local.getTime() % period)
   }
-  function requestFrame() { if (!frame && !disposed && !compiling && (active || catalogAnimating) && !document.hidden) frame = requestAnimationFrame(render) }
+  function requestFrame() { if (!frame && !disposed && !compiling && (!presented || active || catalogAnimating) && !document.hidden) frame = requestAnimationFrame(render) }
   function drawScene() {
     if (disposed || compiling) return false
     try {
@@ -1534,11 +1534,11 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (disposed || document.hidden) return
     if (diagnostics?.baselineFrame(now)) { lastTime = now; previousContinuous = false; requestFrame(); return }
     if (!active) {
-      // A paused room only redraws while a catalog spine is moving.
+      // A panel can pause the room while its very first frame is compiling.
       if (catalogAnimating) {
         drawCatalogCue(now - lastTime); lastTime = now
         if (drawScene() && catalogAnimating) requestFrame()
-      }
+      } else if (!presented) drawScene()
       return
     }
     if (clockTimer === undefined) syncWallClock()
@@ -1807,7 +1807,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (value) { cancel(); cancelAnimationFrame(frame); frame = 0 }
       if (value && active) { pausedAt = now; clearClockTimer() }
       if (!value && !active && transitioning && pausedAt) startTime += now - pausedAt
-      active = !value; lastTime = now; if (!value || catalogAnimating) requestFrame()
+      active = !value; lastTime = now; requestFrame()
     },
     dispose() {
       if (disposed) return
