@@ -1,6 +1,9 @@
 /* The magazine is a light paper surface, even when the room is in night mode. */
 .study-experience { min-height: 100dvh; background: #fbf9f5; color: #39352f; color-scheme: light; }
 .study-persistent { position: fixed; inset: 0; overflow: auto; transition: filter 950ms ease; }
+/* Keep the server-rendered links available until the lazy room actually mounts. */
+.study-persistent:not(:has(> main)) { display: none; }
+.study-persistent:has(> main) + .study-home-entry { display: none; }
 .study-defocused { filter: blur(14px); pointer-events: none; transition-delay: 180ms; }
 .study-persistent [data-magazine] > :not(:first-child) { visibility: hidden; }
 .study-magazine {
@@ -38,9 +41,6 @@
 .study-paper-loader { width: 56px; height: 76px; position: relative; background: #f4eddf; box-shadow: 3px 4px 0 #e2d8c6, 0 12px 32px #79654815; transform-origin: bottom left; animation: paper-breathe 1.6s ease-in-out infinite alternate; }
 .study-paper-loader i { position: absolute; left: 12px; right: 12px; height: 1px; background: #cfbfa6; top: 24px; }
 .study-paper-loader i:nth-child(2) { top: 34px; }.study-paper-loader i:nth-child(3) { top: 44px; right: 24px; }
-.study-home-fallback { min-height: 100svh; padding: 14vh 10vw; background: #fbf9f5; font-family: Georgia, 'Songti SC', serif; }
-.study-home-fallback h1 { font-size: 36px; margin: 24px 0; }.study-home-fallback p { margin: 24px 0; }
-.study-home-fallback nav { display: flex; flex-wrap: wrap; gap: 24px; margin: 36px 0; }
 .study-imprint { font: 10px/1.8 system-ui, sans-serif; letter-spacing: .24em; color: #928471; }
 .magazine-page { padding: 24px clamp(24px, 6vw, 96px) 60px; max-width: 1280px; margin: 0 auto; }
 .magazine-heading { margin-bottom: clamp(48px, 7vw, 96px); }

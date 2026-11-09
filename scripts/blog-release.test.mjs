@@ -28,6 +28,27 @@ test('patch changes only blog host, is idempotent and preserves TLS/backend rule
   assert.throws(() => patchBlogNginx(source.replace('    location /api/', '    location ^~ /api/study/ { proxy_pass http://127.0.0.1:3000; }\n    location /api/')), /unexpected upstream/)
 })
 
+test('enables HTTP/2 on the existing public TLS listeners, before or after locations', () => {
+  const source = `server {
+    listen 80;
+    listen [::]:443 ssl ipv6only=on;
+    server_name www.new-universe.cn;
+    location /api/ { proxy_pass http://127.0.0.1:3000/; }
+    listen 443 ssl; # managed by Certbot
+}
+server { server_name api.new-universe.cn; listen 443 ssl; location / { proxy_pass http://127.0.0.1:3000; } }
+server { server_name another.example; listen 443 ssl; }`
+  const result = patchBlogNginx(source)
+  assert.equal(patchBlogNginx(result), result)
+  assert.match(result, /listen 80;/)
+  assert.match(result, /listen \[::\]:443 ssl ipv6only=on http2;/)
+  assert.match(result, /listen 443 ssl http2; # managed by Certbot/)
+  assert.match(result, /api\.new-universe\.cn; listen 443 ssl http2;/)
+  assert.match(result, /another\.example; listen 443 ssl;/)
+  const modern = patchBlogNginx(source.replace('listen 80;', 'listen 80; http2 on;'))
+  assert.match(modern, /listen 443 ssl; # managed by Certbot/)
+})
+
 test('letter routes on both hostnames use the same defined zone and reject conflicting configuration', async () => {
   const template = await readFile('ops/nginx-myblog.conf', 'utf8')
   assert.equal(patchBlogNginx(template), template)

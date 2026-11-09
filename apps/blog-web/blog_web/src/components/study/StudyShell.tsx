@@ -3,8 +3,7 @@
 import dynamic from 'next/dynamic'
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { StudyNavigationContext, useStudyLocation } from './StudyNavigation'
-import { RoomRegistrationContext } from './StudyRoomEntry'
+import { RoomRegistrationContext, StudyNavigationContext, useStudyLocation } from './StudyNavigation'
 import type { StudyRoomProps } from './StudyRoom'
 import { notifyStudyLocation, resolveStudyRoute, spatialReadingHref, stampStudyHistory, studyHistory } from './study-route'
 import PaperLoading from './PaperLoading'
@@ -152,7 +151,7 @@ export default function StudyShell({ locale, children }: { locale: string; child
         {roomData && <div className={`study-persistent ${reading ? 'study-defocused' : ''}`} inert={reading} aria-hidden={reading}>
           <PersistentRoom {...roomData} />
         </div>}
-        {homeTree && <div hidden={!!roomData || reading}>{children}</div>}
+        {homeTree && <div className="study-home-entry" hidden={reading}>{children}</div>}
         {(reading || coverVisible) && <section className="study-magazine" ref={magazine} data-phase={phase} data-direct={!roomData || undefined}
           role={route.spatial ? 'dialog' : undefined} aria-modal={route.spatial || undefined}
           aria-label={en ? 'Reading room' : '阅览室'} aria-hidden={!reading} inert={!reading}>

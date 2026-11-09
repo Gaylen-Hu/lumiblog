@@ -14,7 +14,7 @@ import { ScreenFlight } from './screen-flight'
 import { paintPortfolioCover } from './portfolio-print'
 import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
 import { roomDiagnostics } from './room-diagnostics'
-import { batchStaticScene } from './batch-static-scene'
+import { batchStaticScene, copyForBatch } from './batch-static-scene'
 
 type PickedItem = { target: RoomItem; columnSlug?: string; categoryId?: string; shelfIndex?: number; tier?: number; drawerIndex?: number }
 export type RoomOptions = {
@@ -121,8 +121,16 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }
   const wood = mat('#e0bb92'); wood.map = woodTexture(); wood.roughness = .48
   const darkWood = mat('#af8866'); darkWood.map = wood.map; darkWood.roughness = .53
+  const roundedGeometries = new Map<string, RoundedBoxGeometry>()
   function rounded(at: number[], size: number[], material: THREE.Material, parent: THREE.Object3D = scene, radius = .025) {
-    return mesh(new RoundedBoxGeometry(size[0], size[1], size[2], 2, Math.min(radius, Math.min(...size) * .38)), material, at, parent)
+    const corner = Math.min(radius, Math.min(...size) * .38)
+    const key = `${size.join(',')},${corner}`
+    let geometry = roundedGeometries.get(key)
+    if (!geometry) {
+      geometry = new RoundedBoxGeometry(size[0], size[1], size[2], 2, corner)
+      roundedGeometries.set(key, geometry)
+    }
+    return mesh(geometry, material, at, parent)
   }
   function timber(at: number[], size: number[], dark = false, parent: THREE.Object3D = scene) {
     return rounded(at, size, dark ? darkWood : wood, parent, .012)
@@ -756,7 +764,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       const key=object.material.uuid+object.castShadow
       let part=parts.get(key)
       if(!part){part={material:object.material,cast:object.castShadow,geometries:[]};parts.set(key,part)}
-      const copy=object.geometry.index ? object.geometry.toNonIndexed() : object.geometry.clone()
+      const copy=copyForBatch(object.geometry)
       copy.applyMatrix4(inverse.clone().multiply(object.matrixWorld));part.geometries.push(copy)
     })
     const batches=[...parts.values()].map(part=>({part,geometry:mergeGeometries(part.geometries)}))
@@ -1065,6 +1073,8 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   let ignoreSamplesUntil = performance.now() + 5000
   let suggested = false
   let presented = false
+  let compiling = false
+  let programsPrepared = !renderer.extensions.has('KHR_parallel_shader_compile')
   const frameBudget = new RoomFrameBudget()
   type Gesture = { id:number; x:number; y:number; lastX:number; lastY:number; moved:boolean; pressed:PickedItem|null; grab:THREE.Vector3|null }
   let drag: Gesture | null = null
@@ -1490,10 +1500,22 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       requestFrame()
     }, period - local.getTime() % period)
   }
-  function requestFrame() { if (!frame && !disposed && (active || catalogAnimating) && !document.hidden) frame = requestAnimationFrame(render) }
+  function requestFrame() { if (!frame && !disposed && !compiling && (!presented || active || catalogAnimating) && !document.hidden) frame = requestAnimationFrame(render) }
   function drawScene() {
-    if (disposed) return false
+    if (disposed || compiling) return false
     try {
+      if (!programsPrepared) {
+        compiling = true
+        const resume = () => {
+          compiling = false
+          programsPrepared = true
+          requestFrame()
+        }
+        // First use of a linked program queries uniforms synchronously. Let
+        // the driver link in parallel while the existing welcome is usable.
+        renderer.compileAsync(scene, camera).then(resume, resume)
+        return false
+      }
       const drawStart = performance.now()
       renderer.render(scene, camera)
       diagnostics?.draw(performance.now() - drawStart)
@@ -1512,11 +1534,11 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (disposed || document.hidden) return
     if (diagnostics?.baselineFrame(now)) { lastTime = now; previousContinuous = false; requestFrame(); return }
     if (!active) {
-      // A paused room only redraws while a catalog spine is moving.
+      // A panel can pause the room while its very first frame is compiling.
       if (catalogAnimating) {
         drawCatalogCue(now - lastTime); lastTime = now
         if (drawScene() && catalogAnimating) requestFrame()
-      }
+      } else if (!presented) drawScene()
       return
     }
     if (clockTimer === undefined) syncWallClock()
@@ -1785,7 +1807,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (value) { cancel(); cancelAnimationFrame(frame); frame = 0 }
       if (value && active) { pausedAt = now; clearClockTimer() }
       if (!value && !active && transitioning && pausedAt) startTime += now - pausedAt
-      active = !value; lastTime = now; if (!value || catalogAnimating) requestFrame()
+      active = !value; lastTime = now; requestFrame()
     },
     dispose() {
       if (disposed) return

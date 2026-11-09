@@ -59,6 +59,18 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; vi.restoreAllMocks() })
 
 describe('URL-driven spatial reading', () => {
+  it('renders the welcome heading and working navigation before the room mounts', async () => {
+    const initial = document.createElement('div')
+    initial.innerHTML = renderToString(<StudyRoomEntry data={data} />)
+    expect(initial.querySelector('h1')?.textContent).toBe('把日子写下来，也把想法留下来。')
+    expect(initial.querySelector('a[href="/zh/posts/first"]')?.textContent).toContain('第一篇')
+    await mount()
+    const room = document.querySelector('.study-persistent main')!
+    expect(room.querySelector('h1')?.textContent).toBe(initial.querySelector('h1')?.textContent)
+    const navLinks = (root: Element) => Array.from(root.querySelectorAll('nav[aria-label="内容导航"] a'), link => link.getAttribute('href'))
+    expect(navLinks(initial)).toHaveLength(7)
+    expect(navLinks(room)).toEqual(navLinks(initial))
+  })
   it('uses shallow article/column URLs with canonical deep-link equivalents', () => {
     expect(spatialReadingHref('/zh/posts/高级阅读#chapter', 'zh')).toBe('/zh?article=%E9%AB%98%E7%BA%A7%E9%98%85%E8%AF%BB#chapter')
     expect(canonicalReadingHref('/zh?article=高级阅读', 'zh')).toBe('/zh/posts/%E9%AB%98%E7%BA%A7%E9%98%85%E8%AF%BB')

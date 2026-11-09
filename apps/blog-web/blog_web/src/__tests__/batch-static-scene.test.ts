@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import * as THREE from 'three'
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { batchStaticScene } from '@/components/study/batch-static-scene'
 
 describe('static room batching', () => {
@@ -24,5 +25,21 @@ describe('static room batching', () => {
     const a = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()); group.add(a, a.clone())
     batchStaticScene(scene, new Set(), new Set())
     expect(group.children).toHaveLength(2)
+  })
+  it('batches shared rounded geometry without rebuilding its shape or moving the source vertices', () => {
+    const source = new RoundedBoxGeometry(1, 2, 3)
+    const original = source.getAttribute('position').array.slice()
+    const clone = vi.spyOn(source, 'clone')
+    const first = new THREE.Mesh(source, new THREE.MeshStandardMaterial()), second = first.clone()
+    second.position.x = 5
+    const scene = new THREE.Scene(); scene.add(first, second)
+    const batches = new Set<THREE.BufferGeometry>()
+    batchStaticScene(scene, new Set(), batches)
+    expect(clone).not.toHaveBeenCalled()
+    expect(source.getAttribute('position').array).toEqual(original)
+    expect(batches.size).toBe(1)
+    const [batch] = batches
+    batch.computeBoundingBox()
+    expect(batch.boundingBox?.max.x).toBeCloseTo(5.5)
   })
 })

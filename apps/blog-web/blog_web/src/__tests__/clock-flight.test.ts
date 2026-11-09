@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createRoom } from '@/components/study/room-scene'
 
 const { fovs, drawn } = vi.hoisted(() => ({ fovs: [] as number[], drawn: { scene: null as Scene | null } }))
+const shaders = vi.hoisted(() => ({ parallel: false, compile: vi.fn<() => Promise<void>>() }))
 // Exercise the room's real camera and frame loop. Only drawing needs a GPU.
 vi.mock('three', async importOriginal => ({
   ...await importOriginal<typeof import('three')>(),
@@ -10,6 +11,8 @@ vi.mock('three', async importOriginal => ({
     domElement = document.createElement('canvas')
     shadowMap = {}
     capabilities = { getMaxAnisotropy: () => 1 }
+    extensions = { has: () => shaders.parallel }
+    compileAsync = shaders.compile
     setPixelRatio() {}
     setSize() {}
     dispose() {}
@@ -25,6 +28,8 @@ afterEach(() => {
   vi.unstubAllGlobals()
   fovs.length = 0
   drawn.scene = null
+  shaders.parallel = false
+  shaders.compile.mockReset()
 })
 
 function createTestRoom() {
@@ -40,15 +45,47 @@ function createTestRoom() {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D)
   const host = document.createElement('div')
   vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1100, 720))
-  const phase = vi.fn(), settled = vi.fn()
+  const phase = vi.fn(), settled = vi.fn(), ready = vi.fn()
   const room = createRoom(host, {
     categories: [], columns: [], projects: [], siteName: '墨千', seriesLabel: '专栏', en: false,
-    onPortfolioFrame: noop, onShelfFrame: noop, onReady: noop, onPick: noop, onHover: noop,
+    onPortfolioFrame: noop, onShelfFrame: noop, onReady: ready, onPick: noop, onHover: noop,
     onError: () => { throw new Error('Room draw failed') }, onContextLost: noop,
     onReveal: noop, onSettled: settled, onClockView: phase, onNight: noop,
   })
-  return { room, media, phase, settled }
+  return { room, media, phase, settled, ready }
 }
+
+it('presents the first frame after shader preparation even when the drawer has paused the room', async () => {
+  shaders.parallel = true
+  let finish = () => {}
+  shaders.compile.mockImplementation(() => new Promise(resolve => { finish = resolve }))
+  const { room, ready } = createTestRoom()
+  try {
+    vi.advanceTimersByTime(32)
+    room.setPaused(true)
+    expect(shaders.compile).toHaveBeenCalledOnce()
+    expect(ready).not.toHaveBeenCalled()
+    expect(drawn.scene).toBeNull()
+    finish()
+    await vi.advanceTimersByTimeAsync(32)
+    expect(ready).toHaveBeenCalledOnce()
+    expect(fovs).toHaveLength(1)
+  } finally { room.dispose() }
+})
+
+it.each([false, true])('handles rejected shader preparation after dispose=%s', async disposed => {
+  shaders.parallel = true
+  let fail = () => {}
+  shaders.compile.mockImplementation(() => new Promise((_, reject) => { fail = reject }))
+  const { room, ready } = createTestRoom()
+  try {
+    vi.advanceTimersByTime(16)
+    if (disposed) room.dispose()
+    fail()
+    await vi.advanceTimersByTimeAsync(32)
+    expect(ready).toHaveBeenCalledTimes(disposed ? 0 : 1)
+  } finally { room.dispose() }
+})
 
 it('animates the clock both ways with ambient motion off, and honors system reduced motion', () => {
   const { room, media, phase } = createTestRoom()

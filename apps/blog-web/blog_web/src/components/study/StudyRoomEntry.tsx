@@ -1,26 +1,29 @@
 'use client'
 
-import { createContext, useContext, useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import Link from 'next/link'
 import type { StudyRoomProps } from './StudyRoom'
-
-export const RoomRegistrationContext = createContext<((data: StudyRoomProps) => void) | null>(null)
+import Logo from '../Logo'
+import StudyWelcome from './StudyWelcome'
+import { RoomRegistrationContext } from './StudyNavigation'
+import styles from './study.module.css'
 
 /** Only the home page fetches room data. The layout retains it after navigation. */
 export default function StudyRoomEntry({ data }: { data: StudyRoomProps }) {
   const register = useContext(RoomRegistrationContext)
   useEffect(() => { register?.(data) }, [data, register])
-  const en = data.locale === 'en'
-  return <main className="study-home-fallback">
-    <p className="study-imprint">{data.siteName}</p>
-    <h1>{data.name}</h1><p>{data.bio}</p>
-    <p role="status">{en ? 'Opening the study…' : '正在打开书房…'}</p>
-    <nav aria-label={en ? 'Content navigation' : '内容导航'}>
-      {['posts', 'columns', 'timeline', 'projects', 'about', 'links', 'letters'].map((path, i) =>
-        <Link key={path} href={`/${data.locale}/${path}`}>
-          {(en ? ['Writing', 'Collections', 'Journal', 'Projects', 'About', 'Friends', 'Write a letter'] : ['文章', '专栏', '日常', '作品', '关于', '朋友', '给我写信'])[i]}
-        </Link>)}
-    </nav>
-    {data.posts.slice(0, 3).map(post => <p key={post.id}><Link href={`/${data.locale}/posts/${encodeURIComponent(post.slug)}`}>{post.title}</Link></p>)}
+  return <main className={styles.study}>
+    <div className={styles.vignette} aria-hidden="true" />
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <Link prefetch={false} className={styles.brand} href={`/${data.locale}`} aria-label={data.siteName}>
+          <Logo height={28} /><strong>{data.siteName}<span className="text-blue-500">.</span></strong>
+        </Link>
+      </header>
+      <StudyWelcome locale={data.locale} bio={data.bio} posts={data.posts} opening />
+      <footer className={styles.footer}>
+        <Link prefetch={false} className={styles.authorLink} href={`/${data.locale}/about`}>{data.name}</Link>
+      </footer>
+    </div>
   </main>
 }
