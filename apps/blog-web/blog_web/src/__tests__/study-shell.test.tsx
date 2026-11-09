@@ -31,7 +31,7 @@ vi.mock('@/components/study/room-scene', () => ({ createRoom: (host: HTMLElement
   }
 } }))
 
-const data: StudyRoomProps = { locale: 'zh', siteName: '墨千', name: 'Test study', bio: 'A quiet room', posts: [{
+const data: StudyRoomProps = { locale: 'zh', siteName: '墨千', name: 'Test study', bio: 'A quiet room', birthdayLine: '2 月 7 日生 · 水瓶座', posts: [{
   id:'one', slug:'first', title:'第一篇', excerpt:'A page', coverImage:null, author:{name:'Host',avatar:null},
   publishedAt:'2026-11-05', readTime:'1 min', category:null,tags:[],column:null,
 }], projects: [], timeline: [], columns: [] }

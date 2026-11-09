@@ -29,10 +29,10 @@ import LetterPaper from './LetterPaper'
 import letterPaper from './letter-paper.module.css'
 import RoomSettings from './RoomSettings'
 
-export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string }
+export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string; birthdayLine: string }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
 
-export default function StudyRoom({ locale, siteName, posts, projects, timeline, columns, name, bio }: StudyRoomProps) {
+export default function StudyRoom({ locale, siteName, posts, projects, timeline, columns, name, bio, birthdayLine }: StudyRoomProps) {
   const environment = useEnvironment()
   const environmentRef = useRef(environment.state)
   environmentRef.current = environment.state
@@ -506,7 +506,20 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
           <Link prefetch={false} className={styles.more} href={`/${locale}/columns`}>{en ? 'All series' : '查看全部专栏'} →</Link>
         </>}
         {settled === 'diary' && <RoomJournal siteName={siteName} timeline={timeline} locale={locale} motion={motion} onTurn={() => revealSound('diary')} />}
-        {settled === 'portrait' && <div className={opening.postcard}><div className={opening.portraitStamp} aria-hidden="true"><span>{name.slice(0, 1)}</span><small>FROM MY<br />LITTLE STUDY</small></div><div><h3>{name}</h3><p>{bio}</p><p>{en ? 'Thank you for stopping by this little corner of the internet.' : '很高兴你来到互联网里的这个小角落。希望你在这里，找到一点共鸣。'}</p><Link prefetch={false} href={`/${locale}/about`}>{en ? 'A little more about me' : '多了解我一点'} ↗</Link></div></div>}
+        {settled === 'portrait' && (
+          <div className={opening.postcard}>
+            <div className={opening.portraitStamp} aria-hidden="true">
+              <span>{name.slice(0, 1)}</span>
+              <small>FROM MY<br />LITTLE STUDY</small>
+            </div>
+            <div>
+              <h3>{name}</h3>
+              <p>{birthdayLine}</p>
+              {bio && <p>{bio}</p>}
+              <Link prefetch={false} href={`/${locale}/about`}>{en ? 'A little more about me' : '多了解我一点'} ↗</Link>
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>}

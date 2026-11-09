@@ -11,5 +11,5 @@ export default async function RoomContent({ params }: { params: Promise<{ locale
   ])
   return <StudyRoomEntry data={{ locale, siteName: t('siteName'), posts: posts.data, projects: projects.data, timeline, columns,
     name: config.owner.name === 'Site Owner' ? config.siteName : config.owner.name,
-    bio: config.owner.bio || config.siteDescription }} />
+    bio: t('about.profile.postcard'), birthdayLine: t('about.profile.birthdayLine') }} />
 }

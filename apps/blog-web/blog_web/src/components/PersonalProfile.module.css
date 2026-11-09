@@ -1,0 +1,28 @@
+.note {
+  max-width: 38em;
+  color: #42392e;
+}
+
+.note h1 {
+  margin-bottom: .35rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.35;
+}
+
+.note p {
+  margin-top: 1rem;
+  font-size: 1.0625rem;
+  line-height: 1.95;
+}
+
+.note .birthday {
+  margin: 0 0 1.5rem;
+  color: #735e42;
+  font-size: .875rem;
+}
+
+.note a {
+  color: #725b3d;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
