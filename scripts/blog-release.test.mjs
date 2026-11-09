@@ -28,6 +28,22 @@ test('patch changes only blog host, is idempotent and preserves TLS/backend rule
   assert.throws(() => patchBlogNginx(source.replace('    location /api/', '    location ^~ /api/study/ { proxy_pass http://127.0.0.1:3000; }\n    location /api/')), /unexpected upstream/)
 })
 
+test('letter routes on both hostnames use the same defined zone and reject conflicting configuration', async () => {
+  const template = await readFile('ops/nginx-myblog.conf', 'utf8')
+  assert.equal(patchBlogNginx(template), template)
+  const legacy = template.replace(/^limit_req_zone[^\n]*\n\s*/, '').replace(/    location = [^\n]+letters \{[^}]+\}\s*/g, '    ')
+  const redirect = 'server { server_name www.new-universe.cn; return 301 https://$host$request_uri; }\n'
+  const patched = patchBlogNginx(redirect + legacy)
+  assert.equal(patchBlogNginx(patched), patched)
+  assert.equal((patched.match(/limit_req_zone /g) || []).length, 1)
+  assert.equal((patched.match(/limit_req zone=study_letter_requests /g) || []).length, 2)
+  assert.ok(patched.includes(redirect))
+  assert.ok(patched.includes('location = /api/v1/public/letters'))
+  assert.ok(patched.includes('location = /v1/public/letters'))
+  assert.throws(() => patchBlogNginx(template.replace('rate=5r/s', 'rate=1r/s')), /Conflicting.*zone/)
+  assert.throws(() => patchBlogNginx(template.replace('client_max_body_size 24k', 'client_max_body_size 2m')), /Conflicting letter route/)
+})
+
 for (const nested of [false, true]) test(`standalone ${nested ? 'nested' : 'root'} package has resources beside real server and correct launcher`, async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'blog-package-test-'))
   try {
