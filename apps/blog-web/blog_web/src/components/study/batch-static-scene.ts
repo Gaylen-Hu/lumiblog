@@ -1,6 +1,12 @@
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 
+// Cloning a procedural geometry runs its constructor again before copying its
+// attributes. A batch only needs independent vertex data to transform.
+export function copyForBatch(geometry: THREE.BufferGeometry) {
+  return geometry.index ? geometry.toNonIndexed() : new THREE.BufferGeometry().copy(geometry)
+}
+
 // Bake only immutable surfaces. Interactive/animated subtrees retain their
 // original objects and transforms; shared materials still receive texture loads.
 export function batchStaticScene(scene: THREE.Scene, protectedRoots: ReadonlySet<THREE.Object3D>, owned: Set<THREE.BufferGeometry>) {
@@ -15,8 +21,7 @@ export function batchStaticScene(scene: THREE.Scene, protectedRoots: ReadonlySet
   for (const group of groups.values()) {
     if (group.length < 2) continue
     const copies = group.map(object => {
-      const geometry = object.geometry.index ? object.geometry.toNonIndexed() : object.geometry.clone()
-      return geometry.applyMatrix4(object.matrixWorld)
+      return copyForBatch(object.geometry).applyMatrix4(object.matrixWorld)
     })
     // Mixed attribute layouts must stay separate rather than corrupt the surface.
     const attributes = copies.map(geometry => Object.keys(geometry.attributes).sort().join(','))

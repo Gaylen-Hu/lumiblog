@@ -10,6 +10,7 @@ vi.mock('three', async importOriginal => ({
     domElement = document.createElement('canvas')
     shadowMap = {}
     capabilities = { getMaxAnisotropy: () => 1 }
+    extensions = { has: () => false }
     setPixelRatio() {}
     setSize() {}
     dispose() {}
