@@ -295,8 +295,10 @@
   color: #6e604b;
 }
 @media (prefers-reduced-motion: no-preference) {
+  /* The room's ambient-motion switch pauses descendants. A confirmed send
+     uses its own explicit gesture, like pulling the drawer open. */
   .departure:not([data-motion='reduced']) .envelope {
-    animation: send-envelope 1.48s ease-in both;
+    animation: send-envelope 1.48s ease-in both !important;
   }
   .departure:not([data-motion='reduced']) .envelope::after {
     animation: tuck-letter .48s ease-in both;
@@ -305,7 +307,7 @@
     animation: close-flap .34s .36s ease-out both;
   }
   .departure:not([data-motion='reduced']) .envelope i {
-    animation: press-seal .16s .65s ease-out both;
+    animation: press-seal .16s .65s ease-out both !important;
   }
 }
 @keyframes tuck-letter {
