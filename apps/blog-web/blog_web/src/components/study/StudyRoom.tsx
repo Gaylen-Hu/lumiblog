@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import RoomAlbum from './RoomAlbum'
 import RoomImprint from './RoomImprint'
@@ -25,7 +25,8 @@ import type { RoomQuality } from './room-quality'
 import opening from './opening.module.css'
 import { useRainAudio } from './environment/useRainAudio'
 import { useEnvironment } from './environment/useEnvironment'
-import LetterPaper from './LetterPaper'
+import LetterPaper, { deliveryMessage } from './LetterPaper'
+import { LetterDeliveryContext, type LetterReceipt } from './LetterDelivery'
 import letterPaper from './letter-paper.module.css'
 import RoomSettings from './RoomSettings'
 
@@ -102,6 +103,14 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const selectedColumn = route.column
   const [detail, setDetail] = useState<RoomDetail | null>(null)
   const [writing, setWriting] = useState(false)
+  const delivery = useContext(LetterDeliveryContext)
+  const receipt = delivery?.receipt
+  const receiptMessage = useRef<HTMLParagraphElement>(null)
+  const announcedReceipt = useRef<string | null>(null)
+  const finishLetter = useCallback((receipt: LetterReceipt) => {
+    delivery?.remember(receipt)
+    setWriting(false)
+  }, [delivery])
   const [notice, setNotice] = useState<{ text: string } | null>(null)
   const [teaIndex, setTeaIndex] = useState(-1)
   const activeRef = useRef(active), motionRef = useRef(motion)
@@ -334,6 +343,11 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     window.addEventListener('keydown', keys); return () => window.removeEventListener('keydown', keys)
   }, [modal, settled, menu, settings, close, portfolioTrip, inspectingClock, isMagazine])
   useEffect(() => {
+    if (settled !== 'drawer' || writing || !receipt || announcedReceipt.current === receipt.token) return
+    announcedReceipt.current = receipt.token
+    receiptMessage.current?.focus()
+  }, [settled, writing, receipt])
+  useEffect(() => {
     if (!active || settled) return
     function escape(event: KeyboardEvent) { if (event.key === 'Escape' && !event.defaultPrevented) { event.preventDefault(); close() } }
     window.addEventListener('keydown', escape); return () => window.removeEventListener('keydown', escape)
@@ -482,7 +496,17 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         {settled === 'readingBox' && <ReadingBoxContents siteName={(!ready || simple) ? siteName : undefined} locale={locale} cards={readingBox.cards} remove={readingBox.put} choose={() => choose('bookshelf')} />}
         {settled === 'album' && <RoomAlbum siteName={siteName} timeline={timeline} locale={locale} motion={motion} />}
         {settled === 'drawer' && <button className={letterPaper.sealLink} onClick={()=>setWriting(true)}><i aria-hidden="true"/><span>{en?'Write to the host':'给我写信'}</span></button>}
-        {settled === 'drawer' && writing && <LetterPaper locale={locale} onClose={()=>setWriting(false)}/>}
+        {settled === 'drawer' && !writing && receipt && (
+          <section className={letterPaper.receipt}>
+            <p ref={receiptMessage} tabIndex={-1} role="status">{deliveryMessage(receipt.allowPublic, en)}</p>
+            <details key={receipt.token}>
+              <summary>{en ? 'View your claim slip' : '查看寄信凭条'}</summary>
+              <p>{en ? 'Copy this slip before reloading the page if you want to keep it.' : '想留存这封信的凭条，可以在刷新页面前复制保存。'}</p>
+              <code>{receipt.token}</code>
+            </details>
+          </section>
+        )}
+        {settled === 'drawer' && writing && <LetterPaper locale={locale} onDelivered={finishLetter} onClose={()=>setWriting(false)}/>}
         {settled === 'drawer' && <nav className={opening.keepsakes}>
           <Link prefetch={false} href={`/${locale}/columns`}><small>01 / READ</small><strong>{en ? 'Collections' : '翻看专栏'}</strong><span>{en ? 'A few things worth keeping.' : '收在一起，慢慢读。'}</span><i aria-hidden="true">↗</i></Link>
           <Link prefetch={false} href={`/${locale}/links`}><small>02 / VISIT</small><strong>{en ? 'Friends' : '拜访朋友'}</strong><span>{en ? 'Other little corners of the web.' : '去朋友的小天地坐坐。'}</span><i aria-hidden="true">↗</i></Link>

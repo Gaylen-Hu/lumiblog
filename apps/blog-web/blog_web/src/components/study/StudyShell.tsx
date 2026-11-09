@@ -56,11 +56,13 @@ export default function StudyShell({ locale, children }: { locale: string; child
     const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1100
     const timer = window.setTimeout(() => {
       setCover({ reading: false, visible: false })
+      // An open drawer or other room object manages focus inside its own dialog.
+      if (route.mode === 'object') return
       if (returnFocus.current?.isConnected && !returnFocus.current.closest('[inert]')) returnFocus.current.focus({ preventScroll: true })
       else document.querySelector<HTMLElement>('[data-room-menu]')?.focus({ preventScroll: true })
     }, delay)
     return () => window.clearTimeout(timer)
-  }, [reading, coverVisible])
+  }, [reading, coverVisible, route.mode])
   const focusContent = useCallback(() => {
     if (focusedKey.current === currentKey.current || content.current?.closest('[data-phase=opening]')) return
     const heading = content.current?.querySelector<HTMLElement>('h1')

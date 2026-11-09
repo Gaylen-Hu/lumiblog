@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import RoomImprint from './RoomImprint'
+import { LetterDeliveryContext, type LetterReceipt } from './LetterDelivery'
 import paper from './letter-paper.module.css'
 
 const endpoint = '/api/v1/public/letters'
@@ -124,12 +126,29 @@ function PublicLetters({ en }: { en: boolean }) {
   )
 }
 
+export function deliveryMessage(allowPublic: boolean, en: boolean) {
+  if (allowPublic) return en ? 'Received. Your letter can appear after review.' : '信已收到，审核通过后可展示。'
+  return en ? 'Delivered privately to the host.' : '已私密寄出，仅博主可查看。'
+}
+
+export function StandaloneLetterPaper({ locale }: { locale: string }) {
+  const router = useRouter()
+  const delivery = useContext(LetterDeliveryContext)
+  const finish = useCallback((receipt: LetterReceipt) => {
+    delivery?.remember(receipt)
+    router.replace(`/${locale}?room=drawer`, { scroll: false })
+  }, [delivery, locale, router])
+  return <LetterPaper locale={locale} onDelivered={finish} />
+}
+
 export default function LetterPaper({
   locale,
   onClose,
+  onDelivered,
 }: {
   locale: string
   onClose?: () => void
+  onDelivered: (receipt: LetterReceipt) => void
 }) {
   const en = locale === 'en'
   const [tab, setTab] = useState<'write' | 'read'>('write')
@@ -138,7 +157,9 @@ export default function LetterPaper({
     'draft' | 'sending' | 'uncertain' | 'sent'
   >('draft')
   const [message, setMessage] = useState('')
-  const [receipt, setReceipt] = useState('')
+  const [reduced, setReduced] = useState(false)
+  const delivered = useRef<LetterReceipt | null>(null)
+  const confirmation = useRef<HTMLHeadingElement>(null)
   const pending = useRef<Packet | null>(null)
   const sending = useRef(false)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -150,6 +171,19 @@ export default function LetterPaper({
     ? 'Leave and discard this letter?'
     : '离开并丢弃这封未完成的信？'
   const locked = phase === 'sending' || phase === 'uncertain'
+  const finish = useCallback(() => {
+    const receipt = delivered.current
+    if (!receipt) return
+    delivered.current = null
+    dialog.current?.close()
+    onDelivered(receipt)
+  }, [onDelivered])
+  useEffect(() => {
+    if (phase !== 'sent') return
+    confirmation.current?.focus()
+    const timer = window.setTimeout(finish, reduced ? 450 : 1500)
+    return () => window.clearTimeout(timer)
+  }, [phase, reduced, finish])
   useEffect(() => {
     const element = dialog.current
     if (!element) return
@@ -180,6 +214,10 @@ export default function LetterPaper({
     }
   }, [dirty, discard])
   function close() {
+    if (phase === 'sent') {
+      finish()
+      return
+    }
     if (!dirty || window.confirm(discard)) {
       dialog.current?.close()
       onClose?.()
@@ -209,18 +247,11 @@ export default function LetterPaper({
       if (response.ok) {
         const result = await response.json()
         if (result.received !== true) throw new Error()
-        setReceipt(packet.token)
+        delivered.current = { token: packet.token, allowPublic: packet.fields.allowPublic }
+        setReduced(!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
         pending.current = null
         setPhase('sent')
-        setMessage(
-          fields.allowPublic
-            ? en
-              ? 'Received. Your letter can appear after review.'
-              : '信已收到，审核通过后可展示。'
-            : en
-              ? 'Delivered privately to the host.'
-              : '已私密寄出，仅博主可查看。',
-        )
+        setMessage(deliveryMessage(packet.fields.allowPublic, en))
         setFields(empty)
       } else if (response.status === 429) {
         const info = await response.json().catch(() => ({}))
@@ -261,7 +292,22 @@ export default function LetterPaper({
       sending.current = false
     }
   }
-  const content = (
+  const content = phase === 'sent' ? (
+    <section className={`${paper.sheet} ${paper.departure}`} data-motion={reduced ? 'reduced' : 'full'}>
+      <div className={paper.flight} aria-hidden="true">
+        <div className={paper.envelope}><i /></div>
+      </div>
+      <h2 ref={confirmation} tabIndex={-1} className={paper.deliveryTitle}>
+        {en ? 'Letter delivered' : '信已送达'}
+      </h2>
+      <p role="status" className={paper.deliveryText}>{message}</p>
+      <button type="button" onClick={finish}>
+        {onClose
+          ? (en ? 'Back to the drawer' : '返回抽屉')
+          : (en ? 'Back to the study' : '返回书房')}
+      </button>
+    </section>
+  ) : (
     <div className={paper.sheet}>
       <header className={paper.heading}>
         <RoomImprint siteName="墨千" />
@@ -286,42 +332,15 @@ export default function LetterPaper({
             : '大家的来信'}
       </h1>
       <nav className={paper.tabs} aria-label={en ? 'Letter box' : '信匣'}>
-        <button aria-pressed={tab === 'write'} onClick={() => setTab('write')}>
+        <button disabled={phase === 'sending'} aria-pressed={tab === 'write'} onClick={() => setTab('write')}>
           {en ? 'Write a letter' : '写一封信'}
         </button>
-        <button aria-pressed={tab === 'read'} onClick={() => setTab('read')}>
+        <button disabled={phase === 'sending'} aria-pressed={tab === 'read'} onClick={() => setTab('read')}>
           {en ? 'Published letters' : '大家的来信'}
         </button>
       </nav>
       {tab === 'read' ? (
         <PublicLetters en={en} />
-      ) : phase === 'sent' ? (
-        <section className={paper.delivered}>
-          <div className={paper.envelope} aria-hidden="true">
-            <i />
-          </div>
-          <h2 role="status">{message}</h2>
-          <details>
-            <summary>
-              {en ? 'Keep the claim slip' : '保存这封信的认领凭条'}
-            </summary>
-            <p>
-              {en
-                ? 'Keep it before leaving. A future verified account may use it to claim this letter.'
-                : '离开前可自行保存；将来开通账户后，可配合已验证邮箱认领这封信。'}
-            </p>
-            <code>{receipt}</code>
-          </details>
-          <button
-            onClick={() => {
-              setReceipt('')
-              setMessage('')
-              setPhase('draft')
-            }}
-          >
-            {en ? 'Write another' : '再写一封'}
-          </button>
-        </section>
       ) : (
         <form onSubmit={send} className={paper.form}>
           <fieldset disabled={locked}>
