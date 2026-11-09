@@ -9,15 +9,17 @@ import { localLightPeriod } from '@/components/study/room-light'
 import { findBookmarkedBlock, readBookmark, writeBookmark } from '@/lib/reading-bookmark'
 
 const mocked = vi.hoisted(() => ({ setCeilingLight: vi.fn(), fail: false, holdReady: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
+let slowRoom: () => boolean
 let loseContext: () => void
 let presentFrame: () => void
 let pickItem: (item: RoomItem, columnSlug?: string) => void
 let finishDrawerSlide: () => void
 let clockPhase: (view: ClockView) => void
 vi.mock('@/components/study/room-scene', () => ({
-  createRoom: (_host: HTMLElement, options: { onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void; onQuality: (light: boolean) => void }) => {
+  createRoom: (_host: HTMLElement, options: { onSlowRoom: typeof slowRoom; onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void }) => {
     if (mocked.fail) throw new Error('WebGL unavailable')
     mocked.created++
+    slowRoom = options.onSlowRoom
     loseContext = options.onContextLost
     presentFrame = options.onReady
     pickItem = options.onPick
@@ -26,7 +28,7 @@ vi.mock('@/components/study/room-scene', () => ({
     return {
       setMotion: vi.fn(),
       setCeilingLight: mocked.setCeilingLight,
-      setQuality: (value: string) => { mocked.quality.push(value); options.onQuality(value === 'light') },
+      setQuality: (value: string) => { mocked.quality.push(value) },
       setPaused: vi.fn(),
       inspectClock: () => clockPhase('approaching'),
       leaveClock: () => clockPhase('returning'),
@@ -40,7 +42,7 @@ vi.mock('@/components/study/room-scene', () => ({
   },
 }))
 
-const props: ComponentProps<typeof StudyRoom> = { locale: 'zh', siteName: '墨千', name: '测试书房', bio: '个人介绍', posts: [], projects: [], timeline: [], columns: [
+const props: ComponentProps<typeof StudyRoom> = { locale: 'zh', siteName: '墨千', name: '测试书房', bio: '个人介绍', birthdayLine: '2 月 7 日生 · 水瓶座', posts: [], projects: [], timeline: [], columns: [
   { id: '1', title: '绘图手记', slug: 'sketches', description: null, articleCount: 0, coverImage: null, sortOrder: 1 },
   { id: '2', title: '代码笔记', slug: '代码笔记', description: '从基础到实践', articleCount: 2, coverImage: null, sortOrder: 2 },
 ] }
@@ -75,6 +77,24 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root.unmount()) })
 
 describe('书房的内容与恢复流程', () => {
+  it('低帧只在自由观察时提示一次，主动恢复画质后仍记住选择', async () => {
+    await mount()
+    await click('环境设置')
+    expect(slowRoom()).toBe(false)
+    await click('关闭并返回')
+    await act(async () => { expect(slowRoom()).toBe(true) })
+    expect(mocked.quality).not.toContain('light')
+    await click('开启性能模式')
+    expect(mocked.quality.at(-1)).toBe('light')
+    await click('环境设置')
+    await click('室内设置')
+    await click('完整效果')
+    expect(mocked.quality.at(-1)).toBe('auto')
+    await act(async () => root.unmount())
+    await mount()
+    await act(async () => { slowRoom() })
+    expect(document.body.textContent).not.toContain('画面有些卡。')
+  })
   it('墙上开关和键盘入口共用大灯状态，重新进入后记住选择', async () => {
     await mount()
     expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(false)
@@ -141,7 +161,7 @@ describe('书房的内容与恢复流程', () => {
     await mount()
     await click('环境设置')
     await click('室内设置')
-    await click('轻量')
+    await click('性能模式')
     expect(localStorage.getItem('study-quality')).toBe('light')
     expect(mocked.quality.at(-1)).toBe('light')
     await act(async () => root.unmount())
@@ -149,7 +169,7 @@ describe('书房的内容与恢复流程', () => {
     expect(mocked.quality.at(-1)).toBe('light')
     await click('环境设置')
     await click('室内设置')
-    await click('自动')
+    await click('完整效果')
     expect(mocked.quality.at(-1)).toBe('auto')
     expect(localStorage.getItem('study-quality')).toBe('auto')
   })
@@ -209,6 +229,14 @@ describe('书房的内容与恢复流程', () => {
     expect(html).toContain('href="/zh/timeline"')
     expect(html).toContain('href="/zh/about"')
     expect(html).not.toContain('<canvas')
+  })
+  it('书房相片显示生日、简介和完整介绍入口', async () => {
+    await mount()
+    await click('相片 · 关于我')
+    const postcard = document.querySelector('[role="dialog"]')
+    expect(postcard?.textContent).toContain(props.birthdayLine)
+    expect(postcard?.textContent).toContain(props.bio)
+    expect(postcard?.querySelector('a[href="/zh/about"]')).toBeTruthy()
   })
   it('物件打开内容，保留真实链接、空态与焦点', async () => {
     await mount()

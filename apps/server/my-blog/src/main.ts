@@ -1,7 +1,7 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { json, urlencoded } from 'express';
+import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { StructuredLogger } from './core';
@@ -18,6 +18,10 @@ async function bootstrap() {
   app.use(helmet());
 
   // 增大 body 限制，防止大内容（如文章正文、base64 图片）触发 400
+  app.use('/v1/public/letters', (req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'POST' && !req.is('application/json')) { res.sendStatus(415); return; }
+    next();
+  }, json({ limit: '24kb' }));
   app.use(json({ limit: '10mb' }));
   app.use(urlencoded({ limit: '10mb', extended: true }));
 

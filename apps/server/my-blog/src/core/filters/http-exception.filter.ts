@@ -34,11 +34,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const { statusCode, message, error } = this.extractErrorInfo(exception);
 
+    const detail = exception instanceof HttpException ? exception.getResponse() : null;
+    const retryAfter = statusCode === 429 && typeof detail === 'object' && detail && 'retryAfter' in detail ? Number(detail.retryAfter) : 0;
+    if (retryAfter > 0) response.setHeader('Retry-After', String(retryAfter));
     const errorResponse: ErrorResponse = {
       statusCode,
       message,
       error,
       path: request.url,
+      ...(retryAfter > 0 ? {retryAfter} : {}),
       timestamp: new Date().toISOString(),
     };
 
@@ -104,7 +108,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const logMessage = `${request.method} ${request.url} - ${statusCode}`;
 
     if (statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      if (exception instanceof Error) {
+      if (/^\/v1\/(public|admin)\/letters(?:[/?]|$)/.test(request.path)) {
+        this.logger.error(logMessage.split('?')[0]);
+      } else if (exception instanceof Error) {
         this.logger.error(
           `${logMessage} | ${exception.name}: ${exception.message}`,
           exception.stack,

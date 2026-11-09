@@ -27,13 +27,13 @@ function Toggle({ label, pressed, change }: { label: string; pressed: boolean; c
 type SettingsProps = {
   en: boolean; panel: RefObject<HTMLDivElement | null>; close: () => void
   environment: ReturnType<typeof useEnvironment>; rainAudio: ReturnType<typeof useRainAudio>
-  sound: boolean; motion: boolean; simple: boolean; lightQuality: boolean; quality: RoomQuality
+  sound: boolean; motion: boolean; simple: boolean; quality: RoomQuality
   toggleSound: () => void; toggleMotion: () => void; toggleSimple: () => void
   chooseQuality: (quality: RoomQuality) => void; resetLamp: () => void
 }
 
 export default function RoomSettings({ en, panel, close, environment, rainAudio, sound, motion, simple,
-  lightQuality, quality, toggleSound, toggleMotion, toggleSimple, chooseQuality, resetLamp }: SettingsProps) {
+  quality, toggleSound, toggleMotion, toggleSimple, chooseQuality, resetLamp }: SettingsProps) {
   const [indoors, setIndoors] = useState(false)
   const { city, weather, freshness, selectedWeather, selectWeather } = environment
   const language = en ? 1 : 0
@@ -78,10 +78,9 @@ export default function RoomSettings({ en, panel, close, environment, rainAudio,
           </select>
         </label>
         <div className={skin.row}>{en ? 'Room detail' : '画面质量'}<div className={skin.quality}>
-          <button aria-pressed={quality === 'auto'} onClick={() => chooseQuality('auto')}>{en ? 'Automatic' : '自动'}</button>
-          <button aria-pressed={quality === 'light'} onClick={() => chooseQuality('light')}>{en ? 'Lightweight' : '轻量'}</button>
+          <button aria-pressed={quality === 'auto'} onClick={() => chooseQuality('auto')}>{en ? 'Full detail' : '完整效果'}</button>
+          <button aria-pressed={quality === 'light'} onClick={() => chooseQuality('light')}>{en ? 'Performance' : '性能模式'}</button>
         </div></div>
-        {quality === 'auto' && lightQuality && <small role="status">{en ? 'Using lighter detail' : '当前已自动切换至轻量画质'}</small>}
         <Toggle label={en ? 'Subtle movement' : '环境微动与视差'} pressed={motion} change={toggleMotion} />
         <Toggle label={en ? 'Interaction sounds' : '翻页与交互声音'} pressed={sound} change={toggleSound} />
         <Toggle label={en ? 'Rain sound' : '雨声'} pressed={rainAudio.enabled} change={() => { if (!sound) toggleSound(); void rainAudio.toggle() }} />

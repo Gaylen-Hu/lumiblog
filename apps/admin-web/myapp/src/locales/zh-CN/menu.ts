@@ -1,4 +1,5 @@
 export default {
+  'menu.content.letters': '书房来信',
   'menu.welcome': '欢迎',
   'menu.more-blocks': '更多区块',
   'menu.home': '首页',

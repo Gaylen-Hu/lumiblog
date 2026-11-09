@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AdminRoleGuard, AdminOrOwnProfileGuard } from '../auth/guards/admin-role.guard';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { UserRole } from './dto/create-user.dto';
@@ -32,7 +33,8 @@ describe('UserController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [{ provide: UserService, useValue: mockUserService }],
-    }).compile();
+    }).overrideGuard(AdminRoleGuard).useValue({canActivate: () => true})
+      .overrideGuard(AdminOrOwnProfileGuard).useValue({canActivate: () => true}).compile();
 
     controller = module.get<UserController>(UserController);
     userService = module.get<UserService>(UserService);

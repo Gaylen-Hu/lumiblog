@@ -43,7 +43,7 @@ it('animates the clock both ways with ambient motion off, and honors system redu
   const room = createRoom(host, {
     categories: [], columns: [], projects: [], siteName: '墨千', seriesLabel: '专栏', en: false,
     onPortfolioFrame: noop, onShelfFrame: noop, onReady: noop, onPick: noop, onHover: noop,
-    onError: () => { throw new Error('Room draw failed') }, onContextLost: noop, onQuality: noop,
+    onError: () => { throw new Error('Room draw failed') }, onContextLost: noop,
     onReveal: noop, onSettled: noop, onClockView: phase, onNight: noop,
   })
   try {

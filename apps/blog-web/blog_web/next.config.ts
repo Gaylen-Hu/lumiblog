@@ -8,6 +8,24 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // Older local tabs cached unversioned dev chunks as immutable.
   deploymentId: process.env.NODE_ENV === 'development' ? 'study-daylight-preview' : undefined,
+  async rewrites() {
+    // Vercel serves the frontend without the origin server's Nginx routes.
+    if (process.env.VERCEL_ENV === 'production') {
+      return [{
+        source: '/api/v1/public/letters',
+        destination: 'https://api.new-universe.cn/v1/public/letters',
+      }]
+    }
+    // Self-hosted releases use Nginx. Preview writes require an explicit local mailbox.
+    const local = process.env.LETTERS_PREVIEW_API
+    if (!local || !/^http:\/\/127\.0\.0\.1:\d+$/.test(local)) return []
+    const routes = [{source:'/api/v1/public/letters',destination:local+'/v1/public/letters'}]
+    const publicApi = process.env.NEXT_PUBLIC_API_URL
+    if (publicApi && /^https:\/\/[^?#@]+\/v1\/public$/.test(publicApi)) {
+      routes.push({source:'/api/v1/public/environment',destination:publicApi+'/environment'})
+    }
+    return routes
+  },
   images: {
     remotePatterns: [
       {
