@@ -29,6 +29,7 @@ import LetterPaper, { deliveryMessage } from './LetterPaper'
 import { LetterDeliveryContext, type LetterReceipt } from './LetterDelivery'
 import letterPaper from './letter-paper.module.css'
 import RoomSettings from './RoomSettings'
+import StudyWelcome, { studyLinks } from './StudyWelcome'
 
 export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string; birthdayLine: string }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
@@ -367,12 +368,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     controller.current?.setQuality?.(value)
     try { localStorage.setItem('study-quality', value) } catch { /* optional */ }
   }
-  const links = [
-    ['posts', en ? 'Writing' : '文章'], ['timeline', en ? 'Life' : '日常'],
-    ['projects', en ? 'Projects' : '作品'], ['about', en ? 'About' : '关于'],
-    ['letters', en ? 'Write a letter' : '给我写信'],
-    ['columns', en ? 'Collections' : '专栏'], ['links', en ? 'Friends' : '朋友'],
-  ]
+  const links = studyLinks(en)
   const filteredPosts = category ? posts.filter(p => p.category?.id === category) : posts
   const pickedColumn = selectedColumn ? columns.find(column => column.slug === selectedColumn) : undefined
   const shelfColumns = pickedColumn ? [pickedColumn, ...columns.filter(column => column !== pickedColumn)] : columns
@@ -411,16 +407,10 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
           <button data-room-menu onClick={() => { previousFocus.current = document.activeElement as HTMLElement; setMenu(true) }}>☰ <span>{en ? 'Explore' : '导航'}</span></button>
         </div>
       </header>
-      <section className={styles.welcome} aria-label={en ? 'Welcome' : '欢迎来到书房'}>
-        <span className={styles.eyebrow}>{en ? 'MAKE YOURSELF AT HOME' : '欢迎，随便坐坐'}</span>
-        <h1>{en ? 'A quiet place for' : '把日子写下来，'}<br /><em>{en ? 'thoughts & little things.' : '也把想法留下来。'}</em></h1>
-        <p>{en ? 'Writing on the shelf. Life on the desk. A little room to explore at your own pace.' : '书架里放着文章，桌上留着日常。慢慢看看，也许会有一些小发现。'}</p>
-        <nav className={styles.fallbackLinks} aria-label={en ? 'Content navigation' : '内容导航'}>{links.map(([url, label]) => <Link prefetch={false} key={url} href={`/${locale}/${url}`}>{label} ↗</Link>)}</nav>
-        {!ready && !failed && !simple && <p role="status" className={styles.loading}><i />{recovering ? (en ? 'Restoring the study… Reading stays available.' : '正在恢复书房… 内容仍可正常浏览') : (en ? 'Opening the study… Content links are ready.' : '正在打开书房… 文字入口已可使用')}</p>}
+      <StudyWelcome locale={locale} bio={bio} posts={posts} opening={!ready && !failed && !simple} recovering={recovering}>
         {failed && <div role="status" className={styles.failure}>{en ? 'The 3D room could not load. Your reading links are still here.' : '3D 书房暂未打开，内容仍可正常浏览。'} <button onClick={() => { recoveries.current = 0; setFailed(false); setRetry(v => v + 1) }}>{en ? 'Try again' : '重试'}</button></div>}
         {simple && <button className={styles.enter} onClick={toggleSimple}>{en ? 'Enter the 3D study' : '进入 3D 书房'} <span>→</span></button>}
-        <div className={styles.staticLatest}>{posts.slice(0, 3).map(post => <Link prefetch={false} href={`/${locale}/posts/${encodeURIComponent(post.slug)}`} key={post.id}>{post.title} <span>↗</span></Link>)}</div>
-      </section>
+      </StudyWelcome>
       {showQualityTip && !busy && !simple && <aside className={styles.performanceTip}>
         <p role="status">{en ? 'The room seems slow. Try fewer effects or switch to simple view.' : '画面有些卡。可以减少部分效果，或用简洁模式继续逛。'}</p>
         <button onClick={() => { chooseQuality('light'); setShowQualityTip(false) }}>{en ? 'Use performance mode' : '开启性能模式'}</button>

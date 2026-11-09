@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useSyncExternalStore } from 'react'
 import { resolveStudyRoute, studyLocation, subscribeStudyLocation, type StudyRoute } from './study-route'
+import type { StudyRoomProps } from './StudyRoom'
 
 export type StudyNavigation = {
   route: StudyRoute
@@ -9,6 +10,7 @@ export type StudyNavigation = {
   catalogPath?: string
 }
 export const StudyNavigationContext = createContext<StudyNavigation | null>(null)
+export const RoomRegistrationContext = createContext<((data: StudyRoomProps) => void) | null>(null)
 
 export function useStudyLocation(locale: string, serverPath = `/${locale}`) {
   const href = useSyncExternalStore(subscribeStudyLocation, studyLocation, () => serverPath)
