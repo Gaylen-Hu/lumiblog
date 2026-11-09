@@ -42,7 +42,7 @@ vi.mock('@/components/study/room-scene', () => ({
   },
 }))
 
-const props: ComponentProps<typeof StudyRoom> = { locale: 'zh', siteName: '墨千', name: '测试书房', bio: '个人介绍', posts: [], projects: [], timeline: [], columns: [
+const props: ComponentProps<typeof StudyRoom> = { locale: 'zh', siteName: '墨千', name: '测试书房', bio: '个人介绍', birthdayLine: '2 月 7 日生 · 水瓶座', posts: [], projects: [], timeline: [], columns: [
   { id: '1', title: '绘图手记', slug: 'sketches', description: null, articleCount: 0, coverImage: null, sortOrder: 1 },
   { id: '2', title: '代码笔记', slug: '代码笔记', description: '从基础到实践', articleCount: 2, coverImage: null, sortOrder: 2 },
 ] }
@@ -229,6 +229,14 @@ describe('书房的内容与恢复流程', () => {
     expect(html).toContain('href="/zh/timeline"')
     expect(html).toContain('href="/zh/about"')
     expect(html).not.toContain('<canvas')
+  })
+  it('书房相片显示生日、简介和完整介绍入口', async () => {
+    await mount()
+    await click('相片 · 关于我')
+    const postcard = document.querySelector('[role="dialog"]')
+    expect(postcard?.textContent).toContain(props.birthdayLine)
+    expect(postcard?.textContent).toContain(props.bio)
+    expect(postcard?.querySelector('a[href="/zh/about"]')).toBeTruthy()
   })
   it('物件打开内容，保留真实链接、空态与焦点', async () => {
     await mount()

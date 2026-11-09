@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Link } from '@/i18n/navigation'
 import PostCard from '@/components/PostCard'
 import ProjectCard from '@/components/ProjectCard'
+import PersonalProfile from '@/components/PersonalProfile'
 import TimelineMedia from '@/components/media/TimelineMedia'
 import { noteText } from './desk-notes'
 import MagazineArticle from './MagazineArticle'
@@ -122,8 +123,14 @@ function ReadingPages({ data, locale, path }: { data: ReadingData; locale: strin
     </div>
   </div></main>
   if (data.kind === 'about') return <main className="magazine-page"><div className="magazine-reading-column">
-    <Heading imprint="A NOTE FROM THE HOST" title={data.owner.name} />
-    <p className="magazine-intro" style={{whiteSpace:'pre-wrap'}}>{data.owner.bio}</p><p>{data.owner.techStack.join(' / ')}</p>
+    <PersonalProfile name={data.owner.name} />
+    {(data.owner.bio || data.owner.techStack.length > 0) && (
+      <section className="mt-12 space-y-4">
+        <h2 className="text-2xl">{en ? 'My work' : '我的工作'}</h2>
+        {data.owner.bio && <p className="whitespace-pre-line">{data.owner.bio}</p>}
+        {!!data.owner.techStack.length && <p>{data.owner.techStack.join(' / ')}</p>}
+      </section>
+    )}
   </div></main>
   if (data.kind === 'links') return <main className="magazine-page">
     <Heading imprint="OTHER LITTLE CORNERS OF THE WEB" title={en ? 'Friends' : '朋友'} />

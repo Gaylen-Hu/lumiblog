@@ -24,18 +24,19 @@
              },
     "about":  {
                   "title":  "About",
-                  "tagline1":  "Driven by curiosity,",
-                  "tagline2":  "guided by",
-                  "tagline3":  "precision",
-                  "tagline4":  ".",
+                  "profile": {
+                      "greeting": "Hi, I’m {name}.",
+                      "birthdayLine": "Born February 7 · Aquarius",
+                      "intro": "I build websites and mobile apps. When I first meet someone, I’m usually happy to listen. Bring up a question I’ve been wondering about too, though, and you’ll find I have plenty to say.",
+                      "study": "What I love most about coding is getting to try an idea that comes up in passing. Could you pick a blog post off a shelf the way you’d pick out a book when visiting a friend? In this little study, you can.",
+                      "invitation": "There are notes about my work on the shelf and bits of everyday life in the journal. Make yourself at home. If a page brings a story of your own to mind, <letter>write me a letter</letter>. I’d love to hear it.",
+                      "postcard": "I build websites and like tinkering with little things. This study is one of them. While you’re here, pick a book off the shelf and have a browse."
+                  },
                   "techStack":  "Tech Stack",
                   "interest":  "Interest",
                   "architecture":  "Architecture",
                   "daily":  "Daily",
                   "morningCoffee":  "Morning Coffee",
-                  "bio1":  "I\u0027m a digital craftsman with 6+ years of experience building products, focused on bridging the gap between human emotion and machine logic.",
-                  "bio2":  "Currently exploring the intersection of AI-driven interfaces and procedural geometry.",
-                  "bio3":  "When I\u0027m not at my editor, you\u0027ll find me hiking mountain trails, photographing brutalist architecture, or brewing the perfect pour-over.",
                   "techUniverse":  "Tech Universe",
                   "timeline":  {
                                    "title":  "The Roadmap",

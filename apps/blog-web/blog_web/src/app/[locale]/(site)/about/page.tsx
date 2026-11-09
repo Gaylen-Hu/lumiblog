@@ -1,9 +1,9 @@
 import { getTranslations } from 'next-intl/server'
 import Image from 'next/image'
 import { getSiteConfig } from '@/lib/api'
-import BlurText from '@/components/ui/BlurText'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import IconCloud from '@/components/IconCloud'
+import PersonalProfile from '@/components/PersonalProfile'
 import { ProfilePageJsonLd } from '@/components/JsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
@@ -17,7 +17,7 @@ export async function generateMetadata({
   const [config, t] = await Promise.all([getSiteConfig(), getTranslations('about')])
   return {
     title: `${t('title')} - ${config.siteName}`,
-    description: config.owner.bio || t('bio1'),
+    description: t('profile.postcard'),
     alternates: {
       canonical: `${SITE_URL}/${locale}/about`,
       languages: { zh: `${SITE_URL}/zh/about`, en: `${SITE_URL}/en/about` },
@@ -58,44 +58,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
         {/* Section 1: Persona */}
         <div className="grid lg:grid-cols-2 gap-20 items-center pt-4">
-          <div>
-            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-4">
-              {displayOwnerName} · 墨千（Byte & Beyond）
-            </p>
-            <h1 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white mb-8 leading-tight">
-              <BlurText text={t('tagline1')} delay={60} className="block" />
-              <BlurText text={`${t('tagline2')}${t('tagline3')}${t('tagline4')}`} delay={60} className="block" />
-            </h1>
-            <div className="space-y-6 text-[#555555] dark:text-gray-400 leading-relaxed text-lg font-light">
-              {owner.bio ? (
-                owner.bio.split('\n').map((paragraph, i) => (
-                  <p key={i}>{paragraph}</p>
-                ))
-              ) : (
-                <>
-                  <p>{t('bio1')}</p>
-                  <p>{t('bio2')}</p>
-                  <p>{t('bio3')}</p>
-                </>
-              )}
-            </div>
-
-            <div className="mt-12">
-              <h4 className="text-[10px] font-bold text-[#111111] dark:text-white uppercase tracking-[0.2em] mb-6">
-                {t('techStack')}
-              </h4>
-              <div className="flex flex-wrap gap-3">
-                {techStack.map((tech) => (
-                  <span
-                    key={tech}
-                    className="magazine-panel px-4 py-2 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+          <PersonalProfile name={displayOwnerName} />
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-4">
@@ -165,6 +128,13 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
             <h2 className="text-3xl md:text-4xl font-bold text-[#111111] dark:text-white tracking-tight">
               {t('techUniverse')}
             </h2>
+            {owner.bio && (
+              <p className="whitespace-pre-line leading-relaxed text-[#555555] dark:text-gray-400">{owner.bio}</p>
+            )}
+            <div>
+              <h3 className="text-sm font-bold mb-3">{t('techStack')}</h3>
+              <p>{techStack.join(' / ')}</p>
+            </div>
             <div className="grid gap-4">
               <div className="magazine-panel p-6 rounded-2xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700">
                 <h4 className="text-xs font-mono text-blue-500 uppercase tracking-widest mb-3">Frontend Core</h4>
