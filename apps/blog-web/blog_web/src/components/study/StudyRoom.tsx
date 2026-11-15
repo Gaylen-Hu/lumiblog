@@ -30,6 +30,7 @@ import { LetterDeliveryContext, type LetterReceipt } from './LetterDelivery'
 import letterPaper from './letter-paper.module.css'
 import RoomSettings from './RoomSettings'
 import StudyWelcome, { studyLinks } from './StudyWelcome'
+import { registerWebsiteRoom, type RoomAction, type RoomActionResult } from '../companion/website-room'
 
 export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string; birthdayLine: string }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
@@ -83,6 +84,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const settled = settledView === active ? settledView : null
   const [menu, setMenu] = useState(false), [settings, setSettings] = useState(false)
   const [ready, setReady] = useState(false), [failed, setFailed] = useState(false)
+  const [roomGeneration, setRoomGeneration] = useState(0)
   const [recovering, setRecovering] = useState(false)
   const recoveries = useRef(0)
   const [quality, setQuality] = useState<RoomQuality>('auto')
@@ -118,6 +120,36 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   useLayoutEffect(() => { activeRef.current = active }, [active])
   const pickRef = useRef<(item: RoomItem, columnSlug?: string) => void>(() => {})
   const audio = useRef<AudioContext | null>(null)
+  // Both physical controls and the companion use the same scene state and
+  // preference writes. Explicit target states keep repeated commands idempotent.
+  const applyRoomAction = useCallback((action: RoomAction): RoomActionResult => {
+    const scene = controller.current
+    if (!scene?.getRoomState()) return { status: 'blocked', reason: '3D 书房暂未就绪。' }
+    if (action === 'ceiling_on' || action === 'ceiling_off') scene.setCeilingLight(action === 'ceiling_on')
+    else if (action === 'lamp_auto') scene.setLamp('auto')
+    else if (action === 'lamp_on' || action === 'lamp_off') scene.setLamp(action === 'lamp_on')
+    else scene.setCurtains(action === 'curtains_close')
+    const state = scene.getRoomState()
+    if (!state || scene !== controller.current) return { status: 'cancelled', reason: '房间已关闭。' }
+    ceilingLightRef.current = state.ceilingOn
+    setCeilingLightOn(state.ceilingOn); setLampOn(state.lampOn); setCurtainsDrawn(state.curtainsClosed)
+    const matched = action.startsWith('ceiling_') ? state.ceilingOn === (action === 'ceiling_on')
+      : action.startsWith('curtains_') ? state.curtainsClosed === (action === 'curtains_close')
+      : action === 'lamp_auto' || state.lampOn === (action === 'lamp_on')
+    if (!matched) return { status: 'unknown', reason: '房间状态尚未完成调整。' }
+    if (action.startsWith('ceiling_')) {
+      try { localStorage.setItem('study-ceiling-light', String(state.ceilingOn)) } catch { /* Storage is optional. */ }
+    }
+    return { status: 'succeeded' }
+  }, [])
+  useLayoutEffect(() => {
+    const scene = controller.current
+    if (!ready || simple || failed || !scene) return
+    return registerWebsiteRoom({
+      getState: () => controller.current === scene ? scene.getRoomState() : null,
+      execute: applyRoomAction,
+    })
+  }, [ready, simple, failed, roomGeneration, applyRoomAction])
   const close = useCallback(() => {
     if (navigationRef.current.catalogPath) { window.history.back(); return }
     if (navigationRef.current.route.mode === 'object') closeStudyObject(locale)
@@ -146,23 +178,21 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     }
     rememberFocus()
     if (item === 'lamp') {
-      controller.current?.toggleLamp()
+      const state = controller.current?.getRoomState()
+      if (state) applyRoomAction(state.lampOn ? 'lamp_off' : 'lamp_on')
     } else if (item === 'ceilingLight') {
-      const on = !ceilingLightRef.current
-      ceilingLightRef.current = on
-      controller.current?.setCeilingLight(on)
-      setCeilingLightOn(on)
-      try { localStorage.setItem('study-ceiling-light', String(on)) } catch { /* Storage is optional. */ }
+      const state = controller.current?.getRoomState()
+      if (state) applyRoomAction(state.ceilingOn ? 'ceiling_off' : 'ceiling_on')
     } else if (item === 'curtains') {
-      const drawn = controller.current?.toggleCurtains()
-      if (drawn !== undefined) setCurtainsDrawn(drawn)
+      const state = controller.current?.getRoomState()
+      if (state) applyRoomAction(state.curtainsClosed ? 'curtains_open' : 'curtains_close')
     } else if (item === 'clock') {
       controller.current?.inspectClock()
     } else {
       if (item === 'tea' && posts.length) setTeaIndex(i => (i + 1) % posts.length)
       setDetail(item)
     }
-  }, [choose, posts.length, rememberFocus])
+  }, [choose, posts.length, rememberFocus, applyRoomAction])
   useEffect(() => { pickRef.current = explore }, [explore])
   useEffect(() => {
     if (!notice) return
@@ -255,7 +285,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
       if (cancelled || timedOut || !host.current) return
       controller.current = createRoom(host.current, {
         columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, siteName, note: notes[0],
-        onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
+        onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setRoomGeneration(value => value + 1); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
         onContextLost: () => {
           if (cancelled || timedOut) return
           if (recoveries.current >= 1) { fail(); return }
@@ -333,10 +363,12 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     const first = dialog?.querySelector<HTMLElement>('button, a, input, [tabindex="0"]'); first?.focus()
     function keys(event: KeyboardEvent) {
       if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || dialog?.closest('[inert]')) return
+      if (document.querySelector('[data-companion-chat-open="true"]')) return
       if (Array.from(document.querySelectorAll('[aria-modal="true"]')).some(other => other !== dialog && !other.closest('[inert]'))) return
       if (event.key === 'Escape') { event.preventDefault(); close() }
       if (event.key !== 'Tab' || !dialog) return
-      const items = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input, textarea, select, [tabindex="0"]')).filter(item => !item.closest('[inert]'))
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input, textarea, select, [tabindex="0"]'))
+        .concat(Array.from(document.querySelectorAll<HTMLElement>('[data-companion-keyboard-entry]'))).filter(item => !item.closest('[inert], [hidden]'))
       const first = items[0], last = items[items.length - 1]
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
@@ -473,7 +505,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
         setMotion(next && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
       }}
       simple={simple} toggleSimple={toggleSimple} quality={quality} chooseQuality={chooseQuality}
-      resetLamp={() => controller.current?.resetLamp?.()} />}
+      resetLamp={() => { applyRoomAction('lamp_auto') }} />}
     {modal && !settings && detail !== 'note' && settled !== 'bookshelf' && settled !== 'computer' && <div className={`${styles.overlay} ${settled === 'readingBox' ? boxSkin.stage : opening.stage}`} data-object={settled || undefined} data-motion={motion ? 'full' : 'reduced'}>
       <div className={`${styles.panel} ${settled === 'readingBox' ? boxSkin.panel : opening.surface}`} data-object={settled || undefined} role="dialog" aria-modal="true" aria-labelledby="room-panel-title" ref={panel}>
         <button className={styles.close} inert={!!navigation.catalogPath} onClick={close} aria-label={en ? 'Close and return' : '关闭并返回'}>×</button>

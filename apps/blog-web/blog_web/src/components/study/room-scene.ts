@@ -15,6 +15,7 @@ import { paintPortfolioCover } from './portfolio-print'
 import { RoomFrameBudget, roomPixelRatio, type RoomQuality } from './room-quality'
 import { roomDiagnostics } from './room-diagnostics'
 import { batchStaticScene, copyForBatch } from './batch-static-scene'
+import { registerRoomStage, type RoomStage, type RoomStageDriver, type RoomDestination } from '../companion/room-stage'
 
 type PickedItem = { target: RoomItem; columnSlug?: string; categoryId?: string; shelfIndex?: number; tier?: number; drawerIndex?: number }
 export type RoomOptions = {
@@ -63,6 +64,25 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const homeLook = new THREE.Vector3(.05, 1.51, -2.5)
   camera.position.copy(home)
   camera.lookAt(homeLook)
+  // This root stays outside static furniture batches and shares the room's
+  // lighting, occlusion, camera and single renderer with the companion.
+  const companionRoot = new THREE.Group()
+  companionRoot.name = 'StudyCompanionStage'
+  companionRoot.position.y = .06
+  companionRoot.scale.setScalar(1.35)
+  let companionDriver: RoomStageDriver | null = null
+  let companionActive = false, lastCompanionShadow = -Infinity
+  let companionWasMoving = false, companionShadowPending = false
+  let unregisterCompanion: (() => void) | undefined
+  function isCompanionActive() { return !disposed && !document.hidden && active && !target && !transitioning }
+  function syncCompanionActive(force = false) {
+    const next = isCompanionActive()
+    companionRoot.visible = next
+    if (!force && next === companionActive) return
+    companionActive = next
+    renderer.shadowMap.needsUpdate = true
+    companionDriver?.setActive?.(next)
+  }
   const materials = new Map<string, THREE.MeshStandardMaterial>()
   const geometries = new Set<THREE.BufferGeometry>()
   const textures = new Set<THREE.Texture>()
@@ -1057,6 +1077,17 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     lining.emissiveIntensity = lampOn() ? .32 : 0
   }
   applyLight(1-environment.solar.daylight)
+  function setRoomLamp(value: boolean | 'auto') {
+    if (disposed) return lampOn()
+    lampOverride = value === 'auto' ? null : value
+    applyLight(nightBlend.value)
+    options.onLamp?.(lampOn()); requestFrame()
+    return lampOn()
+  }
+  function setRoomCurtains(closed: boolean) {
+    if (!disposed) { curtainMotion.drawn = closed; requestFrame() }
+    return curtainMotion.drawn
+  }
   options.onNight(night)
 
   let target: Destination | 'clock' | null = null, active = true, disposed = false, reduced = false
@@ -1212,8 +1243,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
         for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.needsUpdate = true
       })
     }
-    home.set(narrow ? -.13 : -.42, narrow ? 1.98 : 1.85, narrow ? 5.25 : 2.65)
-    homeLook.set(narrow ? -.49 : .22, narrow ? 1.57 : 1.5, -2.5)
+    // A modest downward view reveals the walkable rug while retaining the
+    // bookcase tops and window. Close-up furniture poses are unchanged.
+    home.set(narrow ? -.13 : -.42, narrow ? 1.98 : 1.95, narrow ? 5.25 : 3.05)
+    homeLook.set(narrow ? -.49 : .22, narrow ? 1.30 : 1.03, -2.5)
     roomFov = narrow ? 66 : 54
     if (target === 'clock') {
       frameClock()
@@ -1326,6 +1359,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     toQuaternion.copy(tmpCamera.quaternion)
     if (next === 'clock') frameClock()
     startTime = performance.now(); progress = 0; transitioning = true
+    syncCompanionActive()
     if (!active) pausedAt = startTime
     requestFrame()
   }
@@ -1442,6 +1476,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (chosen.target === 'drawer') pickedDrawer = chosen.drawerIndex ?? 0
       if (chosen.target === 'columns') pickedEdition = Math.max(0, editions.findIndex(column => column.slug === chosen.columnSlug))
       options.onPick(chosen.target, chosen.categoryId ?? chosen.columnSlug)
+    } else if (tapped && isCompanionActive() && !pick(event)) {
+      // Movement starts only after a plain tap, never a camera drag or an
+      // existing book/lamp/diary interaction (including touch hit margins).
+      if (companionDriver?.onTap?.(event)) requestFrame()
     }
   }
   function cancel(event?: PointerEvent) {
@@ -1459,6 +1497,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }
   function lost(event: Event) {
     event.preventDefault(); active = false
+    syncCompanionActive()
     cancel(); clearClockTimer(); cancelAnimationFrame(frame); frame = 0
     options.onContextLost()
   }
@@ -1467,6 +1506,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     ignoreSamplesUntil = performance.now() + 5000
     previousContinuous = false
     diagnostics?.mode(document.hidden ? 'hidden' : 'resuming')
+    syncCompanionActive()
     if (document.hidden) { hiddenAt = now; clearClockTimer() }
     else { if (transitioning && hiddenAt) startTime += now - Math.max(hiddenAt, startTime); hiddenAt = 0; requestFrame() }
   }
@@ -1524,6 +1564,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       return true
     } catch {
       active = false; catalogAnimating = false
+      syncCompanionActive()
       clearClockTimer(); cancelAnimationFrame(frame); frame = 0
       options.onError()
       return false
@@ -1532,6 +1573,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   function render(now: number) {
     frame = 0
     if (disposed || document.hidden) return
+    syncCompanionActive()
     if (diagnostics?.baselineFrame(now)) { lastTime = now; previousContinuous = false; requestFrame(); return }
     if (!active) {
       // A panel can pause the room while its very first frame is compiling.
@@ -1577,14 +1619,6 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       wisp.scale.set(.09+.05*phase,.13+.06*phase,1)
       wisp.material.opacity = .46 * Math.sin(phase * Math.PI)
     })
-    const animated = (!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving
-    if (!suggested && quality === 'auto') {
-      const observing = previousContinuous && animated && document.hasFocus() && now >= ignoreSamplesUntil &&
-        !previewWindow && !target && !transitioning && !drag && !curtainsMoving && clockView === 'room'
-      if (frameBudget.sample(delta, observing)) {
-        suggested = options.onSlowRoom?.() ?? false
-      }
-    }
     if (transitioning) {
       const duration = onScreenTrack ? Math.max(1, (target ? 1550*(1-screenStart) : 1200*screenStart))
         : clockView === 'returning' ? clockReturnMs : target === 'clock' ? 1250
@@ -1635,6 +1669,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (!clockFlight) renderer.shadowMap.needsUpdate = true
       if (progress === 1) {
         transitioning = false
+        syncCompanionActive()
         if (!target) onScreenTrack = false
         if (target === 'clock') {
           changeClockView('observing')
@@ -1654,6 +1689,28 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       camera.rotateY(THREE.MathUtils.lerp(yaw, -.68, blend))
       camera.rotateX(THREE.MathUtils.lerp(pitch, .035, blend))
     }
+    // The companion projects its speech anchor during update, so it must see
+    // this frame's camera pose rather than the preceding rendered matrix.
+    camera.updateMatrixWorld()
+    const companionMoving = isCompanionActive() && companionDriver?.update(THREE.MathUtils.clamp(delta / 1000, 0, .1)) === true
+    // Flush one final settled pose as well; otherwise a stopped paw can leave
+    // the cached shadow behind. A pending flush keeps only enough frames alive
+    // to respect the same 30 Hz shadow budget.
+    companionShadowPending ||= companionMoving || companionWasMoving
+    companionWasMoving = companionMoving
+    if (companionShadowPending && now - lastCompanionShadow >= 1000 / 30) {
+      renderer.shadowMap.needsUpdate = true
+      lastCompanionShadow = now
+      companionShadowPending = false
+    }
+    const animated = (!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || companionMoving
+    if (!suggested && quality === 'auto') {
+      const observing = previousContinuous && animated && document.hasFocus() && now >= ignoreSamplesUntil &&
+        !previewWindow && !target && !transitioning && !drag && !curtainsMoving && clockView === 'room'
+      if (frameBudget.sample(delta, observing)) {
+        suggested = options.onSlowRoom?.() ?? false
+      }
+    }
     const reveal = reduced || !transitioning ? 1 : target === 'diary'
       ? THREE.MathUtils.smoothstep(progress,.12,.81) : THREE.MathUtils.smoothstep(progress,.65,1)
     if (!revealPlayed && reveal > 0 && (target === 'diary' || target === 'bookshelf')) {
@@ -1669,11 +1726,11 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     }
     if (reduced || !ambientMotion) gardenBreeze.value.set(0, 0)
     if (catalogAnimating) drawCatalogCue(delta)
-    previousContinuous = !!((!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || catalogAnimating)
+    previousContinuous = !!((!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || catalogAnimating || companionMoving)
     diagnostics?.mode(`${quality === 'light' ? 'light' : 'auto'}:${previousContinuous ? 'animated' : 'idle'}:${environment.preset}`)
     if (!drawScene()) return
     if (catalogAnimating || windowViewMix !== previewGoal) requestFrame()
-    if (!target && !reduced && ambientMotion || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving) requestFrame()
+    if (!target && !reduced && ambientMotion || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || companionMoving || companionShadowPending) requestFrame()
   }
   // Generated albedo assets progressively replace procedural fallbacks.
   // Track every texture for teardown, including late completion after navigation.
@@ -1747,6 +1804,98 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     ...plates.map(value => value.holder), printFrame, ...editionModels,
     hourHand, minuteHand, secondHand, ...leaves.map(value => value.mesh), ...steam,
   ]), geometries)
+  scene.add(companionRoot)
+  // Separate, invisible landing planes preserve exact desk/seat identity after
+  // furniture batching. Visible meshes still decide whether a click is blocked.
+  const surfaceMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })
+  extraMaterials.add(surfaceMaterial)
+  function surfacePicker(surface: 'chair' | 'table', parent: THREE.Object3D, at: THREE.Vector3, width: number, depth: number) {
+    const geometry = new THREE.PlaneGeometry(width, depth)
+    geometries.add(geometry)
+    const plane = new THREE.Mesh(geometry, surfaceMaterial)
+    plane.name = 'CompanionDestination:' + surface
+    plane.userData.companionSurface = surface
+    plane.position.copy(parent.localToWorld(at))
+    parent.getWorldQuaternion(plane.quaternion)
+    plane.rotateX(-Math.PI / 2)
+    plane.visible = false
+    scene.add(plane)
+    return plane
+  }
+  const destinationSurfaces = [
+    surfacePicker('table', desk, new THREE.Vector3(0, deskSurfaceY + .002, 0), 3.68, 1.70),
+    surfacePicker('chair', chair, new THREE.Vector3(0, .537, 0), .73, .73),
+  ]
+  const companionRay = new THREE.Raycaster(), companionPointer = new THREE.Vector2()
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -.06)
+  const groundPoint = new THREE.Vector3()
+  function aimCompanion(clientX: number, clientY: number) {
+    if (!isCompanionActive() || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return false
+    const rect = renderer.domElement.getBoundingClientRect()
+    if (!rect.width || !rect.height || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return false
+    companionPointer.set((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2)
+    camera.updateMatrixWorld()
+    scene.updateMatrixWorld(true)
+    companionRay.setFromCamera(companionPointer, camera)
+    return true
+  }
+  function visibleIntersection(hit: THREE.Intersection) {
+    if (!(hit.object instanceof THREE.Mesh)) return false
+    for (let node: THREE.Object3D | null = hit.object; node; node = node.parent) if (!node.visible) return false
+    const material = Array.isArray(hit.object.material)
+      ? hit.object.material[hit.face?.materialIndex ?? 0] : hit.object.material
+    // Painted contact shadows, steam and glass do not obscure a solid cat.
+    return material?.visible !== false && material.opacity > 0 && !(material.transparent && !material.depthWrite)
+  }
+  function belongsToCat(object: THREE.Object3D) {
+    for (let node: THREE.Object3D | null = object; node; node = node.parent) if (node === companionRoot) return true
+    return false
+  }
+  const roomStage: RoomStage = {
+    root: companionRoot, camera, canvas: renderer.domElement,
+    get active() { return isCompanionActive() },
+    get reducedMotion() { return reduced },
+    setDriver(driver) {
+      companionDriver?.setActive?.(false)
+      companionDriver = driver
+      syncCompanionActive(true)
+      lastCompanionShadow = -Infinity
+      requestFrame()
+      return () => {
+        if (companionDriver !== driver) return
+        driver.setActive?.(false)
+        companionDriver = null
+        renderer.shadowMap.needsUpdate = true
+        requestFrame()
+      }
+    },
+    requestRender: requestFrame,
+    hitCat(clientX, clientY) {
+      if (!aimCompanion(clientX, clientY)) return false
+      const hit = companionRay.intersectObjects(scene.children, true).find(visibleIntersection)
+      return !!hit && belongsToCat(hit.object)
+    },
+    pickDestination(clientX, clientY): RoomDestination | null {
+      if (!aimCompanion(clientX, clientY)) return null
+      // Semantic room controls always retain priority, even for direct callers.
+      if (companionRay.intersectObjects(hits, false).length) return null
+      const obstruction = companionRay.intersectObjects(scene.children, true)
+        .find(hit => visibleIntersection(hit) && !belongsToCat(hit.object))
+      const surface = companionRay.intersectObjects(destinationSurfaces, false)[0]
+      if (surface && (!obstruction || obstruction.distance >= surface.distance - .025)) {
+        return { kind: 'surface', surface: surface.object.userData.companionSurface as 'chair' | 'table' }
+      }
+      if (!companionRay.ray.intersectPlane(groundPlane, groundPoint)) return null
+      // Interior wall bounds only; the navigation layer owns furniture clearance.
+      if (groundPoint.x < -3.85 || groundPoint.x > 3.02 || groundPoint.z < -3.85 || groundPoint.z > 5.85) return null
+      const distance = companionRay.ray.origin.distanceTo(groundPoint)
+      if (obstruction && obstruction.distance < distance - .065) return null
+      const local = companionRoot.worldToLocal(groundPoint.clone())
+      return { kind: 'ground', point: { x: local.x, z: local.z } }
+    },
+  }
+  syncCompanionActive()
+  unregisterCompanion = registerRoomStage(roomStage)
   resize(); requestFrame()
   return {
     setTarget,
@@ -1776,10 +1925,15 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       options.onLamp?.(lampOn()); requestFrame()
     },
     resetLamp() {
-      lampOverride = null; applyLight(nightBlend.value)
-      options.onLamp?.(lampOn()); requestFrame()
+      return setRoomLamp('auto')
+    },
+    setLamp: setRoomLamp,
+    setCurtains: setRoomCurtains,
+    getRoomState() {
+      return disposed ? null : { ceilingOn: ceilingLightOn, lampOn: lampOn(), curtainsClosed: curtainMotion.drawn }
     },
     setCeilingLight(on: boolean) {
+      if (disposed) return
       ceilingLightOn = on
       rocker.rotation.x = on ? -.13 : .13
       opal.emissiveIntensity = on ? 1.2 : 0
@@ -1789,13 +1943,10 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       requestFrame()
     },
     toggleLamp() {
-      lampOverride = !lampOn(); applyLight(nightBlend.value)
-      options.onLamp?.(lampOn()); requestFrame(); return lampOn()
+      return setRoomLamp(!lampOn())
     },
     toggleCurtains() {
-      curtainMotion.drawn = !curtainMotion.drawn
-      requestFrame()
-      return curtainMotion.drawn
+      return setRoomCurtains(!curtainMotion.drawn)
     },
     setWindowPreview(value: boolean) { previewWindow = value; requestFrame() },
     setMotion(value: boolean) { reduced = !value || media.matches; clearClockTimer(); requestFrame() },
@@ -1808,10 +1959,14 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       if (value && active) { pausedAt = now; clearClockTimer() }
       if (!value && !active && transitioning && pausedAt) startTime += now - pausedAt
       active = !value; lastTime = now; requestFrame()
+      syncCompanionActive()
     },
     dispose() {
       if (disposed) return
       disposed = true; clearClockTimer(); cancelAnimationFrame(frame); observer.disconnect()
+      syncCompanionActive()
+      unregisterCompanion?.(); unregisterCompanion = undefined
+      companionDriver = null; companionRoot.removeFromParent()
       document.removeEventListener('visibilitychange', visibility)
       const canvas = renderer.domElement
       canvas.removeEventListener('click', backgroundClick)

@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import { Suspense, type ReactNode } from 'react'
+import { Suspense, useEffect, useRef, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import type { PostDetail } from '@/types'
@@ -14,11 +14,17 @@ import { ColumnAttribution } from '@/components/ColumnAttribution'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import { registerWebsiteArticle } from '../companion/website-context'
 export default function MagazineArticle({ post, locale, subscription, catalogHeading }: { post: PostDetail; locale: string; subscription?: ReactNode; catalogHeading?: boolean }) {
   const t = useTranslations('posts')
+  const article = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!article.current || (locale !== 'zh' && locale !== 'en')) return
+    return registerWebsiteArticle({ slug: post.slug, title: post.title, locale }, article.current)
+  }, [post.slug, post.title, locale])
   const firstContentLine = catalogHeading ? post.content.match(/^\s*/)?.[0].split('\n').length : undefined
   return (
-    <article className="magazine-article">
+    <article ref={article} className="magazine-article">
       <ReadingProgress locale={locale} slug={post.slug} title={post.title} hidden />
       <div className="magazine-reading-column">
         {!catalogHeading && <><p className="study-imprint">FROM THE BOOKSHELF / A PAGE TO KEEP</p>
@@ -122,7 +128,9 @@ export default function MagazineArticle({ post, locale, subscription, catalogHea
 
         <PrevNextNav prevArticle={post.prevArticle} nextArticle={post.nextArticle} />
 
-        <Comments slug={post.slug} />
+        <div data-website-comments tabIndex={-1} aria-label={locale === 'en' ? 'Article comments' : '文章评论'}>
+          <Comments slug={post.slug} />
+        </div>
       </div>
     </article>
   )

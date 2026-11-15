@@ -2,6 +2,12 @@
 
 基于 NestJS 构建的个人博客后端 API 服务。
 
+## 猫咪陪伴模块
+
+猫咪聊天接口在本服务的 `src/companion/` 中，默认关闭。向现有私密环境配置合入 `.env.companion.example` 的字段，后续网站端使用同源 `/api/companion` 接入。代理规则、接口协议和单实例部署要求见 [接入说明](../../../docs/companion-backend-integration.md)。
+
+本地验收命令：`pnpm test:companion`、`pnpm test:companion:engine`，以及先 `pnpm build` 后执行 `pnpm test:companion:built`。测试使用模拟模型，不消耗真实模型额度。
+
 ## 技术栈
 
 - **框架**: NestJS 11

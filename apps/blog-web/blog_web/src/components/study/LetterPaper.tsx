@@ -7,7 +7,7 @@ import { LetterDeliveryContext, type LetterReceipt } from './LetterDelivery'
 import paper from './letter-paper.module.css'
 
 const endpoint = '/api/v1/public/letters'
-type Fields = {
+export type LetterDraftFields = {
   nickname: string
   email: string
   phone: string
@@ -15,6 +15,7 @@ type Fields = {
   body: string
   allowPublic: boolean
 }
+type Fields = LetterDraftFields
 type Packet = {
   fields: Fields
   id: string
@@ -145,14 +146,21 @@ export default function LetterPaper({
   locale,
   onClose,
   onDelivered,
+  initialDraft,
+  resumeDraft,
+  onDraftChange,
 }: {
   locale: string
   onClose?: () => void
   onDelivered: (receipt: LetterReceipt) => void
+  initialDraft?: { id: string; body: string }
+  resumeDraft?: LetterDraftFields
+  onDraftChange?: (fields: LetterDraftFields) => void
 }) {
   const en = locale === 'en'
   const [tab, setTab] = useState<'write' | 'read'>('write')
-  const [fields, setFields] = useState<Fields>(empty)
+  const [fields, setFields] = useState<Fields>(() => resumeDraft ? { ...resumeDraft }
+    : initialDraft?.body.trim() && initialDraft.body.length <= 3000 ? { ...empty, body: initialDraft.body } : { ...empty })
   const [phase, setPhase] = useState<
     'draft' | 'sending' | 'uncertain' | 'sent'
   >('draft')
@@ -164,6 +172,20 @@ export default function LetterPaper({
   const sending = useRef(false)
   const dialog = useRef<HTMLDialogElement>(null)
   const title = useRef<HTMLHeadingElement>(null)
+  const appliedDraft = useRef<string | null>(initialDraft?.id ?? null)
+  useEffect(() => {
+    if (!initialDraft || appliedDraft.current === initialDraft.id) return
+    appliedDraft.current = initialDraft.id
+    if (phase !== 'draft' || JSON.stringify(fields) !== JSON.stringify(empty)) {
+      setMessage(en ? 'Your existing letter has been kept. The new draft did not replace it.' : '已保留你原来的信，没有用新草稿覆盖。')
+      return
+    }
+    if (!initialDraft.body.trim() || initialDraft.body.length > 3000) return
+    setFields(old => ({ ...old, body: initialDraft.body }))
+  }, [initialDraft, fields, phase, en])
+  useEffect(() => {
+    if (phase !== 'sent') onDraftChange?.({ ...fields })
+  }, [fields, phase, onDraftChange])
   const dirty =
     phase !== 'sent' &&
     (JSON.stringify(fields) !== JSON.stringify(empty) || phase !== 'draft')
@@ -218,7 +240,13 @@ export default function LetterPaper({
       finish()
       return
     }
-    if (!dirty || window.confirm(discard)) {
+    // The companion preserves editable fields, not an in-flight transaction.
+    // Keep its idempotency packet mounted until this attempt is acknowledged.
+    if (onDraftChange && (phase === 'sending' || phase === 'uncertain')) {
+      setMessage(en ? 'Please confirm the previous delivery before putting this letter aside.' : '请先确认上次寄送，再放回信纸，避免重复寄出。')
+      return
+    }
+    if (onDraftChange || !dirty || window.confirm(discard)) {
       dialog.current?.close()
       onClose?.()
     }
@@ -342,7 +370,7 @@ export default function LetterPaper({
       {tab === 'read' ? (
         <PublicLetters en={en} />
       ) : (
-        <form onSubmit={send} className={paper.form}>
+        <form onSubmit={send} className={paper.form} data-letter-form data-letter-dirty={dirty || undefined}>
           <fieldset disabled={locked}>
             <label>
               {en ? 'Your letter' : '正文'}

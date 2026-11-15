@@ -5,6 +5,7 @@ import { json, urlencoded, type Request, type Response, type NextFunction } from
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { StructuredLogger } from './core';
+import { configureCompanionHttp } from './companion/companion.http';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -16,6 +17,7 @@ async function bootstrap() {
 
   // 安全头：防 XSS、clickjacking、MIME 嗅探等
   app.use(helmet());
+  configureCompanionHttp(app);
 
   // 增大 body 限制，防止大内容（如文章正文、base64 图片）触发 400
   app.use('/v1/public/letters', (req: Request, res: Response, next: NextFunction) => {
@@ -88,6 +90,7 @@ async function bootstrap() {
     .addTag('AI', 'AI 翻译和 SEO 优化')
     .addTag('微信公众号', '微信公众号素材和发布管理')
     .addTag('SEO', 'SEO 相关接口')
+    .addTag('猫咪陪伴', '访客聊天和受限猫咪动作')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -104,6 +107,7 @@ async function bootstrap() {
     },
   });
 
+  app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000, process.env.HOST ?? '127.0.0.1');
 }
 bootstrap();

@@ -27,6 +27,7 @@ import { ColumnModule } from './column/column.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { LettersModule } from './letters/letters.module';
 import { FriendLinkModule } from './friend-link/friend-link.module';
+import { CompanionModule } from './companion/companion.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { FriendLinkModule } from './friend-link/friend-link.module';
     AnalyticsModule,
     FriendLinkModule,
     LettersModule,
+    CompanionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
