@@ -23,6 +23,10 @@ on:
         description: 'Release the companion with the blog, API and same-origin proxy'
         type: boolean
         default: false
+      refresh_companion_proxy:
+        description: 'Update and verify only the existing companion Nginx routes'
+        type: boolean
+        default: false
       deploy_environment:
         description: 'Release V2 API, additive environment migration and admin with the blog'
         type: boolean
@@ -51,7 +55,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   verify:
-    if: ${{ !inputs.inspect_only && !inputs.reuse_run_id }}
+    if: ${{ !inputs.inspect_only && !inputs.reuse_run_id && !inputs.refresh_companion_proxy }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -87,6 +91,8 @@ jobs:
           bash -n scripts/deploy-search-server.sh
           bash -n scripts/deploy-companion.sh
           bash -n scripts/configure-companion-production.sh
+          bash -n scripts/refresh-companion-proxy.sh
+          node --test scripts/companion-nginx.test.mjs
           node --check scripts/patch-companion-nginx.mjs
           bash -n scripts/deploy-environment.sh
           node --check scripts/prepare-letter-settings.mjs
@@ -168,18 +174,24 @@ jobs:
             scripts/smoke-environment.mjs
             scripts/deploy-companion.sh
             scripts/configure-companion-production.sh
+            scripts/refresh-companion-proxy.sh
             scripts/patch-companion-nginx.mjs
             ops/nginx-myblog.conf
   deploy:
-    if: ${{ always() && (inputs.deploy || inputs.inspect_only) && (needs.verify.result == 'success' || inputs.inspect_only || inputs.reuse_run_id) }}
+    if: ${{ always() && (inputs.refresh_companion_proxy || inputs.inspect_only || (inputs.deploy && (needs.verify.result == 'success' || inputs.reuse_run_id))) }}
     needs: verify
     runs-on: ubuntu-latest
     environment: production
     steps:
+      - name: Require a standalone proxy refresh
+        if: ${{ inputs.refresh_companion_proxy && (inputs.deploy || inputs.deploy_server || inputs.deploy_companion || inputs.deploy_environment || inputs.deploy_letters || inputs.enable_weather || inputs.inspect_only || inputs.reuse_run_id) }}
+        run: |
+          echo 'Choose refresh_companion_proxy without other release inputs' >&2
+          exit 1
       - uses: actions/checkout@v5
         if: ${{ !inputs.inspect_only }}
       - name: Select verified artifact
-        if: ${{ !inputs.inspect_only }}
+        if: ${{ !inputs.inspect_only && !inputs.refresh_companion_proxy }}
         id: candidate
         env:
           GH_TOKEN: ${{ github.token }}
@@ -197,7 +209,7 @@ jobs:
           node --test scripts/blog-release.test.mjs
           bash -n scripts/deploy-blog.sh
       - uses: actions/download-artifact@v4
-        if: ${{ !inputs.inspect_only }}
+        if: ${{ !inputs.inspect_only && !inputs.refresh_companion_proxy }}
         with:
           name: blog-${{ steps.candidate.outputs.revision }}
           path: release
@@ -216,6 +228,7 @@ jobs:
           ssh-keyscan -t ed25519 -p "$SSH_PORT" "$SSH_HOST" > ~/.ssh/known_hosts
           test "$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}')" = "$SSH_FINGERPRINT"
       - name: Check existing production layout without changes
+        if: ${{ !inputs.refresh_companion_proxy }}
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
@@ -268,8 +281,23 @@ jobs:
             curl -fsS --max-time 30 http://127.0.0.1:3001/zh >/dev/null
             df -h /home/myblog
           REMOTE
+      - name: Refresh companion proxy
+        if: ${{ inputs.refresh_companion_proxy }}
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          node --test scripts/companion-nginx.test.mjs
+          bash -n scripts/refresh-companion-proxy.sh
+          REMOTE="/tmp/companion-proxy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          SSH=(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST")
+          "${SSH[@]}" "umask 077; mkdir '$REMOTE'"
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -P "$SSH_PORT" \
+            scripts/patch-companion-nginx.mjs scripts/patch-blog-nginx.mjs scripts/refresh-companion-proxy.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
+          "${SSH[@]}" "bash '$REMOTE/refresh-companion-proxy.sh' apply"
       - name: Upload and deploy selected services
-        if: ${{ !inputs.inspect_only }}
+        if: ${{ !inputs.inspect_only && !inputs.refresh_companion_proxy }}
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
@@ -300,8 +328,12 @@ jobs:
           scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/revision.txt scripts/patch-blog-nginx.mjs scripts/smoke-blog.mjs scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
           if [[ "$DEPLOY_COMPANION" = true ]]; then
             test -f release/_artifacts/server.tar.gz
+            COMPANION_CHECKS=()
+            if [[ -f release/scripts/refresh-companion-proxy.sh ]]; then
+              COMPANION_CHECKS+=(release/scripts/refresh-companion-proxy.sh)
+            fi
             scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/server.tar.gz \
-              release/scripts/deploy-companion.sh release/scripts/configure-companion-production.sh \
+              release/scripts/deploy-companion.sh release/scripts/configure-companion-production.sh "${COMPANION_CHECKS[@]}" \
               release/scripts/patch-companion-nginx.mjs release/scripts/deploy-search-server.sh \
               release/scripts/smoke-search.mjs release/ops/nginx-myblog.conf "$SSH_USER@$SSH_HOST:$REMOTE/"
           elif [[ "$DEPLOY_ENVIRONMENT" = true || "$DEPLOY_LETTERS" = true ]]; then

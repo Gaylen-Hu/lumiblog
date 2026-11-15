@@ -1,4 +1,5 @@
 import type { RoomStage } from '../room-stage';
+import type { createAgentTransport } from './agent/transport.js';
 
 export interface WebsiteCatState {
   readonly mode: 'reading' | 'room';
@@ -30,6 +31,7 @@ export interface WebsiteCatOptions {
   website?: WebsiteAssistant;
   container?: HTMLElement;
   apiBase?: string;
+  transport?: ReturnType<typeof createAgentTransport>;
   position?: 'left' | 'right';
   quality?: 'low' | 'medium' | 'high';
   headUrl?: string;

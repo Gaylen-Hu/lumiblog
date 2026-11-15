@@ -6,6 +6,9 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   output: 'standalone',
+  env: {
+    NEXT_PUBLIC_COMPANION_SPLIT_HOST: process.env.VERCEL_ENV === 'production' ? 'true' : 'false',
+  },
   // Older local tabs cached unversioned dev chunks as immutable.
   deploymentId: process.env.NODE_ENV === 'development' ? 'study-daylight-preview' : undefined,
   async rewrites() {

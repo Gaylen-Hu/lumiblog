@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { mountWebsiteCat } from './runtime/website-cat.js'
 import { getRoomStage, subscribeRoomStage } from './room-stage'
 import { websiteAssistant } from './website-assistant'
+import { getWebsiteAgentConnection } from './website-agent-connection'
 import styles from './website-companion.module.css'
 
 type Companion = Awaited<ReturnType<typeof mountWebsiteCat>>
@@ -127,7 +128,7 @@ export default function WebsiteCompanion({ locale, reading }: { locale: string; 
     void import('./runtime/website-cat.js').then(async ({ mountWebsiteCat: mount }) => {
       if (abort.signal.aborted) return
       const loaded = await mount({
-        container, apiBase: '/api/companion', quality: 'medium', mobile: mobileRef.current, bottomOffset: 76,
+        container, ...getWebsiteAgentConnection(window.location.origin), quality: 'medium', mobile: mobileRef.current, bottomOffset: 76,
         locale, initialHidden: hiddenRef.current, signal: abort.signal, website: websiteAssistant,
         onVisibilityChange: (visible: boolean) => { if (!abort.signal.aborted) reflectHidden(!visible) },
         onChatOpenChange: (open: boolean) => {
