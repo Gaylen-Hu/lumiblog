@@ -151,6 +151,7 @@ systemctl restart myblog-api.service
 wait_api
 systemctl reload nginx.service
 check_proxy
+bash "$artifacts/refresh-companion-proxy.sh" verify
 denied=$(curl -sS --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/v1/public/companion/status)
 [[ "$denied" == 403 ]]
 trap - ERR
