@@ -6,11 +6,17 @@ import {loadCompanionImage} from './asset-images.js';
 // This UV atlas contains only fur pigment. Lids, pupils, muzzle, ears and
 // whiskers have their own geometry and are animated separately.
 let faceImage=null,earImage=null,bibImage=null;
-export async function prepareKittenFur(signal){
-  if(faceImage&&earImage&&bibImage)return;
-  const images=await Promise.all(['kitten-face-silver.webp','kitten-pinna.webp','kitten-bib.webp']
-    .map(file=>loadCompanionImage('/companion/v1/'+file,signal)));
-  signal?.throwIfAborted();[faceImage,earImage,bibImage]=images;
+export async function prepareKittenFur(signal,{nativeHeadOnly=false}={}){
+  const load=file=>loadCompanionImage('/companion/v1/'+file,signal);
+  const [bib,face,ear]=await Promise.all([
+    bibImage||load('kitten-bib.webp'),
+    faceImage||(!nativeHeadOnly&&load('kitten-face-silver.webp')),
+    earImage||(!nativeHeadOnly&&load('kitten-pinna.webp')),
+  ]);
+  signal?.throwIfAborted();
+  bibImage=bib;
+  if(face)faceImage=face;
+  if(ear)earImage=ear;
 }
 export function silverBibTexture(){
   if(!bibImage)return null;

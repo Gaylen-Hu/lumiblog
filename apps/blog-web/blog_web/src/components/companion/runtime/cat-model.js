@@ -2,7 +2,7 @@ import * as T from 'three';
 import {HEAD,headPoint,headNormal,headSurface,headUv,uvToParam,halfFaceWidth,jawOffset,createHeadGeometry,eyeBoundary} from './cat-face-surface.js';
 import {createToonPalette,toonifyCat} from './cat-toon-material.js';
 import {addKittenFur,silverBibTexture,silverEarTexture,silverFaceTexture,silverIrisTexture} from './kitten-fur.js';
-import {drawBodyCoat,drawLegCoat,drawTailCoat,matchLegToTorso} from './cat-coat.js';
+import {drawBakedCoat,drawBodyCoat,drawLegCoat,drawTailCoat,matchLegToTorso} from './cat-coat.js';
 
 const vec=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
 const tau=2*Math.PI;
@@ -34,7 +34,7 @@ function smoothValue(table,t,index){
   const a=table[Math.max(i-1,0)][index],b=table[i][index],c=table[i+1][index],d=table[Math.min(i+2,table.length-1)][index];
   return .5*((2*b)+(-a+c)*u+(2*a-5*b+4*c-d)*u*u+(-a+3*b-3*c+d)*u*u*u);
 }
-export function createToonCat({legacyHeadFur=true}={}){
+export function createToonCat({legacyHeadFur=true,detailedFur=true,nativeHeadOnly=false}={}){
   const root=new T.Group();root.name='Tabby';
   const allBones=[],restLocation=new Map();
   function bone(name,parent,xyz){
@@ -182,8 +182,12 @@ export function createToonCat({legacyHeadFur=true}={}){
   bodyGeom.setAttribute('skinIndex',new T.Uint16BufferAttribute(skinIds,4));bodyGeom.setAttribute('skinWeight',new T.Float32BufferAttribute(skinWeights,4));
   bodyGeom.setIndex(indices);
   bodyGeom.computeVertexNormals();
-  const bodyMap=painted(ctx=>drawBodyCoat(ctx,bodyPoint),1024,1024);
-  const bodyPixels=bodyMap.image.getContext('2d').getImageData(0,0,bodyMap.image.width,bodyMap.image.height);
+  let bodyPixels=null;
+  const bodyMap=painted(ctx=>{
+    if(drawBakedCoat(ctx,'body'))return;
+    drawBodyCoat(ctx,bodyPoint);
+    bodyPixels=ctx.getImageData(0,0,ctx.canvas.width,ctx.canvas.height);
+  },1024,1024);
   const bodyMat=whiteFurMaterial(bodyMap,'bib'),bounceImage=bodyMat.emissiveMap.image;
   const bodyBounce=bounceImage.getContext('2d').getImageData(0,0,bounceImage.width,bounceImage.height);
   add(root,bodyGeom,bodyMat,true).name='SilverBodyCoat';
@@ -271,6 +275,7 @@ export function createToonCat({legacyHeadFur=true}={}){
       }
     }
     const legMap=painted(c=>{
+      if(drawBakedCoat(c,id))return;
       drawLegCoat(c,!front,s);matchLegToTorso(c,bodyPixels,legJoint,60,48);
     },512,512);
     const legMat=whiteFurMaterial(legMap,front?'fore':'sock',{pixels:bodyBounce,grid:legJoint});
@@ -316,93 +321,11 @@ export function createToonCat({legacyHeadFur=true}={}){
     const r=(.025-.0050*v+.0029*Math.sin(v*Math.PI))*end;
     return p.addScaledVector(side,r*Math.cos(a)).addScaledVector(up,r*Math.sin(a));
   },(u,v)=>blend(tail,tail.map((_,i)=>i/(tailPath.length-1)),v));
-  add(root,tailGeom,material('white',painted(drawTailCoat,512,512)),true).name='SilverTailCoat';
-  const hg=createHeadGeometry();
-  const jawShape=new Float32Array(hg.attributes.position.count*3);
-  for(let i=0;i<hg.attributes.uv.count;i++){
-    const param=uvToParam(hg.attributes.uv.getX(i),hg.attributes.uv.getY(i));
-    const weight=jawOffset(param.theta,param.v);
-    jawShape[i*3+1]=-.009*weight;jawShape[i*3+2]=-.002*weight;
-  }
-  hg.morphTargetsRelative=true;hg.morphAttributes.position=[new T.Float32BufferAttribute(jawShape,3)];
-  const faceCoat=material('white',silverFaceTexture());
-  faceCoat.roughness=.97;
-  let facialMesh=add(head,hg,faceCoat);facialMesh.name='SilverHeadCoat';
-  const lineMat=material('#8c786b');
+  const tailMap=painted(c=>{if(!drawBakedCoat(c,'tail'))drawTailCoat(c);},512,512);
+  add(root,tailGeom,material('white',tailMap),true).name='SilverTailCoat';
   function line(parent,points,width,mat){
     const curve=new T.CatmullRomCurve3(points);const geometry=new T.TubeGeometry(curve,Math.max(8,points.length*3),width,7,false);
     return solid(parent,geometry,mat);
-  }
-  // Rounded pinnae with a recessed rose inner ear and a raised buff conchal fold.
-  for(const [i,ear] of ears.entries()){
-    const s=i===0?1:-1,loop=new T.Shape();
-    loop.moveTo(-.032,-.007);loop.bezierCurveTo(-.034,.006,-.008,.039,.016,.058);
-    loop.bezierCurveTo(.024,.065,.032,.061,.034,.052);loop.bezierCurveTo(.038,.031,.033,.002,.020,-.011);
-    loop.bezierCurveTo(.009,-.019,-.014,-.018,-.027,-.007);
-    const outline2=loop.getSpacedPoints(64).slice(0,-1);
-    const center=new T.Vector2(.006,.012),verts=[],colors=[],faces=[],earUV=[];
-    const earColors=['#ada79e','#aca69d','#d3cabe','#e5d9c8','#c6ac9e','#cc9d8d','#d8ab9c','#b78579'];
-    // The back swells at the root but the rim collapses to a thin, soft tip.
-    const rings=[
-      [.003,-1],[.63,-.88],[.955,-.44],[1,-.04],[.974,.32],[.90,.51],[.86,.43],[.68,.13],[.30,-.10],[.002,-.16]
-    ];
-    const palette=[0,0,1,1,2,3,4,5,6,7].map(k=>new T.Color(earColors[k]));
-    for(let j=0;j<rings.length;j++)for(let i2=0;i2<outline2.length;i2++){
-      const p=outline2[i2].clone().lerp(center,1-rings[j][0]);
-      const h=clamp((p.y+.014)/.078,0,1),spread=1-.68*h;
-      const thick=.019*spread;
-      const z=.006-.009*h*h-.43*p.x+thick*rings[j][1];
-      verts.push(s*(p.x*1.14-.15*Math.max(0,p.y)),p.y*.72,z);const col=palette[j].clone();
-      earUV.push(clamp((p.x+.036)/.076,.004,.996),clamp((p.y+.020)/.085,.004,.996));
-      if(j<4)col.lerp(new T.Color('#d7cbbc'),.65*T.MathUtils.smoothstep(h,.69,.99));
-      colors.push(col.r,col.g,col.b);
-      if(j<rings.length-1){const n=outline2.length,k=j*n+i2,l=j*n+(i2+1)%n;
-        if(s>0)faces.push(k,l,k+n,l,l+n,k+n);else faces.push(k,k+n,l,l,k+n,l+n);}
-    }
-    const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));geo.setIndex(faces);geo.computeVertexNormals();
-    geo.setAttribute('uv',new T.Float32BufferAttribute(earUV,2));
-    const partition=3*outline2.length*6;
-    geo.addGroup(0,partition,0);geo.addGroup(partition,faces.length-partition,1);
-    const pinnaMaterials=[true,false].map(back=>{
-      const tex=silverEarTexture(back),m=material('white',tex);
-      m.side=T.DoubleSide;m.vertexColors=!tex;m.roughness=.92;return m;
-    });
-    const shell=solid(ear,geo,pinnaMaterials);
-    shell.name=s>0?'LeftPinna':'RightPinna';
-    // Flush, short pencil-like folds at the base leave the pink pinna readable.
-    const probe=new T.Raycaster(),towardsBack=vec(0,0,-1);
-    const worldToLocal=ear.matrixWorld.clone().invert();
-    function earPoint(x,y,offset){
-      probe.set(vec(s*(x*1.14-.15*Math.max(0,y/.85)),y*.847,.07).applyMatrix4(ear.matrixWorld),towardsBack);
-      const hit=probe.intersectObject(shell,false)[0];
-      return hit?hit.point.applyMatrix4(worldToLocal).add(vec(0,0,offset)):vec(s*(x*1.14-.15*Math.max(0,y/.85)),y*.847,0);
-    }
-    shell.updateWorldMatrix(true,false);
-    const hairVertices=[],hairColors=[],hairIndices=[];
-    const shades=[new T.Color('#bc9b88'),new T.Color('#deccba')];
-    const roots=[[-.012,.013],[-.010,.016],[-.008,.018],[-.006,.020]];
-    const ends=[[.010,.017],[.010,.021],[.008,.025],[.006,.028]];
-    const widths=[.0018,.0015,.0011,.0008];
-    for(let k=0;k<roots.length;k++){
-      const [rx,ry]=roots[k],[ex,ey]=ends[k],width=widths[k];
-      for(let layer=0;layer<2;layer++){
-        const base=hairVertices.length/3;
-        for(let row=0;row<=9;row++)for(let col=0;col<=2;col++){
-          const u=col/2,v=row/9;
-          const spread=width*(1-v)**.74;
-          const x=mix(rx,ex,v),y=mix(ry,ey,v)+.003*Math.sin(v*Math.PI)+(u-.5)*spread;
-          hairVertices.push(...earPoint(x,y+.00045*layer,.00055+layer*.00026).toArray());
-          hairColors.push(...shades[layer].toArray());
-          if(col<2&&row<9){const n=base+row*3+col;hairIndices.push(n,n+1,n+3,n+1,n+4,n+3);}
-        }
-      }
-    }
-    const hairGeo=new T.BufferGeometry();
-    hairGeo.setAttribute('position',new T.Float32BufferAttribute(hairVertices,3));
-    hairGeo.setAttribute('color',new T.Float32BufferAttribute(hairColors,3));
-    hairGeo.setIndex(hairIndices);hairGeo.computeVertexNormals();
-    const hairMat=material('white');hairMat.vertexColors=true;hairMat.side=T.DoubleSide;
-    solid(ear,hairGeo,hairMat).castShadow=false;
   }
   const leatherMap=painted(c=>{
     const dye=c.createLinearGradient(0,0,0,1);
@@ -502,249 +425,340 @@ export function createToonCat({legacyHeadFur=true}={}){
   for(const sign of [-1,1]){
     line(bell,[vec(sign*.0027,-.0088,.0011),vec(sign*.0019,-.0067,.0056),vec(sign*.0017,-.0045,.0078),vec(sign*.0025,-.0032,.0083)],.00036,inside);
   }
-  const eyes=[];
-  const lidFur=material('white',faceCoat.map);
-  lidFur.roughness=.96;lidFur.vertexColors=true;lidFur.side=T.DoubleSide;
-  const eyeGlobe=material('#30231f');eyeGlobe.roughness=.35;
-  const lashShade=material('#433932');lashShade.side=T.DoubleSide;lashShade.roughness=1;
-  const eyeRadius=vec(...HEAD.eye.radius);
-  function createEye(side){
-    const settings=HEAD.eye,centerTheta=side*settings.theta;
-    const anchor=headPoint(centerTheta,settings.v);
-    const normal=headNormal(centerTheta,settings.v).lerp(vec(0,.03,1),.51).normalize();
-    const horizontal=vec(0,1,0).cross(normal).normalize(),vertical=normal.clone().cross(horizontal);
-    const frame=new T.Group();
-    frame.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(horizontal,vertical,normal));
-    frame.position.copy(anchor).addScaledVector(normal,-settings.inset);head.add(frame);
-    const globe=solid(frame,new T.SphereGeometry(1,40,28),eyeGlobe);
-    globe.scale.copy(eyeRadius);globe.name=side>0?'LeftEyeGlobe':'RightEyeGlobe';globe.castShadow=false;
-    const texture=silverIrisTexture();
-    const irisMaterial=new T.MeshPhysicalMaterial({map:texture,roughness:.38,clearcoat:.42,clearcoatRoughness:.18,specularIntensity:.18,ior:1.38});
-    mats.add(irisMaterial);maps.add(texture);
-    const irisGeo=ribbonGeometry(14,64,(u,r)=>{
-      const a=-tau*u;
-      return vec(eyeRadius.x*r*Math.cos(a),eyeRadius.y*r*Math.sin(a),eyeRadius.z*Math.sqrt(Math.max(0,1-r*r))+.00021);
-    });
-    for(let n=0;n<irisGeo.attributes.uv.count;n++)irisGeo.attributes.uv.setXY(n,
-      .5+irisGeo.attributes.position.getX(n)/eyeRadius.x*.5,
-      .5+irisGeo.attributes.position.getY(n)/eyeRadius.y*.5);
-    const optical=solid(frame,irisGeo,irisMaterial);optical.name='IrisAndCornea';optical.castShadow=false;
-
-    // The outer loop exactly reuses the vertices of the cut scalp boundary.
-    // UVs are evaluated once in the open bind pose and are never animated.
-    const boundary=eyeBoundary(side),count=boundary.length,bands=12;
-    const positions=[],uvs=[],colors=[],triangles=[],samples=[];
-    for(let row=0;row<=bands;row++)for(let k=0;k<count;k++){
-      const t=row/bands,outer=boundary[k];
-      const a=Math.atan2((outer.v-settings.v)/settings.cutV,(outer.theta-centerTheta)/settings.cutTheta);
-      const xx=Math.cos(a),yy=Math.sin(a),inner=Math.max(0,-side*xx)**5;
-      const thetaInner=centerTheta+settings.halfTheta*xx;
-      const vOpen=settings.v+settings.halfV*yy*(1-.075*xx*xx)+side*.012*xx-.014*inner;
-      const theta=mix(thetaInner,outer.theta,t),v=mix(vOpen,outer.v,t);
-      const uv=headUv(theta,v);
-      positions.push(0,0,0);uvs.push(uv.x,uv.y);
-      const shade=mix(yy>0?.32:.52,1,T.MathUtils.smoothstep(t,0,.20));
-      colors.push(shade,shade,shade);
-      samples.push({t,theta,outerV:outer.v,openV:vOpen,seamV:settings.v-.012+.032*(1-xx*xx)-.014*inner});
-      if(row<bands){
-        const n=row*count+k,next=row*count+(k+1)%count;
-        triangles.push(n,next,n+count,next,next+count,n+count);
-      }
+  const eyes=[],whiskers=[];
+  function buildLegacyFace(){
+    const hg=createHeadGeometry();
+    const jawShape=new Float32Array(hg.attributes.position.count*3);
+    for(let i=0;i<hg.attributes.uv.count;i++){
+      const param=uvToParam(hg.attributes.uv.getX(i),hg.attributes.uv.getY(i));
+      const weight=jawOffset(param.theta,param.v);
+      jawShape[i*3+1]=-.009*weight;jawShape[i*3+2]=-.002*weight;
     }
-    const lidGeo=new T.BufferGeometry();
-    lidGeo.setAttribute('position',new T.Float32BufferAttribute(positions,3));
-    lidGeo.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));
-    lidGeo.setAttribute('color',new T.Float32BufferAttribute(colors,3));lidGeo.setIndex(triangles);
-    const lids=solid(head,lidGeo,lidFur);lids.name='FurredEyelids';lids.castShadow=false;
-    const lidPos=lidGeo.attributes.position,point=vec(),offset=vec(),norm=vec();
-    const currentV=new Float32Array(samples.length);
-    const edgeGeo=ribbonGeometry(2,48,()=>vec()),edgePos=edgeGeo.attributes.position;
-    const edge=solid(head,edgeGeo,lashShade);edge.name='ClosedLidMargin';edge.castShadow=false;
-    function coverSphere(theta,v,depth,target){
-      target.copy(headPoint(theta,v));offset.copy(target).sub(frame.position);
-      const x=offset.dot(horizontal)/eyeRadius.x,y=offset.dot(vertical)/eyeRadius.y;
-      const r2=x*x+y*y;
-      if(r2<1){
-        const sphereDepth=depth*eyeRadius.z*Math.sqrt(1-r2)+.00068;
-        target.addScaledVector(normal,Math.max(0,sphereDepth-offset.dot(normal)));
+    hg.morphTargetsRelative=true;hg.morphAttributes.position=[new T.Float32BufferAttribute(jawShape,3)];
+    const faceCoat=material('white',silverFaceTexture());
+    faceCoat.roughness=.97;
+    const facialMesh=add(head,hg,faceCoat);facialMesh.name='SilverHeadCoat';
+    const lineMat=material('#8c786b');
+    // Rounded pinnae with a recessed rose inner ear and a raised buff conchal fold.
+    for(const [i,ear] of ears.entries()){
+      const s=i===0?1:-1,loop=new T.Shape();
+      loop.moveTo(-.032,-.007);loop.bezierCurveTo(-.034,.006,-.008,.039,.016,.058);
+      loop.bezierCurveTo(.024,.065,.032,.061,.034,.052);loop.bezierCurveTo(.038,.031,.033,.002,.020,-.011);
+      loop.bezierCurveTo(.009,-.019,-.014,-.018,-.027,-.007);
+      const outline2=loop.getSpacedPoints(64).slice(0,-1);
+      const center=new T.Vector2(.006,.012),verts=[],colors=[],faces=[],earUV=[];
+      const earColors=['#ada79e','#aca69d','#d3cabe','#e5d9c8','#c6ac9e','#cc9d8d','#d8ab9c','#b78579'];
+      // The back swells at the root but the rim collapses to a thin, soft tip.
+      const rings=[
+        [.003,-1],[.63,-.88],[.955,-.44],[1,-.04],[.974,.32],[.90,.51],[.86,.43],[.68,.13],[.30,-.10],[.002,-.16]
+      ];
+      const palette=[0,0,1,1,2,3,4,5,6,7].map(k=>new T.Color(earColors[k]));
+      for(let j=0;j<rings.length;j++)for(let i2=0;i2<outline2.length;i2++){
+        const p=outline2[i2].clone().lerp(center,1-rings[j][0]);
+        const h=clamp((p.y+.014)/.078,0,1),spread=1-.68*h;
+        const thick=.019*spread;
+        const z=.006-.009*h*h-.43*p.x+thick*rings[j][1];
+        verts.push(s*(p.x*1.14-.15*Math.max(0,p.y)),p.y*.72,z);const col=palette[j].clone();
+        earUV.push(clamp((p.x+.036)/.076,.004,.996),clamp((p.y+.020)/.085,.004,.996));
+        if(j<4)col.lerp(new T.Color('#d7cbbc'),.65*T.MathUtils.smoothstep(h,.69,.99));
+        colors.push(col.r,col.g,col.b);
+        if(j<rings.length-1){const n=outline2.length,k=j*n+i2,l=j*n+(i2+1)%n;
+          if(s>0)faces.push(k,l,k+n,l,l+n,k+n);else faces.push(k,k+n,l,l,k+n,l+n);}
       }
-      return target;
-    }
-    function closeEye(blink){
-      const depth=1-.12*T.MathUtils.smoothstep(blink,.18,.98);
-      globe.scale.z=eyeRadius.z*depth;optical.scale.z=depth;
-      for(const [n,sample] of samples.entries()){
-        const v=mix(mix(sample.openV,sample.seamV,blink),sample.outerV,sample.t);
-        currentV[n]=v;
-        if(sample.t===1)point.copy(headPoint(sample.theta,v));
-        else coverSphere(sample.theta,v,depth,point);
-        lidPos.setXYZ(n,point.x,point.y,point.z);
+      const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(verts,3));geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));geo.setIndex(faces);geo.computeVertexNormals();
+      geo.setAttribute('uv',new T.Float32BufferAttribute(earUV,2));
+      const partition=3*outline2.length*6;
+      geo.addGroup(0,partition,0);geo.addGroup(partition,faces.length-partition,1);
+      const pinnaMaterials=[true,false].map(back=>{
+        const tex=silverEarTexture(back),m=material('white',tex);
+        m.side=T.DoubleSide;m.vertexColors=!tex;m.roughness=.92;return m;
+      });
+      const shell=solid(ear,geo,pinnaMaterials);
+      shell.name=s>0?'LeftPinna':'RightPinna';
+      // Flush, short pencil-like folds at the base leave the pink pinna readable.
+      const probe=new T.Raycaster(),towardsBack=vec(0,0,-1);
+      const worldToLocal=ear.matrixWorld.clone().invert();
+      function earPoint(x,y,offset){
+        probe.set(vec(s*(x*1.14-.15*Math.max(0,y/.85)),y*.847,.07).applyMatrix4(ear.matrixWorld),towardsBack);
+        const hit=probe.intersectObject(shell,false)[0];
+        return hit?hit.point.applyMatrix4(worldToLocal).add(vec(0,0,offset)):vec(s*(x*1.14-.15*Math.max(0,y/.85)),y*.847,0);
       }
-      lidPos.needsUpdate=true;lidGeo.computeVertexNormals();
-      const normals=lidGeo.attributes.normal;
-      for(let n=0;n<samples.length;n++){
-        const blend=T.MathUtils.smoothstep(samples[n].t,.52,1);
-        if(!blend)continue;
-        headNormal(samples[n].theta,currentV[n],norm);
-        point.fromBufferAttribute(normals,n).lerp(norm,blend).normalize();
-        normals.setXYZ(n,point.x,point.y,point.z);
-      }
-      normals.needsUpdate=true;lidGeo.computeBoundingSphere();
-      edge.visible=true;
-      {
-        const thickness=.00038+.00012*T.MathUtils.smoothstep(blink,.52,.94);
-        for(let row=0;row<=2;row++)for(let col=0;col<=48;col++){
-          const a=Math.PI*(1-col/48),xx=Math.cos(a),yy=Math.sin(a),inner=Math.max(0,-side*xx)**5;
-          const theta=centerTheta+settings.halfTheta*xx;
-          const vOpen=settings.v+settings.halfV*yy*(1-.075*xx*xx)+side*.012*xx-.014*inner;
-          const seamV=settings.v-.012+.032*(1-xx*xx)-.014*inner;
-          coverSphere(theta,mix(vOpen,seamV,blink),depth,point);
-          point.addScaledVector(normal,.00022).addScaledVector(vertical,(row-1)*thickness*Math.sin(a)**.6);
-          edgePos.setXYZ(row*49+col,point.x,point.y,point.z);
+      shell.updateWorldMatrix(true,false);
+      const hairVertices=[],hairColors=[],hairIndices=[];
+      const shades=[new T.Color('#bc9b88'),new T.Color('#deccba')];
+      const roots=[[-.012,.013],[-.010,.016],[-.008,.018],[-.006,.020]];
+      const ends=[[.010,.017],[.010,.021],[.008,.025],[.006,.028]];
+      const widths=[.0018,.0015,.0011,.0008];
+      for(let k=0;k<roots.length;k++){
+        const [rx,ry]=roots[k],[ex,ey]=ends[k],width=widths[k];
+        for(let layer=0;layer<2;layer++){
+          const base=hairVertices.length/3;
+          for(let row=0;row<=9;row++)for(let col=0;col<=2;col++){
+            const u=col/2,v=row/9;
+            const spread=width*(1-v)**.74;
+            const x=mix(rx,ex,v),y=mix(ry,ey,v)+.003*Math.sin(v*Math.PI)+(u-.5)*spread;
+            hairVertices.push(...earPoint(x,y+.00045*layer,.00055+layer*.00026).toArray());
+            hairColors.push(...shades[layer].toArray());
+            if(col<2&&row<9){const n=base+row*3+col;hairIndices.push(n,n+1,n+3,n+1,n+4,n+3);}
+          }
         }
-        edgePos.needsUpdate=true;edgeGeo.computeVertexNormals();edgeGeo.computeBoundingSphere();
       }
+      const hairGeo=new T.BufferGeometry();
+      hairGeo.setAttribute('position',new T.Float32BufferAttribute(hairVertices,3));
+      hairGeo.setAttribute('color',new T.Float32BufferAttribute(hairColors,3));
+      hairGeo.setIndex(hairIndices);hairGeo.computeVertexNormals();
+      const hairMat=material('white');hairMat.vertexColors=true;hairMat.side=T.DoubleSide;
+      solid(ear,hairGeo,hairMat).castShadow=false;
     }
-    return {side,texture,globe,optical,lids,closeEye,lastBlink:-1};
-  }
-  eyes.push(createEye(1),createEye(-1));
-  // Rounded, fine-grained nasal leather set into the bridge.
-  const noseShape=new T.Shape();noseShape.moveTo(-.0082,.0019);
-  noseShape.bezierCurveTo(-.0088,.0048,-.0046,.0054,0,.0046);
-  noseShape.bezierCurveTo(.0046,.0054,.0088,.0048,.0082,.0019);
-  noseShape.bezierCurveTo(.0077,-.0002,.0034,-.0019,.0022,-.0042);
-  noseShape.quadraticCurveTo(0,-.0064,-.0022,-.0042);noseShape.bezierCurveTo(-.0034,-.0019,-.0077,-.0002,-.0082,.0019);
-  const noseV=HEAD.nose.v,noseUV=[];
-  const noseMap=painted(c=>{
-    const color=c.createLinearGradient(.34,.04,.55,1);
-    color.addColorStop(0,'#ebc2af');color.addColorStop(.46,'#dba498');color.addColorStop(1,'#bb8580');
-    c.fillStyle=color;c.fillRect(0,0,1,1);
-    for(const side of [-1,1]){
-      c.save();c.translate(.5+side*.30,.475);c.rotate(-side*.41);c.scale(.082,.029);
-      const naris=c.createRadialGradient(0,0,0,0,0,1);naris.addColorStop(0,'rgba(101,62,63,.81)');naris.addColorStop(.58,'rgba(131,82,77,.60)');naris.addColorStop(1,'rgba(152,98,88,0)');
-      c.fillStyle=naris;c.fillRect(-1,-1,2,2);c.restore();
+    const lidFur=material('white',faceCoat.map);
+    lidFur.roughness=.96;lidFur.vertexColors=true;lidFur.side=T.DoubleSide;
+    const eyeGlobe=material('#30231f');eyeGlobe.roughness=.35;
+    const lashShade=material('#433932');lashShade.side=T.DoubleSide;lashShade.roughness=1;
+    const eyeRadius=vec(...HEAD.eye.radius);
+    function createEye(side){
+      const settings=HEAD.eye,centerTheta=side*settings.theta;
+      const anchor=headPoint(centerTheta,settings.v);
+      const normal=headNormal(centerTheta,settings.v).lerp(vec(0,.03,1),.51).normalize();
+      const horizontal=vec(0,1,0).cross(normal).normalize(),vertical=normal.clone().cross(horizontal);
+      const frame=new T.Group();
+      frame.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(horizontal,vertical,normal));
+      frame.position.copy(anchor).addScaledVector(normal,-settings.inset);head.add(frame);
+      const globe=solid(frame,new T.SphereGeometry(1,40,28),eyeGlobe);
+      globe.scale.copy(eyeRadius);globe.name=side>0?'LeftEyeGlobe':'RightEyeGlobe';globe.castShadow=false;
+      const texture=silverIrisTexture();
+      const irisMaterial=new T.MeshPhysicalMaterial({map:texture,roughness:.38,clearcoat:.42,clearcoatRoughness:.18,specularIntensity:.18,ior:1.38});
+      mats.add(irisMaterial);maps.add(texture);
+      const irisGeo=ribbonGeometry(14,64,(u,r)=>{
+        const a=-tau*u;
+        return vec(eyeRadius.x*r*Math.cos(a),eyeRadius.y*r*Math.sin(a),eyeRadius.z*Math.sqrt(Math.max(0,1-r*r))+.00021);
+      });
+      for(let n=0;n<irisGeo.attributes.uv.count;n++)irisGeo.attributes.uv.setXY(n,
+        .5+irisGeo.attributes.position.getX(n)/eyeRadius.x*.5,
+        .5+irisGeo.attributes.position.getY(n)/eyeRadius.y*.5);
+      const optical=solid(frame,irisGeo,irisMaterial);optical.name='IrisAndCornea';optical.castShadow=false;
+
+      // The outer loop exactly reuses the vertices of the cut scalp boundary.
+      // UVs are evaluated once in the open bind pose and are never animated.
+      const boundary=eyeBoundary(side),count=boundary.length,bands=12;
+      const positions=[],uvs=[],colors=[],triangles=[],samples=[];
+      for(let row=0;row<=bands;row++)for(let k=0;k<count;k++){
+        const t=row/bands,outer=boundary[k];
+        const a=Math.atan2((outer.v-settings.v)/settings.cutV,(outer.theta-centerTheta)/settings.cutTheta);
+        const xx=Math.cos(a),yy=Math.sin(a),inner=Math.max(0,-side*xx)**5;
+        const thetaInner=centerTheta+settings.halfTheta*xx;
+        const vOpen=settings.v+settings.halfV*yy*(1-.075*xx*xx)+side*.012*xx-.014*inner;
+        const theta=mix(thetaInner,outer.theta,t),v=mix(vOpen,outer.v,t);
+        const uv=headUv(theta,v);
+        positions.push(0,0,0);uvs.push(uv.x,uv.y);
+        const shade=mix(yy>0?.32:.52,1,T.MathUtils.smoothstep(t,0,.20));
+        colors.push(shade,shade,shade);
+        samples.push({t,theta,outerV:outer.v,openV:vOpen,seamV:settings.v-.012+.032*(1-xx*xx)-.014*inner});
+        if(row<bands){
+          const n=row*count+k,next=row*count+(k+1)%count;
+          triangles.push(n,next,n+count,next,next+count,n+count);
+        }
+      }
+      const lidGeo=new T.BufferGeometry();
+      lidGeo.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+      lidGeo.setAttribute('uv',new T.Float32BufferAttribute(uvs,2));
+      lidGeo.setAttribute('color',new T.Float32BufferAttribute(colors,3));lidGeo.setIndex(triangles);
+      const lids=solid(head,lidGeo,lidFur);lids.name='FurredEyelids';lids.castShadow=false;
+      const lidPos=lidGeo.attributes.position,point=vec(),offset=vec(),norm=vec();
+      const currentV=new Float32Array(samples.length);
+      const edgeGeo=ribbonGeometry(2,48,()=>vec()),edgePos=edgeGeo.attributes.position;
+      const edge=solid(head,edgeGeo,lashShade);edge.name='ClosedLidMargin';edge.castShadow=false;
+      function coverSphere(theta,v,depth,target){
+        target.copy(headPoint(theta,v));offset.copy(target).sub(frame.position);
+        const x=offset.dot(horizontal)/eyeRadius.x,y=offset.dot(vertical)/eyeRadius.y;
+        const r2=x*x+y*y;
+        if(r2<1){
+          const sphereDepth=depth*eyeRadius.z*Math.sqrt(1-r2)+.00068;
+          target.addScaledVector(normal,Math.max(0,sphereDepth-offset.dot(normal)));
+        }
+        return target;
+      }
+      function closeEye(blink){
+        const depth=1-.12*T.MathUtils.smoothstep(blink,.18,.98);
+        globe.scale.z=eyeRadius.z*depth;optical.scale.z=depth;
+        for(const [n,sample] of samples.entries()){
+          const v=mix(mix(sample.openV,sample.seamV,blink),sample.outerV,sample.t);
+          currentV[n]=v;
+          if(sample.t===1)point.copy(headPoint(sample.theta,v));
+          else coverSphere(sample.theta,v,depth,point);
+          lidPos.setXYZ(n,point.x,point.y,point.z);
+        }
+        lidPos.needsUpdate=true;lidGeo.computeVertexNormals();
+        const normals=lidGeo.attributes.normal;
+        for(let n=0;n<samples.length;n++){
+          const blend=T.MathUtils.smoothstep(samples[n].t,.52,1);
+          if(!blend)continue;
+          headNormal(samples[n].theta,currentV[n],norm);
+          point.fromBufferAttribute(normals,n).lerp(norm,blend).normalize();
+          normals.setXYZ(n,point.x,point.y,point.z);
+        }
+        normals.needsUpdate=true;lidGeo.computeBoundingSphere();
+        edge.visible=true;
+        {
+          const thickness=.00038+.00012*T.MathUtils.smoothstep(blink,.52,.94);
+          for(let row=0;row<=2;row++)for(let col=0;col<=48;col++){
+            const a=Math.PI*(1-col/48),xx=Math.cos(a),yy=Math.sin(a),inner=Math.max(0,-side*xx)**5;
+            const theta=centerTheta+settings.halfTheta*xx;
+            const vOpen=settings.v+settings.halfV*yy*(1-.075*xx*xx)+side*.012*xx-.014*inner;
+            const seamV=settings.v-.012+.032*(1-xx*xx)-.014*inner;
+            coverSphere(theta,mix(vOpen,seamV,blink),depth,point);
+            point.addScaledVector(normal,.00022).addScaledVector(vertical,(row-1)*thickness*Math.sin(a)**.6);
+            edgePos.setXYZ(row*49+col,point.x,point.y,point.z);
+          }
+          edgePos.needsUpdate=true;edgeGeo.computeVertexNormals();edgeGeo.computeBoundingSphere();
+        }
+      }
+      return {side,texture,globe,optical,lids,closeEye,lastBlink:-1};
     }
-    for(let i=1;i<750;i++){
-      const x=(i*.6180339887)%1,y=(i*.75487766)%1;
-      oval(c,x,y,.0018,.0027,i%3?'rgba(104,68,65,.13)':'rgba(250,222,203,.22)');
-    }
-  },256,192);
-  const noseMat=material('white',noseMap);noseMat.roughness=.68;noseMat.side=T.DoubleSide;
-  const noseGeo=ribbonGeometry(15,64,(u,r)=>{
-    const contour=noseShape.getPointAt(u),x=contour.x*r,y=contour.y*r;
-    const v=noseV+y/HEAD.halfHeight,theta=Math.asin(clamp(x/halfFaceWidth(v),-1,1));
-    const qx=x/.017+.5,qy=y/.0125+.5;
-    const pit=.00051*Math.exp(-((Math.abs(qx-.5)-.30)**2)/.007-((qy-.525)**2)/.002);
-    noseUV.push([qx,qy]);return headSurface(theta,v,.00195*Math.max(0,1-r*r)**.65-pit+.00012);
-  });
-  for(const [i,[u,v]] of noseUV.entries())noseGeo.attributes.uv.setXY(i,u,v);
-  solid(head,noseGeo,noseMat).name='NoseLeather';
-  const septum=headSurface(0,noseV-.063,.00043);
-  line(head,[septum,headSurface(0,-.186,.00048),headSurface(0,HEAD.mouth.v,.00040)],.00043,lineMat);
-  for(const s of [-1,1]){
-    const crease=ribbonGeometry(4,32,(u,t)=>{
-      const angle=s*HEAD.mouth.halfTheta*u,v=HEAD.mouth.v-.084*Math.sin(u*Math.PI*.76);
-      return headSurface(angle,v+(t-.5)*.011*Math.sin(Math.PI*u)**.55,.00038);
+    eyes.push(createEye(1),createEye(-1));
+    // Rounded, fine-grained nasal leather set into the bridge.
+    const noseShape=new T.Shape();noseShape.moveTo(-.0082,.0019);
+    noseShape.bezierCurveTo(-.0088,.0048,-.0046,.0054,0,.0046);
+    noseShape.bezierCurveTo(.0046,.0054,.0088,.0048,.0082,.0019);
+    noseShape.bezierCurveTo(.0077,-.0002,.0034,-.0019,.0022,-.0042);
+    noseShape.quadraticCurveTo(0,-.0064,-.0022,-.0042);noseShape.bezierCurveTo(-.0034,-.0019,-.0077,-.0002,-.0082,.0019);
+    const noseV=HEAD.nose.v,noseUV=[];
+    const noseMap=painted(c=>{
+      const color=c.createLinearGradient(.34,.04,.55,1);
+      color.addColorStop(0,'#ebc2af');color.addColorStop(.46,'#dba498');color.addColorStop(1,'#bb8580');
+      c.fillStyle=color;c.fillRect(0,0,1,1);
+      for(const side of [-1,1]){
+        c.save();c.translate(.5+side*.30,.475);c.rotate(-side*.41);c.scale(.082,.029);
+        const naris=c.createRadialGradient(0,0,0,0,0,1);naris.addColorStop(0,'rgba(101,62,63,.81)');naris.addColorStop(.58,'rgba(131,82,77,.60)');naris.addColorStop(1,'rgba(152,98,88,0)');
+        c.fillStyle=naris;c.fillRect(-1,-1,2,2);c.restore();
+      }
+      for(let i=1;i<750;i++){
+        const x=(i*.6180339887)%1,y=(i*.75487766)%1;
+        oval(c,x,y,.0018,.0027,i%3?'rgba(104,68,65,.13)':'rgba(250,222,203,.22)');
+      }
+    },256,192);
+    const noseMat=material('white',noseMap);noseMat.roughness=.68;noseMat.side=T.DoubleSide;
+    const noseGeo=ribbonGeometry(15,64,(u,r)=>{
+      const contour=noseShape.getPointAt(u),x=contour.x*r,y=contour.y*r;
+      const v=noseV+y/HEAD.halfHeight,theta=Math.asin(clamp(x/halfFaceWidth(v),-1,1));
+      const qx=x/.017+.5,qy=y/.0125+.5;
+      const pit=.00051*Math.exp(-((Math.abs(qx-.5)-.30)**2)/.007-((qy-.525)**2)/.002);
+      noseUV.push([qx,qy]);return headSurface(theta,v,.00195*Math.max(0,1-r*r)**.65-pit+.00012);
     });
-    const seam=solid(head,crease,lineMat);seam.material.side=T.DoubleSide;seam.castShadow=false;
-  }
-  // Conforming mouth and tongue patches share the jaw's motion. Sampling
-  // the chin directly keeps the corners attached as a small mew opens wide.
-  const mouthMap=painted(c=>{
-    const color=c.createLinearGradient(0,0,.10,1);
-    for(const [t,col] of [[0,'#57342d'],[.20,'#3a2022'],[.60,'#4b242c'],[.83,'#75434a'],[1,'#a46867']])color.addColorStop(t,col);
-    c.fillStyle=color;c.fillRect(0,0,1,1);
-  },128,128);
-  const tongueMap=painted(c=>{
-    const color=c.createLinearGradient(.1,0,.55,1);
-    color.addColorStop(0,'#da9a9a');color.addColorStop(.44,'#c98589');color.addColorStop(1,'#994f58');
-    c.fillStyle=color;c.fillRect(0,0,1,1);
-    c.strokeStyle='rgba(125,64,72,.37)';c.lineWidth=.025;c.beginPath();c.moveTo(.5,.04);c.quadraticCurveTo(.47,.19,.50,.51);c.stroke();
-  },128,128);
-  function mouthPatch(isTongue){
-    const locations=[];
-    const g=ribbonGeometry(8,42,(u,v)=>{
-      const a=-u*tau,xx=v*Math.cos(a),yy=v*Math.sin(a);
-      locations.push([xx,yy,v]);return vec(xx,yy,0);
-    });
-    const uv=g.attributes.uv;
-    for(const [i,[xx,yy]] of locations.entries())uv.setXY(i,.5+.5*xx,.5+.5*yy);
-    const mat=material('white',isTongue?tongueMap:mouthMap);mat.roughness=isTongue?.56:.86;mat.side=T.DoubleSide;
-    const mesh=solid(head,g,mat);mesh.castShadow=false;mesh.name=isTongue?'Tongue':'Mouth';
-    function update(open){
-      mesh.visible=open>(isTongue?.22:.025);
-      if(!mesh.visible)return;
-      const p=g.attributes.position,w=.005+.0078*Math.sqrt(open),h=.0009+.021*open;
-      for(const [i,[a,b,r]] of locations.entries()){
-        const xx=isTongue?a*.62:a,yy=isTongue?-.64+.23*b:b;
-        const v=HEAD.mouth.v-.004-(1-yy)*h/(2*HEAD.halfHeight)-.040*xx*xx;
-        const theta=Math.asin(clamp(xx*w/halfFaceWidth(v),-1,1));
-        const pt=headSurface(theta,v,.00096+.0008*(1-xx*xx-yy*yy)+(isTongue?.0007+.00065*(1-r*r):0));
-        const jaw=jawOffset(theta,v)*open;pt.y-=.009*jaw;pt.z-=.002*jaw;p.setXYZ(i,pt.x,pt.y,pt.z);
-      }
-      p.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
+    for(const [i,[u,v]] of noseUV.entries())noseGeo.attributes.uv.setXY(i,u,v);
+    solid(head,noseGeo,noseMat).name='NoseLeather';
+    const septum=headSurface(0,noseV-.063,.00043);
+    line(head,[septum,headSurface(0,-.186,.00048),headSurface(0,HEAD.mouth.v,.00040)],.00043,lineMat);
+    for(const s of [-1,1]){
+      const crease=ribbonGeometry(4,32,(u,t)=>{
+        const angle=s*HEAD.mouth.halfTheta*u,v=HEAD.mouth.v-.084*Math.sin(u*Math.PI*.76);
+        return headSurface(angle,v+(t-.5)*.011*Math.sin(Math.PI*u)**.55,.00038);
+      });
+      const seam=solid(head,crease,lineMat);seam.material.side=T.DoubleSide;seam.castShadow=false;
     }
-    return update;
-  }
-  let openLips=mouthPatch(false),liftTongue=mouthPatch(true);
-  const whiskers=[];
-  // Each row starts on a different follicle. The whisker is stiff near the
-  // pad and bends downward in its outer third under its own weight.
-  const follicleRows=[
-    [.21,-.246,.068,.006,'#e5ded1'],
-    [.31,-.232,.073,.016,'#d4cbbd'],
-    [.27,-.293,.068,.027,'#eee6d8'],
-    [.38,-.275,.056,.024,'#ccbfad'],
-  ];
-  for(const s of [1,-1]){
-    for(let j=0;j<6;j++){
-      const brow=j>=4;
-      let curve,whiskerTone;
-      if(brow){
-        const start=headSurface(s*(.67+.08*(j-4)),.43+.02*(j-4),.0016);
-        curve=new T.CatmullRomCurve3([start,start.clone().add(vec(s*.005,.010,.007)),
-          start.clone().add(vec(s*(.016+(j-4)*.006),.023-(j-4)*.007,.005))]);
-        whiskerTone='#d9cdbb';
-      }else{
-        const [angle,v,reach,drop,tone]=follicleRows[j],offset=s*Math.cos(j*2.1)*.0018;
-        const start=headSurface(s*angle,v,.0007);
-        curve=new T.CubicBezierCurve3(start,
-          start.clone().add(vec(s*.017,.0035-j*.0008,.006)),
-          start.clone().add(vec(s*reach*.70,.001-j*.0018+offset,.009)),
-          start.clone().add(vec(s*(reach+offset),-drop+offset,-.005-j*.0012)));
-        whiskerTone=tone;
+    // Conforming mouth and tongue patches share the jaw's motion. Sampling
+    // the chin directly keeps the corners attached as a small mew opens wide.
+    const mouthMap=painted(c=>{
+      const color=c.createLinearGradient(0,0,.10,1);
+      for(const [t,col] of [[0,'#57342d'],[.20,'#3a2022'],[.60,'#4b242c'],[.83,'#75434a'],[1,'#a46867']])color.addColorStop(t,col);
+      c.fillStyle=color;c.fillRect(0,0,1,1);
+    },128,128);
+    const tongueMap=painted(c=>{
+      const color=c.createLinearGradient(.1,0,.55,1);
+      color.addColorStop(0,'#da9a9a');color.addColorStop(.44,'#c98589');color.addColorStop(1,'#994f58');
+      c.fillStyle=color;c.fillRect(0,0,1,1);
+      c.strokeStyle='rgba(125,64,72,.37)';c.lineWidth=.025;c.beginPath();c.moveTo(.5,.04);c.quadraticCurveTo(.47,.19,.50,.51);c.stroke();
+    },128,128);
+    function mouthPatch(isTongue){
+      const locations=[];
+      const g=ribbonGeometry(8,42,(u,v)=>{
+        const a=-u*tau,xx=v*Math.cos(a),yy=v*Math.sin(a);
+        locations.push([xx,yy,v]);return vec(xx,yy,0);
+      });
+      const uv=g.attributes.uv;
+      for(const [i,[xx,yy]] of locations.entries())uv.setXY(i,.5+.5*xx,.5+.5*yy);
+      const mat=material('white',isTongue?tongueMap:mouthMap);mat.roughness=isTongue?.56:.86;mat.side=T.DoubleSide;
+      const mesh=solid(head,g,mat);mesh.castShadow=false;mesh.name=isTongue?'Tongue':'Mouth';
+      function update(open){
+        mesh.visible=open>(isTongue?.22:.025);
+        if(!mesh.visible)return;
+        const p=g.attributes.position,w=.005+.0078*Math.sqrt(open),h=.0009+.021*open;
+        for(const [i,[a,b,r]] of locations.entries()){
+          const xx=isTongue?a*.62:a,yy=isTongue?-.64+.23*b:b;
+          const v=HEAD.mouth.v-.004-(1-yy)*h/(2*HEAD.halfHeight)-.040*xx*xx;
+          const theta=Math.asin(clamp(xx*w/halfFaceWidth(v),-1,1));
+          const pt=headSurface(theta,v,.00096+.0008*(1-xx*xx-yy*yy)+(isTongue?.0007+.00065*(1-r*r):0));
+          const jaw=jawOffset(theta,v)*open;pt.y-=.009*jaw;pt.z-=.002*jaw;p.setXYZ(i,pt.x,pt.y,pt.z);
+        }
+        p.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
       }
-      const geo=new T.TubeGeometry(curve,12,brow?.00028:.00050,5,false);
-      const p=geo.attributes.position;
-      for(let k=0;k<p.count;k++){const t=Math.floor(k/6)/12;const origin=curve.getPointAt(t),point=vec().fromBufferAttribute(p,k);point.lerp(origin,t*.9);p.setXYZ(k,point.x,point.y,point.z);}
-      const w=solid(head,geo,material(whiskerTone));w.castShadow=false;whiskers.push(w);
+      return update;
     }
+    const openLips=mouthPatch(false),liftTongue=mouthPatch(true);
+    // Each row starts on a different follicle. The whisker is stiff near the
+    // pad and bends downward in its outer third under its own weight.
+    const follicleRows=[
+      [.21,-.246,.068,.006,'#e5ded1'],
+      [.31,-.232,.073,.016,'#d4cbbd'],
+      [.27,-.293,.068,.027,'#eee6d8'],
+      [.38,-.275,.056,.024,'#ccbfad'],
+    ];
+    for(const s of [1,-1]){
+      for(let j=0;j<6;j++){
+        const brow=j>=4;
+        let curve,whiskerTone;
+        if(brow){
+          const start=headSurface(s*(.67+.08*(j-4)),.43+.02*(j-4),.0016);
+          curve=new T.CatmullRomCurve3([start,start.clone().add(vec(s*.005,.010,.007)),
+            start.clone().add(vec(s*(.016+(j-4)*.006),.023-(j-4)*.007,.005))]);
+          whiskerTone='#d9cdbb';
+        }else{
+          const [angle,v,reach,drop,tone]=follicleRows[j],offset=s*Math.cos(j*2.1)*.0018;
+          const start=headSurface(s*angle,v,.0007);
+          curve=new T.CubicBezierCurve3(start,
+            start.clone().add(vec(s*.017,.0035-j*.0008,.006)),
+            start.clone().add(vec(s*reach*.70,.001-j*.0018+offset,.009)),
+            start.clone().add(vec(s*(reach+offset),-drop+offset,-.005-j*.0012)));
+          whiskerTone=tone;
+        }
+        const geo=new T.TubeGeometry(curve,12,brow?.00028:.00050,5,false);
+        const p=geo.attributes.position;
+        for(let k=0;k<p.count;k++){const t=Math.floor(k/6)/12;const origin=curve.getPointAt(t),point=vec().fromBufferAttribute(p,k);point.lerp(origin,t*.9);p.setXYZ(k,point.x,point.y,point.z);}
+        const w=solid(head,geo,material(whiskerTone));w.castShadow=false;whiskers.push(w);
+      }
+    }
+    let previousOpen=-1;
+    return function setLegacyFace(values={}){
+      const {blink=0,wink=0,gazeX=0,gazeY=0,mouth:open=0,pupil=.5}=values;
+      for(const eye of eyes){
+        const b=clamp(eye.side<0?Math.max(blink,wink):blink,0,1);
+        if(Math.abs(b-eye.lastBlink)>.015||((b===1||b===0)&&b!==eye.lastBlink)){
+          eye.closeEye(b);eye.lastBlink=b;
+        }
+        const repeat=1.06-.12*clamp(pupil,0,1);
+        eye.texture.repeat.set(repeat,repeat);eye.texture.offset.set((1-repeat)*.5,(1-repeat)*.5);
+        eye.optical.rotation.set(-.105*clamp(gazeY,-1,1),.14*clamp(gazeX,-1,1),0);
+      }
+      const gap=clamp(open,0,1);
+      if(Math.abs(gap-previousOpen)>.014||((gap===0||gap===1)&&gap!==previousOpen)){
+        facialMesh.morphTargetInfluences[0]=gap;
+        openLips(gap);liftTongue(gap);previousOpen=gap;
+      }
+    };
   }
-  let previousOpen=-1,headController=null,legacyHeadRemoved=false,disposed=false;
+  let legacyFace=nativeHeadOnly?null:buildLegacyFace();
+  let headController=null,legacyHeadRemoved=nativeHeadOnly,disposed=false;
   function setFace(values={}){
     if(disposed)return;
-    if(headController)return headController.setFace(values);
-    const {blink=0,wink=0,gazeX=0,gazeY=0,mouth:open=0,pupil=.5}=values;
-    for(const eye of eyes){
-      const b=clamp(eye.side<0?Math.max(blink,wink):blink,0,1);
-      if(Math.abs(b-eye.lastBlink)>.015||((b===1||b===0)&&b!==eye.lastBlink)){
-        eye.closeEye(b);eye.lastBlink=b;
-      }
-      const repeat=1.06-.12*clamp(pupil,0,1);
-      eye.texture.repeat.set(repeat,repeat);eye.texture.offset.set((1-repeat)*.5,(1-repeat)*.5);
-      eye.optical.rotation.set(-.105*clamp(gazeY,-1,1),.14*clamp(gazeX,-1,1),0);
-    }
-    const gap=clamp(open,0,1);
-    if(Math.abs(gap-previousOpen)>.014||((gap===0||gap===1)&&gap!==previousOpen)){
-      facialMesh.morphTargetInfluences[0]=gap;
-      openLips(gap);liftTongue(gap);previousOpen=gap;
-    }
+    if(headController)headController.setFace(values);
+    else legacyFace?.(values);
   }
   setFace();
   const rig={...bones,pelvis:hips,ears,tail,eyes,legs:Object.fromEntries(Object.entries(legs).map(([id,leg])=>[id.toLowerCase(),leg])),setFace};
   const toonPalette=createToonPalette();
   for(const m of toonifyCat(root,toonPalette))mats.add(m);
-  const fur=addKittenFur(root,toonPalette,{legacyHead:legacyHeadFur});
+  // Medium quality renders the coat texture alone. Building the hidden nap
+  // would still allocate and skin thousands of ribbons before the first frame.
+  const fur=detailedFur?addKittenFur(root,toonPalette,{legacyHead:legacyHeadFur}):null;
   function removeLegacyHead(){
     if(legacyHeadRemoved)return;
     legacyHeadRemoved=true;
@@ -756,7 +770,7 @@ export function createToonCat({legacyHeadFur=true}={}){
       if(ears.includes(child))for(const visual of [...child.children])visual.removeFromParent();
       else child.removeFromParent();
     }
-    fur.removeLegacyHead();
+    fur?.removeLegacyHead();
     // Materials and pigment maps can be shared by multiple meshes. Keep
     // everything used by the remaining body, bell, collar and fur layers.
     const activeGeometries=new Set(),activeMaterials=new Set(),activeMaps=new Set();
@@ -777,12 +791,12 @@ export function createToonCat({legacyHeadFur=true}={}){
     removeLegacyHead();headController=controller;
     eyes.splice(0,eyes.length,...controller.eyes);
     whiskers.splice(0,whiskers.length,...controller.whiskers);
-    facialMesh=null;openLips=null;liftTongue=null;
+    legacyFace=null;
     return true;
   }
   function dispose(){
     if(disposed)return;disposed=true;headController?.dispose();
-    fur.dispose();toonPalette.dispose();geoms.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());maps.forEach(t=>t.dispose());skeleton.dispose();root.removeFromParent();
+    fur?.dispose();toonPalette.dispose();geoms.forEach(g=>g.dispose());mats.forEach(m=>m.dispose());maps.forEach(t=>t.dispose());skeleton.dispose();root.removeFromParent();
   }
   return {root,bones,legs,tail,ears,eyes,whiskers,bellPivot,setFace,rig,fur,updateCoatPose,dispose,
     removeLegacyHead,installHeadController,get isDisposed(){return disposed;}};

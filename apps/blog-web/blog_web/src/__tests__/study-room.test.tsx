@@ -5,6 +5,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { webcrypto } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import StudyRoom from '@/components/study/StudyRoom'
+import * as roomLoader from '@/components/study/room-loader'
 import { LetterDeliveryProvider } from '@/components/study/LetterDelivery'
 import { isDestination, type ClockView, type RoomItem } from '@/components/study/model'
 import { clockHandAngles } from '@/components/study/wall-clock'
@@ -382,12 +383,18 @@ describe('书房的内容与恢复流程', () => {
     await click('日记 · 日常')
     expect(document.querySelector('[role="dialog"] a')?.getAttribute('href')).toBe('/zh/timeline')
   })
-  it('简洁模式偏好保留正常内容入口', async () => {
+  it('简洁模式保留内容入口，只在选择进入 3D 后加载场景', async () => {
     localStorage.setItem('study-simple', 'true')
+    const loadScene = vi.spyOn(roomLoader, 'loadRoomScene')
     await mount()
+    expect(loadScene).not.toHaveBeenCalled()
     expect(document.body.textContent).toContain('进入 3D 书房')
     expect(document.querySelector('[role="status"]')).toBeNull()
     expect(document.querySelector('a[href="/zh/posts"]')).toBeTruthy()
+    await click('3D 模式')
+    expect(loadScene).toHaveBeenCalledOnce()
+    expect(mocked.created).toBe(1)
+    loadScene.mockRestore()
   })
   it('浏览器历史变动清除内容，拒绝未知物件参数', async () => {
     await mount()

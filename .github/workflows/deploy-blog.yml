@@ -149,6 +149,10 @@ jobs:
           done
           test "$READY" = true || { cat _artifacts/blog-smoke.log; exit 1; }
           node scripts/smoke-blog.mjs http://127.0.0.1:3105 "$GITHUB_SHA"
+          for model in apps/blog-web/blog_web/public/companion/v1/kitten-head.*.glb.gz; do
+            curl -fsS "http://127.0.0.1:3105/companion/v1/${model##*/}" | cmp - "$model"
+            gzip -t "$model"
+          done
           if [[ "${{ inputs.deploy_companion }}" = true ]]; then
             curl -fsS http://127.0.0.1:3105/companion/v1/kitten-head.glb | cmp - apps/blog-web/blog_web/public/companion/v1/kitten-head.glb
           fi

@@ -11,6 +11,30 @@ type Companion = Awaited<ReturnType<typeof mountWebsiteCat>>
 type Phase = 'idle' | 'loading' | 'ready' | 'error'
 const visibilityKey = 'blog:companion:hidden'
 
+function PawPrint() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <ellipse cx="5.5" cy="9" rx="2.2" ry="2.9" transform="rotate(-25 5.5 9)"/>
+    <ellipse cx="10" cy="5.8" rx="2.1" ry="2.8"/>
+    <ellipse cx="15.2" cy="6.2" rx="2.1" ry="2.8" transform="rotate(12 15.2 6.2)"/>
+    <ellipse cx="19" cy="10" rx="2" ry="2.7" transform="rotate(28 19 10)"/>
+    <path d="M6.2 16.9c0-2.1 3.2-6.2 5.8-6.2s5.8 4.1 5.8 6.2c0 2-1.4 3-3.3 2.4a7.9 7.9 0 0 0-5 0c-1.9.6-3.3-.4-3.3-2.4Z"/>
+  </svg>
+}
+
+function ArrivalNotice({ en, onLater }: { en: boolean; onLater: () => void }) {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), 350)
+    return () => window.clearTimeout(timer)
+  }, [])
+  if (!visible) return null
+  return <div className={`${styles.notice} ${styles.arrival}`}>
+    <span className={styles.trail} aria-hidden="true"><PawPrint/><PawPrint/><PawPrint/></span>
+    <span role="status">{en ? 'Little Grey is on the way…' : '小灰正在过来…'}</span>
+    <button type="button" onClick={onLater}>{en ? 'Later' : '稍后再来'}</button>
+  </div>
+}
+
 function rememberHidden(hidden: boolean) {
   try { localStorage.setItem(visibilityKey, String(hidden)) } catch { /* Private browsing can disable storage. */ }
 }
@@ -153,7 +177,8 @@ export default function WebsiteCompanion({ locale, reading }: { locale: string; 
 
   function fold() {
     reflectHidden(true)
-    companion.current?.setHidden(true)
+    if (companion.current) companion.current.setHidden(true)
+    else { setRequested(false); setPhase('idle') }
   }
 
   if (!mounted) return null
@@ -167,15 +192,12 @@ export default function WebsiteCompanion({ locale, reading }: { locale: string; 
     }}>
     {!hidden && phase === 'ready' && <button type="button" data-companion-keyboard-entry className={styles.keyboardEntry}
       onClick={() => companion.current?.openChat()}>{en ? 'Talk to Little Grey' : '和小灰说句话'}</button>}
-    <div ref={stage} hidden={hidden} />
+    <div ref={stage} hidden={hidden || phase !== 'ready'} />
     {hidden && <button type="button" data-companion-keyboard-entry className={styles.summon} onClick={wake}
       aria-label={en ? 'Invite Little Grey' : '唤回小灰'} title={en ? 'Invite Little Grey' : '唤回小灰'}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="5.5" cy="9" rx="2.2" ry="2.9" transform="rotate(-25 5.5 9)"/><ellipse cx="10" cy="5.8" rx="2.1" ry="2.8"/><ellipse cx="15.2" cy="6.2" rx="2.1" ry="2.8" transform="rotate(12 15.2 6.2)"/><ellipse cx="19" cy="10" rx="2" ry="2.7" transform="rotate(28 19 10)"/><path d="M6.2 16.9c0-2.1 3.2-6.2 5.8-6.2s5.8 4.1 5.8 6.2c0 2-1.4 3-3.3 2.4a7.9 7.9 0 0 0-5 0c-1.9.6-3.3-.4-3.3-2.4Z"/></svg>
+      <PawPrint/>
     </button>}
-    {!hidden && phase === 'loading' && <div className={styles.notice}>
-      <span role="status">{en ? 'Little Grey is on the way…' : '小灰正在过来…'}</span>
-      <button type="button" onClick={fold}>{en ? 'Later' : '稍后再来'}</button>
-    </div>}
+    {!hidden && phase === 'loading' && <ArrivalNotice en={en} onLater={fold} />}
     {!hidden && phase === 'error' && <div className={styles.notice}>
       <span role="status">{en ? 'Little Grey could not arrive just now.' : '小灰暂时没能过来。'}</span>
       <button type="button" onClick={wake}>{en ? 'Try again' : '再试一次'}</button>

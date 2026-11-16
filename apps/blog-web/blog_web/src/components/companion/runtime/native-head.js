@@ -44,7 +44,27 @@ function resourceOwner(){
   };
 }
 
-export async function attachNativeHead(cat,{url='/companion/v1/kitten-head.glb',
+const originalHead='/companion/v1/kitten-head.glb';
+const compactHead='/companion/v1/kitten-head.85cc0fd38665.glb.gz';
+
+export async function fetchNativeHeadAsset({url,signal}={}){
+  const path=url||(typeof DecompressionStream==='function'?compactHead:originalHead);
+  const response=await fetch(path,{signal,credentials:'same-origin',cache:path===compactHead?'force-cache':'default'});
+  if(!response.ok)throw new Error('Cat head asset could not be loaded');
+  let bytes=await response.arrayBuffer();
+  signal?.throwIfAborted();
+  // Some hosts serve .gz with Content-Encoding and the browser has already
+  // decoded it. Inspect the payload so both static hosting setups work.
+  const signature=new Uint8Array(bytes,0,Math.min(2,bytes.byteLength));
+  if(signature[0]===0x1f&&signature[1]===0x8b){
+    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'),{signal});
+    bytes=await new Response(stream).arrayBuffer();
+    signal?.throwIfAborted();
+  }
+  return {bytes,url:path};
+}
+
+export async function attachNativeHead(cat,{url,asset,
   scale=NATIVE_HEAD_PLACEMENT.scale,offset=NATIVE_HEAD_PLACEMENT.offset,signal}={}){
   if(cat.isDisposed)return null;
   if(cat.nativeHead)return cat.nativeHead;
@@ -53,12 +73,9 @@ export async function attachNativeHead(cat,{url='/companion/v1/kitten-head.glb',
   cat.nativeHeadLoad=(async()=>{
     const owned=resourceOwner();let model,mount,neck;
     try{
-      // Fetch separately so a React unmount can abort the large GLB download.
-      // Decoding is not cancellable, but a disposed cat releases the result below.
-      const response=await fetch(url,{signal,credentials:'same-origin'});
-      if(!response.ok)throw new Error('Cat head asset could not be loaded');
-      const bytes=await response.arrayBuffer();signal?.throwIfAborted();
-      const gltf=await createHeadLoader().parseAsync(bytes,new URL('.',new URL(url,document.baseURI)).href);model=gltf.scene;owned.capture(model);
+      const headAsset=asset||await fetchNativeHeadAsset({url,signal});
+      signal?.throwIfAborted();
+      const gltf=await createHeadLoader().parseAsync(headAsset.bytes,new URL('.',new URL(headAsset.url,document.baseURI)).href);model=gltf.scene;owned.capture(model);
       const authoredFace=model.getObjectByName('KittenHead')?.userData.expressionPolicy==='baked-friendly-mouth-v2';
       if(cat.isDisposed){owned.dispose();return null;}
       model.name='NativeKittenHeadAsset';

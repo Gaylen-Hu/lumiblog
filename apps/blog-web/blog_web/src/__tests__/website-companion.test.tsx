@@ -81,6 +81,30 @@ describe('website companion lifecycle', () => {
     expect(runtime.mount.mock.calls[0][0]).toMatchObject({ mobile: true, apiBase: '/api/companion' })
     expect(control.setReading).toHaveBeenLastCalledWith(true)
   })
+
+  it('shows a paw trail only for slow loads and cancels it when dismissed', async () => {
+    small = true
+    let finish!: (value: ReturnType<typeof controller>) => void
+    runtime.mount.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    await mount()
+    await click('唤回小灰')
+    const { signal } = runtime.mount.mock.calls[0][0] as Options
+    await act(async () => { await vi.advanceTimersByTimeAsync(349) })
+    expect(document.querySelector('[role="status"]')).toBeNull()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) })
+    expect(document.querySelector('[role="status"]')).toHaveTextContent('小灰正在过来')
+    expect(document.querySelector('[role="status"]')?.parentElement?.querySelectorAll('svg')).toHaveLength(3)
+    await click('稍后再来')
+    expect(signal.aborted).toBe(true)
+    expect(document.querySelector('[role="status"]')).toBeNull()
+    await act(async () => finish(control))
+    expect(control.destroy).toHaveBeenCalledOnce()
+    await click('唤回小灰')
+    expect(runtime.mount).toHaveBeenCalledTimes(2)
+    await tick()
+    expect(document.querySelector('[role="status"]')).toBeNull()
+    expect(document.querySelector('[data-companion-keyboard-entry]')).toHaveTextContent('和小灰说句话')
+  })
   it('a resize into mobile before the desktop idle delay cancels automatic loading', async () => {
     await mount()
     small = true

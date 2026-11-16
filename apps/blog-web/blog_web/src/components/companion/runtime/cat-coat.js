@@ -1,15 +1,35 @@
 // Silver mackerel tabby. The torso atlas opens on the belly, with the spine
-// at u=.5 and the throat at v=0. All colour and guard hairs bake just once.
+// at u=.5 and the throat at v=0. The shipped atlas includes shoulder blends.
 import {loadCompanionImage} from './asset-images.js';
 const TAU=2*Math.PI;
 const clamp=t=>Math.max(0,Math.min(1,t));
 const smooth=t=>{const v=clamp(t);return v*v*(3-2*v);};
 let dorsal=null;
 let dorsalReady=false;
+let coatAtlas=null;
+const coatTiles={body:[0,0,2],FL:[2,0,1],FR:[2,1,1],HL:[0,2,1],HR:[1,2,1],tail:[2,2,1]};
+
 export async function prepareBodyCoat(signal){
-  if(dorsalReady)return;
+  if(coatAtlas||dorsalReady)return;
+  try {
+    const image=await loadCompanionImage('/companion/v1/kitten-coat.736d40e4d231.webp',signal);
+    signal?.throwIfAborted();
+    coatAtlas=image;
+    return;
+  } catch {
+    // The original brush recipe also supports installations missing the atlas.
+    signal?.throwIfAborted();
+  }
   const image=await loadCompanionImage('/companion/v1/kitten-body-silver.webp',signal);
   signal?.throwIfAborted();dorsal=image;dorsalReady=true;
+}
+
+// Copy each tile at native resolution so GPU mipmaps never bleed between limbs.
+export function drawBakedCoat(c,region){
+  if(!coatAtlas)return false;
+  const [x,y,size]=coatTiles[region];
+  c.drawImage(coatAtlas,x*512,y*512,size*512,size*512,0,0,1,1);
+  return true;
 }
 
 function randomFrom(seed){

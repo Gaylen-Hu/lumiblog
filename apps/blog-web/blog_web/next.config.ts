@@ -67,6 +67,11 @@ const nextConfig: NextConfig = {
         ],
       },
       ...(process.env.NODE_ENV === 'production' ? [{
+        source: '/companion/v1/kitten-head.:hash([a-f0-9]{12}).glb.gz',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      }, {
         source: '/(.*)\\.(js|css|woff2|woff|ttf|ico|svg|png|jpg|jpeg|webp|avif)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },

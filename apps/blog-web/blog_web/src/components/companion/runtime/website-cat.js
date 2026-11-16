@@ -1,7 +1,7 @@
 import * as T from 'three';
 import {RoomDirector} from './room-director.js';
 import {createToonCat} from './cat-model.js';
-import {attachNativeHead} from './native-head.js';
+import {attachNativeHead,fetchNativeHeadAsset} from './native-head.js';
 import {createCatAnimator} from './cat-animation.js';
 import {createCompanionAgent} from './agent/index.js';
 import {createActionBridge} from './agent/action-bridge.js';
@@ -50,9 +50,17 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
   function destroy(){if(disposed)return;disposed=true;loadController.abort();stopFrames();detachStage?.();detachStage=null;roomStage=null;agent?.destroy();director?.destroy();observer?.disconnect();cleanups.splice(0).forEach(fn=>fn());renderer?.dispose();renderer?.forceContextLoss();cat?.dispose();host.remove();notify(onChatOpenChange,false);}
   if(signal)listen(signal,'abort',destroy,{once:true});
   try{
-    await Promise.all([prepareBodyCoat(loadController.signal),prepareKittenFur(loadController.signal)]);
+    // The high-detail fibre generator uses the full rest-pose surface order.
+    // At ordinary website quality the imported head supplies all face meshes.
+    const nativeHeadOnly=quality!=='high';
+    const [headAsset]=await Promise.all([
+      fetchNativeHeadAsset({url:headUrl,signal:loadController.signal}),
+      prepareBodyCoat(loadController.signal),
+      prepareKittenFur(loadController.signal,{nativeHeadOnly})
+    ]);
     if(disposed||signal?.aborted)throw cancelled();
-    cat=createToonCat({legacyHeadFur:false});await attachNativeHead(cat,{...(headUrl?{url:headUrl}:{}),signal:loadController.signal});
+    cat=createToonCat({legacyHeadFur:false,detailedFur:quality==='high',nativeHeadOnly});
+    await attachNativeHead(cat,{asset:headAsset,signal:loadController.signal});
     if(disposed||signal?.aborted)throw cancelled();
     cat.fur?.setDetail(quality==='high');
     const animator=createCatAnimator(cat);let interactionUntil=0;

@@ -5,6 +5,7 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { RoomRegistrationContext, StudyNavigationContext, useStudyLocation } from './StudyNavigation'
 import type { StudyRoomProps } from './StudyRoom'
+import { loadRoomScene, prefersSimpleStudy } from './room-loader'
 import { notifyStudyLocation, resolveStudyRoute, spatialReadingHref, stampStudyHistory, studyHistory } from './study-route'
 import PaperLoading from './PaperLoading'
 import WebsiteCompanion from '../companion/WebsiteCompanion'
@@ -12,7 +13,11 @@ import { WebsiteDrafts } from '../companion/website-drafts'
 import './magazine.css'
 
 const SpatialContent = dynamic(() => import('./SpatialContent'), { loading: () => <PaperLoading /> })
-const PersistentRoom = dynamic(() => import('./StudyRoom'), { ssr: false })
+const PersistentRoom = dynamic(() => {
+  // Download the renderer alongside the room controls. StudyRoom handles load failures.
+  if (!prefersSimpleStudy()) void loadRoomScene().catch(() => {})
+  return import('./StudyRoom')
+}, { ssr: false })
 
 function RouteObserver() {
   const pathname = usePathname(), search = useSearchParams()

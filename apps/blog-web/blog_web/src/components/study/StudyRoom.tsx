@@ -22,6 +22,7 @@ import type { TimelineEntry } from '@/lib/api'
 import { isDestination, itemLabels, labels, type ClockView, type Destination, type RoomDetail, type RoomItem } from './model'
 import styles from './study.module.css'
 import type { RoomQuality } from './room-quality'
+import { loadRoomScene, prefersSimpleStudy } from './room-loader'
 import opening from './opening.module.css'
 import { useRainAudio } from './environment/useRainAudio'
 import { useEnvironment } from './environment/useEnvironment'
@@ -92,7 +93,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const [showQualityTip, setShowQualityTip] = useState(false)
   const tipSeen = useRef(false)
   const roomBusy = useRef(true)
-  const [simple, setSimple] = useState(false), [motion, setMotion] = useState(true)
+  const [simple, setSimple] = useState(prefersSimpleStudy), [motion, setMotion] = useState(true)
   const [sound, setSound] = useState(false), [retry, setRetry] = useState(0)
   const rainAudio = useRainAudio(environment.state.weather, sound)
   const [, setNight] = useState(false)
@@ -227,7 +228,6 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   useEffect(() => {
     try {
       tipSeen.current = localStorage.getItem('study-performance-tip') === 'seen'
-      setSimple(localStorage.getItem('study-simple') === 'true')
       ceilingLightRef.current = localStorage.getItem('study-ceiling-light') === 'true'
       setCeilingLightOn(ceilingLightRef.current)
       setMotion(localStorage.getItem('study-motion') !== 'false')
@@ -281,7 +281,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     let cancelled = false, timedOut = false
     const fail = () => { if (!cancelled && !timedOut) { timedOut = true; window.clearTimeout(timeout); setRecovering(false); reflectClockView('room'); setFailed(true); setReady(false); setSettled(activeRef.current); controller.current?.dispose(); controller.current = null } }
     const timeout = window.setTimeout(fail, 15000)
-    import('./room-scene').then(({ createRoom }) => {
+    loadRoomScene().then(({ createRoom }) => {
       if (cancelled || timedOut || !host.current) return
       controller.current = createRoom(host.current, {
         columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, siteName, note: notes[0],
