@@ -33,9 +33,9 @@ afterEach(() => {
   shaders.compile.mockReset()
 })
 
-function createTestRoom() {
+function createTestRoom(width = 1100, coarse = false) {
   const media = { matches: false }
-  vi.stubGlobal('matchMedia', () => media)
+  vi.stubGlobal('matchMedia', (query: string) => query === '(pointer: coarse)' ? { matches: coarse } : media)
   vi.stubGlobal('Path2D', class {})
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   const noop = () => {}
@@ -45,7 +45,7 @@ function createTestRoom() {
   })
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context as unknown as CanvasRenderingContext2D)
   const host = document.createElement('div')
-  vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1100, 720))
+  vi.spyOn(host, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, width, 720))
   const phase = vi.fn(), settled = vi.fn(), ready = vi.fn()
   const room = createRoom(host, {
     categories: [], columns: [], projects: [], siteName: '墨千', seriesLabel: '专栏', en: false,
@@ -55,6 +55,30 @@ function createTestRoom() {
   })
   return { room, media, phase, settled, ready }
 }
+
+it.each([[390, false, 28, 34], [1100, true, 28, 34], [1100, false, 58, 64]])(
+  'keeps width=%s coarse=%s within its frame budget and resumes interaction after pausing',
+  async (width, coarse, low, high) => {
+    const { room, ready, phase } = createTestRoom(width, !!coarse)
+    try {
+      await vi.advanceTimersByTimeAsync(100)
+      expect(ready).toHaveBeenCalledOnce()
+      const before = fovs.length
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(fovs.length - before).toBeGreaterThanOrEqual(low)
+      expect(fovs.length - before).toBeLessThanOrEqual(high)
+      room.setPaused(true)
+      const paused = fovs.length
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(fovs.length).toBe(paused)
+      room.setPaused(false)
+      room.setMotion(false)
+      room.inspectClock()
+      await vi.advanceTimersByTimeAsync(1400)
+      expect(phase).toHaveBeenLastCalledWith('observing')
+    } finally { room.dispose() }
+  },
+)
 
 it('presents the first frame after shader preparation even when the drawer has paused the room', async () => {
   shaders.parallel = true

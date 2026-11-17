@@ -101,9 +101,9 @@ export default function MagazineArticle({ post, locale, subscription, catalogHea
 
         <PrevNextNav prevArticle={post.prevArticle} nextArticle={post.nextArticle} />
 
-        <div data-website-comments tabIndex={-1} aria-label={locale === 'en' ? 'Article comments' : '文章评论'}>
+        <section data-website-comments tabIndex={-1} aria-label={locale === 'en' ? 'Article comments' : '文章评论'}>
           <Comments slug={post.slug} />
-        </div>
+        </section>
       </div>
     </article>
   )

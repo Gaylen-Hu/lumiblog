@@ -29,6 +29,17 @@ test('patch changes only blog host, is idempotent and preserves TLS/backend rule
   assert.throws(() => patchBlogNginx(source.replace('    location /api/', '    location ^~ /api/study/ { proxy_pass http://127.0.0.1:3000; }\n    location /api/')), /unexpected upstream/)
 })
 
+test('Brotli negotiation stays outside locations and repairs the older conditional block', () => {
+  const source = 'server { server_name www.new-universe.cn; location /api/ { proxy_pass http://127.0.0.1:3000/; } }'
+  const patched = patchBlogNginx(source)
+  assert.ok(patched.includes('map $http_accept_encoding $myblog_br'))
+  assert.ok(patched.includes('map $http_range $myblog_variant'))
+  assert.ok(patched.includes('try_files /$myblog_variant$uri @myblog_static_upstream'))
+  assert.ok(!patched.includes('if ($http_'))
+  const old = patched.replace('root /var/cache/myblog-static;\n', 'root /var/cache/myblog-static;\n        set $myblog_variant br;\n        if ($http_range != "") { set $myblog_variant unavailable; }\n')
+  assert.equal(patchBlogNginx(old), patched)
+})
+
 test('enables HTTP/2 on the existing public TLS listeners, before or after locations', () => {
   const source = `server {
     listen 80;

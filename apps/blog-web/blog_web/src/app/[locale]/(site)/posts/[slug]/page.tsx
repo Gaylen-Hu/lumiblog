@@ -80,7 +80,7 @@ export default async function PostPage({ params }: PostPageProps) {
   if (!post) notFound()
   const { content, ...details } = post
 
-  return <>
+  return <main>
     <ArticleJsonLd post={post} locale={locale} />
     <BreadcrumbJsonLd items={[
       { name: '首页', url: `${SITE_URL}/${locale}` },
@@ -90,5 +90,5 @@ export default async function PostPage({ params }: PostPageProps) {
     <MagazineArticle post={details} locale={locale} subscription={<ArticleSubscription />}>
       <ArticleMarkdown content={content} title={post.title} />
     </MagazineArticle>
-  </>
+  </main>
 }

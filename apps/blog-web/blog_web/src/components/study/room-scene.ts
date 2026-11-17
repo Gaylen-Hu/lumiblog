@@ -1233,11 +1233,14 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     toQuaternion.copy(tmpCamera.quaternion)
   }
   const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const coarsePointer = window.matchMedia('(pointer: coarse)')
+  let narrowViewport = false
   reduced = media.matches
   function resize() {
     const { width, height } = host.getBoundingClientRect()
     renderer.setSize(width, height); camera.aspect = width / Math.max(1, height)
     const narrow = width < 700
+    narrowViewport = narrow
     const oldObservation = observationKey
     restoreObservation(narrow)
     const light = quality === 'light'
@@ -1581,6 +1584,13 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (disposed || document.hidden) return
     syncCompanionActive()
     if (diagnostics?.baselineFrame(now)) { lastTime = now; previousContinuous = false; requestFrame(); return }
+    // Skip updates as well as drawing on alternate mobile frames. Single-shot
+    // clock wakes and the first frame keep their immediate response.
+    if (presented && (previousContinuous || catalogAnimating) && (narrowViewport || coarsePointer.matches)
+      && now - lastTime < 1000 / 30 - 2) {
+      requestFrame()
+      return
+    }
     if (!active) {
       // A panel can pause the room while its very first frame is compiling.
       if (catalogAnimating) {
