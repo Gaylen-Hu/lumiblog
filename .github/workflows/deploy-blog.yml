@@ -273,7 +273,16 @@ jobs:
           } catch {console.log('Migration preflight unavailable; inspect privately before release');}
           finally {await db.$disconnect();}
           PREFLIGHT
-            if [ "$1" = true ]; then exit 0; fi
+            if [ "$1" = true ]; then
+              printf 'Verified production host public key: '
+              cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub
+              printf 'Active release layout:'
+              for link in blog-current server-current admin-current; do readlink -f "/home/myblog/$link"; done
+              nginx -T 2>/dev/null | awk '/root .*admin|log_format|access_log|brotli/{ print }'
+              systemctl list-units --all --plain | awk '/blog|mcp/ {print $1,$3,$4}'
+              df -h /home/myblog
+              exit 0
+            fi
             test "$(id -u)" = 0
             test -d /home/myblog/current/blog
             test -f /etc/nginx/sites-enabled/myblog.conf
