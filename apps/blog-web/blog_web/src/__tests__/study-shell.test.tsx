@@ -60,6 +60,23 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; vi.restoreAllMocks() })
 
 describe('URL-driven spatial reading', () => {
+  it('keeps the lightweight home on canonical links and loads a renderer only after opt-in', async () => {
+    localStorage.setItem('study-simple', 'true')
+    await mount()
+    expect(scene.created).toBe(0)
+    expect(document.querySelector('.study-home-entry a[href="/zh/posts/first"]')).toBeTruthy()
+    const enter = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.includes('进入 3D 书房'))
+    await act(async () => enter!.click())
+    expect(scene.created).toBe(1)
+    expect(document.querySelector('.study-persistent canvas')).toBeTruthy()
+  })
+  it('serves linked room objects in simple mode on constrained devices', async () => {
+    localStorage.setItem('study-simple', 'true')
+    window.history.replaceState(null, '', '/zh?room=bookshelf')
+    await mount()
+    expect(scene.created).toBe(0)
+    expect(document.querySelector('[role="dialog"] a[href="/zh/posts/first"]')).toBeTruthy()
+  })
   it('renders the welcome heading and working navigation before the room mounts', async () => {
     const initial = document.createElement('div')
     initial.innerHTML = renderToString(<StudyRoomEntry data={data} />)
@@ -85,6 +102,7 @@ describe('URL-driven spatial reading', () => {
     window.history.replaceState(null,'','/zh/posts/direct')
     const html = renderToString(<StudyShell locale="zh"><article><h1>Direct article</h1></article></StudyShell>)
     expect(html).toContain('Direct article'); expect(html).toContain('回到书房大厅')
+    expect(html).toMatch(/<a[^>]*class="study-return"[^>]*href="\/zh"/)
     expect(html).not.toContain('study-persistent'); expect(html).not.toContain('<canvas')
     await mount(<article><h1>Direct article</h1></article>)
     expect(scene.created).toBe(0)

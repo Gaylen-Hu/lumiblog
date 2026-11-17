@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -38,6 +38,7 @@ export class ApiKeyController {
   @ApiResponse({ status: 201, description: '创建成功', type: CreateApiKeyResponseDto })
   @Throttle({ short: { limit: 3, ttl: 60000 }, medium: { limit: 10, ttl: 3600000 } })
   @Post()
+  @UseGuards(ThrottlerGuard)
   async create(
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateApiKeyDto,

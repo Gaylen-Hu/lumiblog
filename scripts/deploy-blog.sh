@@ -56,8 +56,17 @@ if [[ "$ACTION" == rollback ]]; then
   [[ -L "$CURRENT" ]] || fail 'No frontend release to roll back'
   TARGET="$(cat "$PREVIOUS/previous-release.txt")"
   valid_target "$TARGET" || fail 'Invalid rollback target'
+  EXPECTED="$(node -p 'require(process.argv[1]).revision' "$TARGET/blog-release.json")"
+  [[ "$EXPECTED" =~ ^[a-f0-9]{40}$ ]] || fail 'Missing rollback revision'
   switch_to "$TARGET"
-  if ! systemctl restart blog-web.service || ! wait_blog; then switch_to "$PREVIOUS"; systemctl restart blog-web.service; fail 'Rollback failed; restored current frontend'; fi
+  if ! systemctl restart blog-web.service || ! wait_blog ||
+      ! node "$(dirname "$0")/smoke-blog.mjs" http://127.0.0.1:3001 "$EXPECTED" ||
+      ! curl -fsS --max-time 15 --resolve www.new-universe.cn:443:127.0.0.1 https://www.new-universe.cn/blog-release.json |
+        node -e 'let data="";process.stdin.on("data",x=>data+=x).on("end",()=>{if(JSON.parse(data).revision!==process.argv[1])process.exit(1)})' "$EXPECTED"; then
+    switch_to "$PREVIOUS"; systemctl restart blog-web.service
+    wait_blog || fail 'Both rollback and recovery failed the frontend health check'
+    fail 'Rollback checks failed; restored the original frontend'
+  fi
   printf '[blog] Rolled back frontend to %s\n' "$TARGET"
   exit 0
 fi
@@ -74,6 +83,12 @@ tar --no-same-owner -xzf "$ARTIFACTS_DIR/blog.tar.gz" -C "$RELEASE"
 [[ -f "$RELEASE/server.js" && -f "$RELEASE/blog-release.json" ]] || fail 'Incomplete standalone package'
 node -e 'const m=require(process.argv[1]); if(m.revision!==process.argv[2])process.exit(1)' "$RELEASE/blog-release.json" "$REVISION"
 printf '%s\n' "$PREVIOUS" > "$RELEASE/previous-release.txt"
+# Only fingerprinted chunks enter the shared static cache. Older tabs can reuse their bytes.
+if [[ -d "$RELEASE/static-br/_next/static/chunks" ]]; then
+  install -d -m 0755 /var/cache/myblog-static/br/_next/static/chunks
+  cp -rn "$RELEASE/static-br/_next/static/chunks/." /var/cache/myblog-static/br/_next/static/chunks/
+  chmod -R a+rX /var/cache/myblog-static/br
+fi
 chown -R "$APP_USER:$APP_USER" "$RELEASE"
 WORK="$(mktemp -d "$APP_HOME/blog-backup-XXXXXXXX")"
 cp -p "$NGINX_SITE" "$WORK/nginx.before"

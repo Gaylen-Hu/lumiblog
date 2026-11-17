@@ -8,6 +8,7 @@ import ProjectCard from '@/components/ProjectCard'
 import PersonalProfile from '@/components/PersonalProfile'
 import TimelineMedia from '@/components/media/TimelineMedia'
 import { noteText } from './desk-notes'
+import ArticleMarkdown from './ArticleMarkdown'
 import MagazineArticle from './MagazineArticle'
 import PaperLoading from './PaperLoading'
 import ReadingError from './ReadingError'
@@ -54,13 +55,17 @@ export default function SpatialContent({ path, locale, onReady, catalog }: { pat
   }, [state])
   if (state.status === 'loading') return catalog ? <p className="study-loading" role="status">{locale === 'en' ? 'Loading article…' : '正在读取正文…'}</p> : <PaperLoading locale={locale} />
   if (state.status === 'error') return <ReadingError reset={() => { setState({ status: 'loading' }); setAttempt(value => value + 1) }} />
-  if (catalog && state.data.kind === 'article') return <MagazineArticle post={state.data.post} locale={locale} catalogHeading={catalog === 'with-heading'} />
+  if (state.data.kind === 'article') {
+    const { post } = state.data
+    return <MagazineArticle post={post} locale={locale} catalogHeading={catalog === 'with-heading'}>
+      <ArticleMarkdown content={post.content} title={post.title} />
+    </MagazineArticle>
+  }
   return <ReadingPages data={state.data} locale={locale} path={path} />
 }
 
-function ReadingPages({ data, locale, path }: { data: ReadingData; locale: string; path: string }) {
+function ReadingPages({ data, locale, path }: { data: Exclude<ReadingData, { kind: 'article' }>; locale: string; path: string }) {
   const en = locale === 'en'
-  if (data.kind === 'article') return <MagazineArticle post={data.post} locale={locale} />
   if (data.kind === 'posts') {
     const url = new URL(path, 'https://study.local')
     const page = Math.max(1, Number(url.searchParams.get('page')) || 1), total = Math.ceil(data.posts.total / 9)

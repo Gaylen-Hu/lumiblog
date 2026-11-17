@@ -34,7 +34,7 @@ export default async function ArticleSubscription() {
             height={136}
             className="h-[136px] w-[136px] rounded-lg"
           />
-          <p className="mt-2 text-center text-[10px] font-medium tracking-wide text-gray-400">
+          <p className="mt-2 text-center text-[10px] font-medium tracking-wide text-gray-600">
             {t('qrLabel')}
           </p>
         </div>

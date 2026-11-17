@@ -54,6 +54,31 @@ const assetsBlock = `location ^~ /study-assets/ {
         add_header Cache-Control "public, max-age=0, must-revalidate" always;
     }`
 
+// Forward Next's cache policy for fingerprinted textures and conditional/range requests.
+const webAssetsBlock = `location ^~ /study-assets/web/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+    }`
+
+const chunkBlock = String.raw`location ^~ /_next/static/chunks/ {
+        root /var/cache/myblog-static;
+        set $myblog_variant br;
+        if ($http_accept_encoding !~* "(^|,)\s*br\s*(;\s*q=(1(\.0+)?|0\.\d*[1-9]\d*))?\s*(,|$)") { set $myblog_variant unavailable; }
+        if ($http_range != "") { set $myblog_variant unavailable; }
+        try_files /$myblog_variant$uri @myblog_static_upstream;
+        gzip off;
+        add_header Content-Encoding br;
+        add_header Vary Accept-Encoding;
+        add_header X-Content-Type-Options nosniff;
+        add_header Strict-Transport-Security "max-age=31536000";
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }`
+const chunkFallback = `location @myblog_static_upstream {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        add_header Vary Accept-Encoding;
+    }`
+
 export function patchBlogNginx(source) {
   const nodes = directives(source)
   const zones = nodes.filter(({ head }) => head.startsWith('limit_req_zone ') && /\bzone=study_letter_requests:/.test(head))
@@ -87,6 +112,8 @@ export function patchBlogNginx(source) {
     const blocks = []
     if (blog) {
       servingBlog = true
+      if (!server.children.some(node => node.head === 'location ^~ /_next/static/chunks/')) blocks.push(chunkBlock)
+      if (!server.children.some(node => node.head === 'location @myblog_static_upstream')) blocks.push(chunkFallback)
       const study = server.children.find(node => node.head === 'location ^~ /api/study/')
       if (!study) blocks.push(studyBlock)
       else if (!study.children.some(node => /^proxy_pass http:\/\/(127\.0\.0\.1|localhost):3001$/.test(node.head))
@@ -94,6 +121,7 @@ export function patchBlogNginx(source) {
         throw new Error('Existing study route has unexpected upstream/path rewrite; manual review required')
       }
       if (!server.children.some(node => node.head === 'location ^~ /study-assets/')) blocks.push(assetsBlock)
+      if (!server.children.some(node => node.head === 'location ^~ /study-assets/web/')) blocks.push(webAssetsBlock)
     }
     const paths = []
     if (blog) paths.push('/api/v1/public/letters')

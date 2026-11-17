@@ -11,19 +11,13 @@ const MULTI_HYPHEN_REGEX = /-+/g
 const LEADING_TRAILING_HYPHEN_REGEX = /^-|-$/g
 const WHITESPACE_REGEX = /\s+/g
 
-// 模块级缓存
-const slugCache = new Map<string, string>()
-
 export function slugify(text: string): string {
-  if (slugCache.has(text)) return slugCache.get(text)!
-  const result = text
+  return text
     .toLowerCase()
     .replace(WHITESPACE_REGEX, '-')
     .replace(SPECIAL_CHARS_REGEX, '')
     .replace(MULTI_HYPHEN_REGEX, '-')
     .replace(LEADING_TRAILING_HYPHEN_REGEX, '')
-  slugCache.set(text, result)
-  return result
 }
 
 export function parseTocItems(content: string): TocItem[] {

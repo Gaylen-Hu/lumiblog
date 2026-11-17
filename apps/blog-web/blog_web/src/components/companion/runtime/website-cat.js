@@ -206,6 +206,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       if(!roomStage)return;
       savedRoom=director.safeLocation();director.restoreLocation(savedRoom);animator.reset();applyLocation(director.state);
     }
+    let shadowMoving=false;
     function roomUpdate(seconds){
       if(!canInteract()||!roomStage)return false;
       const quietMotion=reducedMotion||roomStage.reducedMotion;
@@ -224,6 +225,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       }
       const advance=!quietMotion||director.state.currentCommand||director.state.stage!=='holding'||now<interactionUntil?dt:0;
       const state=director.update(advance);applyLocation(state);
+      shadowMoving=state.moving||state.stage!=='holding'||Boolean(state.currentCommand);
       if(!engaged&&now-lastPointer>2200)gaze.active=false;
       // Gaze stays limited; locomotion owns the body and head while moving.
       if(quietMotion)gaze.active=false;
@@ -247,6 +249,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
     }
     function setRoomStage(next){
       if(disposed||roomStage===next)return;
+      cat.nativeHead?.setRoomScale(Boolean(next));
       cancelPress();stopFrames();
       if(roomStage)savedRoom=director.safeLocation();
       agent.interruptLifecycle();agent.clearSpeech();gaze.active=false;host.dataset.hover='false';
@@ -256,7 +259,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
         director.restoreLocation(savedRoom||{position:[STUDY_SPAWN.x,0,STUDY_SPAWN.z],yaw:0,surface:'ground',posture:'standing'});
         agent.setAnchorElement(next.canvas);postponeWander();roomFrameTime=1;roomQuiet=null;applyLocation(director.state);
         animator.reset();animator.update(director.state,1/60,gaze);
-        detachStage=next.setDriver({update:roomUpdate,onTap:roomTap,setActive(active){
+        detachStage=next.setDriver({update:roomUpdate,get shadowMoving(){return shadowMoving;},onTap:roomTap,setActive(active){
           if(roomStage!==next||disposed)return;
           if(!active){agent.interruptLifecycle();settleRoom();}
           syncVisibility();

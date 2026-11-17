@@ -7,6 +7,8 @@ export type RoomDestination =
 export interface RoomStageDriver {
   /** Advance the cat, returning true while another room frame is needed. */
   update(dtSeconds: number): boolean
+  /** True while the body changes its cast shadow at room scale. */
+  readonly shadowMoving?: boolean
   /** Runs immediately on attachment and when the room becomes unavailable. */
   setActive?(active: boolean): void
   /** Receives a plain tap only after existing room-object picking declines it. */

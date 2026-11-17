@@ -27,6 +27,13 @@ tar --no-same-owner -xzf "$ARTIFACTS_DIR/server.tar.gz" -C "$RELEASE"
 test -f "$RELEASE/dist/src/main.js"
 # Search V1 requires identical schema. Stop rather than migrate unrelated data.
 cmp "$PREVIOUS/prisma/schema.prisma" "$RELEASE/prisma/schema.prisma"
+# Preserve uploads and systemd EnvironmentFile settings on a running API-only update.
+if [[ -d "$PREVIOUS/uploads" && ! -e "$RELEASE/uploads" ]]; then
+  ln -s "$(readlink -f "$PREVIOUS/uploads")" "$RELEASE/uploads"
+fi
+if [[ -L "$CURRENT" && "$(systemctl show myblog-api.service -p WorkingDirectory --value)" == "$CURRENT" ]]; then
+  PRESERVE_API_UNIT=true
+fi
 ln -s "$APP_HOME/apps/.env" "$RELEASE/.env"
 ln -s "$APP_HOME/apps/.env" "$RELEASE/.env.prod"
 printf '%s\n' "$PREVIOUS" > "$RELEASE/previous-release.txt"

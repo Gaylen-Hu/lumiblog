@@ -12,7 +12,7 @@ const coatTiles={body:[0,0,2],FL:[2,0,1],FR:[2,1,1],HL:[0,2,1],HR:[1,2,1],tail:[
 export async function prepareBodyCoat(signal){
   if(coatAtlas||dorsalReady)return;
   try {
-    const image=await loadCompanionImage('/companion/v1/kitten-coat.736d40e4d231.webp',signal);
+    const image=await loadCompanionImage('/companion/v1/kitten-coat.46565a951fb1.webp',signal);
     signal?.throwIfAborted();
     coatAtlas=image;
     return;

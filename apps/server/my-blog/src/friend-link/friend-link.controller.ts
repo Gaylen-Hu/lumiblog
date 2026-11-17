@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateFriendLinkDto, ReviewFriendLinkDto, UpdateFriendLinkDto } from './dto';
 import { FriendLinkService } from './friend-link.service';
@@ -9,6 +9,7 @@ export class PublicFriendLinkController {
   constructor(private readonly service: FriendLinkService) {}
   @Get() findApproved() { return this.service.findApproved(); }
   @Post('applications') @Throttle({ short: { limit: 3, ttl: 600000 } })
+  @UseGuards(ThrottlerGuard)
   apply(@Body() dto: CreateFriendLinkDto) { return this.service.apply(dto); }
 }
 

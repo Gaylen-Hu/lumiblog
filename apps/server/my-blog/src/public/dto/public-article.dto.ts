@@ -240,6 +240,9 @@ export class SeoInfoDto {
  * 公开文章详情 DTO
  */
 export class PublicArticleDetailDto extends PublicArticleListItemDto {
+  @ApiProperty({ description: '同一翻译组内已发布的语言和 slug', example: [{ locale: 'en-US', slug: 'english-title' }] })
+  readonly translations: { locale: string; slug: string }[];
+
   @ApiProperty({ description: '文章内容（Markdown/HTML）' })
   readonly content: string;
 
@@ -266,6 +269,7 @@ export class PublicArticleDetailDto extends PublicArticleListItemDto {
       prevArticle: ArticleNavItemDto | null;
       nextArticle: ArticleNavItemDto | null;
       columns: ColumnBriefDto[];
+      translations: { locale: string; slug: string }[];
     },
   ) {
     super(params);
@@ -275,6 +279,7 @@ export class PublicArticleDetailDto extends PublicArticleListItemDto {
     this.prevArticle = params.prevArticle;
     this.nextArticle = params.nextArticle;
     this.columns = params.columns;
+    this.translations = params.translations;
   }
 }
 

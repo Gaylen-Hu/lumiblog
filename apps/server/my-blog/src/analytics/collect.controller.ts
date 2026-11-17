@@ -1,6 +1,6 @@
-import { Body, Controller, Headers, HttpCode, HttpStatus, Ip, Post } from '@nestjs/common';
+import { Body, Controller, Headers, HttpCode, HttpStatus, Ip, Post, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { SelfHostedAnalyticsProvider } from './providers/self-hosted-analytics.provider';
 import { CollectEventDto } from './dto/collect.dto';
 
@@ -15,8 +15,11 @@ export class CollectController {
 
   @ApiOperation({ summary: '上报访问/事件埋点', description: '公开端点，前端 sendBeacon 调用' })
   @ApiResponse({ status: 204, description: '上报成功' })
-  // 较宽松的限流：单 IP 每 10 秒最多 20 次
-  @Throttle({ short: { limit: 20, ttl: 10000 } })
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    short: { limit: 90, ttl: 10_000 }, medium: { limit: 360, ttl: 60_000 },
+    long: { limit: 4_000, ttl: 3_600_000 },
+  })
   @Post()
   @HttpCode(HttpStatus.NO_CONTENT)
   async collect(

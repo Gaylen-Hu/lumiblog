@@ -25,7 +25,7 @@ function loadConfig() {
 
 function getApiKey(config) {
   const envName = config.api_key_env || "BLOG_API_KEY";
-  return process.env[envName] || config.api_key || "";
+  return process.env[envName] || "";
 }
 
 function request(url, opts = {}) {

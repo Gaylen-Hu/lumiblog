@@ -13,6 +13,7 @@ export function useEnvironment() {
     let identity: string | null = null
     try {
       const saved = sessionStorage.getItem('study-environment')
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore the private session preference only after hydration.
       if (presets.includes(saved as Preset)) setPreset(saved as Preset)
       const savedWeather = sessionStorage.getItem('study-window-weather')
       if (savedWeather === 'city' || (savedWeather && Object.hasOwn(weatherLabels, savedWeather))) {

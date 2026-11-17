@@ -171,17 +171,6 @@ export class PublicService {
     });
 
     if (!article) {
-      // 如果指定了 locale 但没找到，尝试不限 locale 查找
-      if (locale) {
-        const fallback = await this.prisma.article.findFirst({
-          where: { slug, isPublished: true },
-          include: ARTICLE_INCLUDE,
-        });
-        if (!fallback) {
-          throw new NotFoundException(`文章不存在: ${slug}`);
-        }
-        return this.buildArticleDetail(fallback);
-      }
       throw new NotFoundException(`文章不存在: ${slug}`);
     }
 
@@ -213,7 +202,7 @@ export class PublicService {
 
     const publishedAt = article.publishedAt ?? article.createdAt;
 
-    const [prev, next, author] = await Promise.all([
+    const [prev, next, author, translations] = await Promise.all([
       this.prisma.article.findFirst({
         where: {
           ...navWhere,
@@ -231,6 +220,13 @@ export class PublicService {
         select: { slug: true, title: true, publishedAt: true },
       }),
       this.getSiteAuthor(),
+      article.translationGroupId
+        ? this.prisma.article.findMany({
+            where: { translationGroupId: article.translationGroupId, isPublished: true },
+            select: { locale: true, slug: true },
+            orderBy: { slug: 'asc' },
+          })
+        : [],
     ]);
 
     const prevArticle = prev
@@ -248,7 +244,7 @@ export class PublicService {
         })
       : null;
 
-    return this.toArticleDetail(article, prevArticle, nextArticle, author);
+    return this.toArticleDetail(article, prevArticle, nextArticle, author, translations);
   }
 
   /**
@@ -503,6 +499,7 @@ export class PublicService {
     prevArticle: ArticleNavItemDto | null,
     nextArticle: ArticleNavItemDto | null,
     author: AuthorDto,
+    translations: { locale: string; slug: string }[],
   ): PublicArticleDetailDto {
     // 筛选已发布专栏，按 sortOrder 升序排序，返回所有
     const publishedColumns = article.columns
@@ -522,6 +519,7 @@ export class PublicService {
     const column = columns[0] ?? null;
 
     return new PublicArticleDetailDto({
+      translations,
       id: article.id,
       slug: article.slug,
       title: article.title,

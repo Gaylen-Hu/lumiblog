@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server'
+import { notFound } from 'next/navigation'
 import { Link } from '@/i18n/navigation'
 import PostCard from '@/components/PostCard'
 import { getArticles, toApiLocale } from '@/lib/api'
@@ -8,17 +9,20 @@ import { PostsCollectionJsonLd } from '@/components/JsonLd'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
 export async function generateMetadata({
-  params,
-}: {
+  params, searchParams,
+}: PostsPageProps & {
   params: Promise<{ locale: string }>
 }): Promise<Metadata> {
-  const { locale } = await params
+  const [{ locale }, filters] = await Promise.all([params, searchParams])
+  const path = buildPageUrl(filters, pageNumber(filters.page))
+  const filtered = !!(filters.search || filters.tag || filters.category)
   return {
     title: '文章 - 墨千',
     description: '探索 AI、前端工程与软件架构的深度技术文章',
+    ...(filtered ? { robots: { index: false, follow: true } } : {}),
     alternates: {
-      canonical: `${SITE_URL}/${locale}/posts`,
-      languages: { zh: `${SITE_URL}/zh/posts`, en: `${SITE_URL}/en/posts` },
+      canonical: `${SITE_URL}/${locale}${path}`,
+      languages: path === '/posts' ? { zh: `${SITE_URL}/zh/posts`, en: `${SITE_URL}/en/posts` } : undefined,
     },
   }
 }
@@ -34,13 +38,30 @@ interface PostsPageProps {
   }>
 }
 
+function pageNumber(raw?: string) {
+  const page = Number(raw ?? 1)
+  if (!Number.isSafeInteger(page) || page < 1) notFound()
+  return page
+}
+
+function buildPageUrl(params: Awaited<PostsPageProps['searchParams']>, targetPage: number): string {
+  const sp = new URLSearchParams()
+  if (params.category) sp.set('category', params.category)
+  if (params.tag) sp.set('tag', params.tag)
+  if (params.search) sp.set('search', params.search)
+  if (targetPage > 1) sp.set('page', String(targetPage))
+  const qs = sp.toString()
+  return qs ? `/posts?${qs}` : '/posts'
+}
+
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const [params, t, locale] = await Promise.all([searchParams, getTranslations('posts'), getLocale()])
-  const page = Math.max(1, Number(params.page) || 1)
+  const page = pageNumber(params.page)
 
   const articlesRes = await getArticles({
     page,
     pageSize: PAGE_SIZE,
+    throwOnError: true,
     category: params.category,
     tag: params.tag,
     search: params.search,
@@ -50,15 +71,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
   const posts = articlesRes.data
   const totalPages = Math.ceil(articlesRes.total / PAGE_SIZE)
 
-  function buildPageUrl(targetPage: number): string {
-    const sp = new URLSearchParams()
-    if (params.category) sp.set('category', params.category)
-    if (params.tag) sp.set('tag', params.tag)
-    if (params.search) sp.set('search', params.search)
-    if (targetPage > 1) sp.set('page', String(targetPage))
-    const qs = sp.toString()
-    return qs ? `/posts?${qs}` : '/posts'
-  }
+  if (page > Math.max(1, totalPages)) notFound()
 
   const activeFilter = params.category
     ? `${t('filterCategory')}: ${params.category}`
@@ -83,7 +96,7 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
               <span className="px-3 py-1.5 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 text-sm rounded-full">
                 {activeFilter}
               </span>
-              <Link href="/posts" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+              <Link href="/posts" className="text-sm text-gray-600 hover:text-gray-800 transition-colors">
                 {t('clearFilter')}
               </Link>
             </div>
@@ -101,21 +114,21 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <h3 className="text-xl font-bold text-gray-400">{t('noPostsFound')}</h3>
+            <h3 className="text-xl font-bold text-gray-600">{t('noPostsFound')}</h3>
           </div>
         )}
 
         {totalPages > 1 && (
           <nav className="flex items-center justify-center gap-4 mt-16">
             {page > 1 ? (
-              <Link href={buildPageUrl(page - 1)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors">
+              <Link href={buildPageUrl(params, page - 1)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 {t('prevPage')}
               </Link>
             ) : (
-              <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 cursor-not-allowed">
+              <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 cursor-not-allowed">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
@@ -124,14 +137,14 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
             )}
             <span className="text-sm text-gray-500">{page} / {totalPages}</span>
             {page < totalPages ? (
-              <Link href={buildPageUrl(page + 1)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors">
+              <Link href={buildPageUrl(params, page + 1)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors">
                 {t('nextPage')}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
             ) : (
-              <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 cursor-not-allowed">
+              <span className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 cursor-not-allowed">
                 {t('nextPage')}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

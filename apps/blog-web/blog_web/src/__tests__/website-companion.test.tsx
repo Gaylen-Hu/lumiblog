@@ -82,6 +82,14 @@ describe('website companion lifecycle', () => {
     expect(control.setReading).toHaveBeenLastCalledWith(true)
   })
 
+  it.each(['reduced motion', 'canonical reading page'])('keeps the model on demand for a %s', async mode => {
+    reduced = mode === 'reduced motion'
+    await mount(mode === 'canonical reading page'); await tick()
+    expect(runtime.mount).not.toHaveBeenCalled()
+    await click('唤回小灰')
+    expect(runtime.mount).toHaveBeenCalledOnce()
+  })
+
   it('shows a paw trail only for slow loads and cancels it when dismissed', async () => {
     small = true
     let finish!: (value: ReturnType<typeof controller>) => void
@@ -193,6 +201,7 @@ describe('website companion lifecycle', () => {
 
   it('does not treat the article reader or an open catalog article as blocking modals', async () => {
     await mount(true); await tick()
+    await click('唤回小灰')
     const reader = document.createElement('section'); reader.className = 'study-magazine'; reader.setAttribute('aria-modal', 'true')
     const catalog = document.createElement('section'); catalog.setAttribute('aria-modal', 'true')
     catalog.innerHTML = '<section data-open="true"><article data-article-scroll></article></section>'

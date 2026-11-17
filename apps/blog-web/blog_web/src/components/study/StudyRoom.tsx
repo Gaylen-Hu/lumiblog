@@ -33,13 +33,13 @@ import RoomSettings from './RoomSettings'
 import StudyWelcome, { studyLinks } from './StudyWelcome'
 import { registerWebsiteRoom, type RoomAction, type RoomActionResult } from '../companion/website-room'
 
-export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string; birthdayLine: string }
+export type StudyRoomProps = { locale: string; siteName: string; posts: Post[]; projects: Project[]; timeline: TimelineEntry[]; columns: PublicColumnListItemDto[]; name: string; bio: string; birthdayLine: string; initialSimple?: boolean }
 type Controller = ReturnType<typeof import('./room-scene').createRoom>
 
-export default function StudyRoom({ locale, siteName, posts, projects, timeline, columns, name, bio, birthdayLine }: StudyRoomProps) {
+export default function StudyRoom({ locale, siteName, posts, projects, timeline, columns, name, bio, birthdayLine, initialSimple }: StudyRoomProps) {
   const environment = useEnvironment()
   const environmentRef = useRef(environment.state)
-  environmentRef.current = environment.state
+  useEffect(() => { environmentRef.current = environment.state }, [environment.state])
   const en = locale === 'en', text = labels[en ? 'en' : 'zh']
   const objects = itemLabels[en ? 'en' : 'zh']
   const notes = useMemo(() => deskNotes(timeline,en),[timeline,en])
@@ -93,7 +93,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   const [showQualityTip, setShowQualityTip] = useState(false)
   const tipSeen = useRef(false)
   const roomBusy = useRef(true)
-  const [simple, setSimple] = useState(prefersSimpleStudy), [motion, setMotion] = useState(true)
+  const [simple, setSimple] = useState(() => initialSimple ?? prefersSimpleStudy()), [motion, setMotion] = useState(true)
   const [sound, setSound] = useState(false), [retry, setRetry] = useState(0)
   const rainAudio = useRainAudio(environment.state.weather, sound)
   const [, setNight] = useState(false)
@@ -258,6 +258,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   }, [])
   useEffect(() => {
     if (playing.current) { playing.current.stop(); playing.current = null }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- A history transition closes the controls belonging to the previous room object.
     setMenu(false); setSettings(false); setDetail(null); setHover(null); setNotice(null)
     setSettled(null); setCameraAtRest(false)
     setWriting(false)
@@ -278,14 +279,22 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
   }, [motion])
   useEffect(() => {
     if (simple || !host.current) return
-    let cancelled = false, timedOut = false
-    const fail = () => { if (!cancelled && !timedOut) { timedOut = true; window.clearTimeout(timeout); setRecovering(false); reflectClockView('room'); setFailed(true); setReady(false); setSettled(activeRef.current); controller.current?.dispose(); controller.current = null } }
+    window.dispatchEvent(new CustomEvent('study-metric', { detail: { name: 'room_init', value: 1 } }))
+    let cancelled = false, timedOut = false, presented = false
+    const fail = () => {
+      if (cancelled || timedOut) return
+      timedOut = true
+      if (!presented) window.dispatchEvent(new CustomEvent('study-metric', { detail: { name: 'room_init_error', value: 1 } }))
+      window.clearTimeout(timeout)
+      setRecovering(false); reflectClockView('room'); setFailed(true); setReady(false)
+      setSettled(activeRef.current); controller.current?.dispose(); controller.current = null
+    }
     const timeout = window.setTimeout(fail, 15000)
     loadRoomScene().then(({ createRoom }) => {
       if (cancelled || timedOut || !host.current) return
       controller.current = createRoom(host.current, {
         columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, siteName, note: notes[0],
-        onReady: () => { if (cancelled || timedOut) return; window.clearTimeout(timeout); setReady(true); setRoomGeneration(value => value + 1); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
+        onReady: () => { if (cancelled || timedOut) return; presented = true; window.clearTimeout(timeout); setReady(true); setRoomGeneration(value => value + 1); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
         onContextLost: () => {
           if (cancelled || timedOut) return
           if (recoveries.current >= 1) { fail(); return }

@@ -18,6 +18,7 @@ export default function PostCard({ post, variant = 'card' }: PostCardProps) {
   const categoryName = post.category?.name ?? t('uncategorized');
   const displayDate = post.publishedAt
     ? new Date(post.publishedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
+        timeZone: 'UTC',
         year: 'numeric',
         month: 'long',
         day: 'numeric',

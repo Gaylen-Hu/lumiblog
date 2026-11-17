@@ -8,7 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -31,7 +31,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, description: '登录成功', type: TokenPairResponseDto })
   @ApiResponse({ status: 401, description: '邮箱或密码错误' })
-  @UseGuards(LocalAuthGuard)
+  @UseGuards(ThrottlerGuard, LocalAuthGuard)
   @Post('login')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
@@ -46,6 +46,7 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'refresh_token 无效、过期或已被使用' })
   @ApiResponse({ status: 429, description: '请求过于频繁' })
   @Post('refresh')
+  @UseGuards(ThrottlerGuard)
   @Throttle({ short: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async refresh(@Body() dto: RefreshTokenDto): Promise<TokenPairResponseDto> {

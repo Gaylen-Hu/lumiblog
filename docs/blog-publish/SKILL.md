@@ -138,7 +138,7 @@ node publish.js \
 
 ## 配置
 
-`config.json`（与 `publish.js` 同目录）中的 `base_url` 已配好。API Key 通过环境变量 `BLOG_API_KEY` 或 `config.json` 中的 `api_key` 读取。
+`config.json`（与 `publish.js` 同目录）中的 `base_url` 已配好。API Key 通过发布进程的环境变量 `BLOG_API_KEY` 读取。
 
 ## 什么时候用
 

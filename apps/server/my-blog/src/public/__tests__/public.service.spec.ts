@@ -271,6 +271,28 @@ describe('PublicService', () => {
       );
     });
 
+    it('指定语言缺少文章时返回 404，避免以另一种语言索引同一篇正文', async () => {
+      prisma.article.findFirst.mockResolvedValueOnce(null);
+      await expect(service.getArticleBySlug('chinese-only', 'en-US')).rejects.toThrow(NotFoundException);
+      expect(prisma.article.findFirst).toHaveBeenCalledTimes(1);
+      expect(prisma.article.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: { slug: 'chinese-only', locale: 'en-US', isPublished: true },
+      }));
+    });
+
+    it('只返回同一翻译组内已发布文章的真实 slug', async () => {
+      const article = buildMockArticle({ slug: 'zh-post', locale: 'zh-CN', translationGroupId: 'group-1' });
+      prisma.article.findFirst.mockResolvedValueOnce(article).mockResolvedValue(null);
+      const translations = [{ locale: 'en-US', slug: 'english-title' }, { locale: 'zh-CN', slug: 'zh-post' }];
+      prisma.article.findMany.mockResolvedValueOnce(translations);
+      const result = await service.getArticleBySlug('zh-post', 'zh-CN');
+      expect(prisma.article.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { translationGroupId: 'group-1', isPublished: true },
+        select: { locale: true, slug: true },
+      }));
+      expect(result.translations).toEqual(translations);
+    });
+
     it('应异步递增阅读量', async () => {
       // Arrange
       const mockArticle = buildMockArticle({ id: 'art-1' });

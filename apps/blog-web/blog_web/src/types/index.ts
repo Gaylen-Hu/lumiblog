@@ -22,6 +22,7 @@ export interface Post {
 
 // 文章详情类型 — 对齐后端 PublicArticleDetailDto
 export interface PostDetail extends Post {
+  translations?: { locale: string; slug: string }[];
   content: string;
   updatedAt: string;
   seo: {

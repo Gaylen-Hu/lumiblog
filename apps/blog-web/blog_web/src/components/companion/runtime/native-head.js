@@ -1,5 +1,6 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {createToonCoat,createToonEyeMargin,createToonMouth,createKittenNose} from './head/toon-coat.js';
 import {createEyeHighlights} from './head/eye-highlights.js';
 import {createWhiskers} from './head/whiskers.js';
@@ -15,7 +16,7 @@ function createHeadLoader(){
   // These two coat materials are replaced below by a cel shader that only
   // uses pigment. Skip decoding their discarded PBR maps; eye maps retain
   // their authored normal/roughness response. The source GLB stays intact.
-  return new GLTFLoader().register(parser=>({
+  return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(parser=>({
     name:'CompanionToonCoat',
     beforeRoot(){
       for(const material of parser.json.materials||[]){
@@ -44,12 +45,19 @@ function resourceOwner(){
   };
 }
 
-const originalHead='/companion/v1/kitten-head.glb';
-const compactHead='/companion/v1/kitten-head.85cc0fd38665.glb.gz';
+const compatibilityHead='/companion/v1/kitten-head.85cc0fd38665.glb.gz';
+const compactHead='/companion/v1/kitten-head.cbaac6dba636.glb.gz';
 
 export async function fetchNativeHeadAsset({url,signal}={}){
-  const path=url||(typeof DecompressionStream==='function'?compactHead:originalHead);
-  const response=await fetch(path,{signal,credentials:'same-origin',cache:path===compactHead?'force-cache':'default'});
+  let path=url;
+  if(!path){
+    let decoded=false;
+    if(MeshoptDecoder.supported){
+      try { await MeshoptDecoder.ready; decoded=true; } catch { /* The host may restrict WebAssembly. */ }
+    }
+    path=decoded?compactHead:compatibilityHead;
+  }
+  const response=await fetch(path,{signal,credentials:'same-origin',cache:url?'default':'force-cache'});
   if(!response.ok)throw new Error('Cat head asset could not be loaded');
   let bytes=await response.arrayBuffer();
   signal?.throwIfAborted();
@@ -57,8 +65,13 @@ export async function fetchNativeHeadAsset({url,signal}={}){
   // decoded it. Inspect the payload so both static hosting setups work.
   const signature=new Uint8Array(bytes,0,Math.min(2,bytes.byteLength));
   if(signature[0]===0x1f&&signature[1]===0x8b){
-    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'),{signal});
-    bytes=await new Response(stream).arrayBuffer();
+    if(typeof DecompressionStream==='function'){
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'),{signal});
+      bytes=await new Response(stream).arrayBuffer();
+    }else{
+      const {gunzipSync}=await import('three/addons/libs/fflate.module.js');
+      bytes=gunzipSync(new Uint8Array(bytes)).buffer;
+    }
     signal?.throwIfAborted();
   }
   return {bytes,url:path};
@@ -84,11 +97,12 @@ export async function attachNativeHead(cat,{url,asset,
       const whiskerSkin=skins.find(o=>o.material.name==='MuzzleIvory')||skins[0];
       const whisker=whiskerSkin?createWhiskers(whiskerSkin,authoredFace?{xScale:.82,yOffset:.0024,lengthScale:.9}:undefined):null;
       createEyeHighlights(model);
-      const meshes=[];
+      const meshes=[],corneas=new Set();
       model.traverse(mesh=>{
         if(!mesh.isMesh)return;meshes.push(mesh);
         if(!authoredFace)softenMouthExpression(mesh);
         const source=mesh.material,role=source.name;mesh.userData.surfaceRole=role;
+        if(role==='Clear cornea' && source.transmission>0)corneas.add(source);
         mesh.castShadow=!/Pupil|Whisker|Fur|Highlight/i.test(mesh.name);
         mesh.receiveShadow=!/Highlight/i.test(mesh.name);mesh.frustumCulled=false;
         if(role==='Silver mackerel tabby'||role==='MuzzleIvory')mesh.material=createToonCoat(source,{separateNose:true,vertexPigment:role==='MuzzleIvory',artistCoordinates:mesh.geometry.hasAttribute('_coat_rest')&&mesh.geometry.hasAttribute('_coat_normal')});
@@ -157,6 +171,9 @@ export async function attachNativeHead(cat,{url,asset,
       }
       mount=new T.Group();mount.name='NativeHeadMount';mount.scale.setScalar(scale);mount.position.fromArray(offset);mount.add(model);
       const controller={model,mount,meshes,values,authoredFace,
+        // At room scale the painted irises and separate catchlights carry the
+        // eyes. The microscopic refracting shell would render the whole room twice.
+        setRoomScale(inRoom){for(const material of corneas)material.visible=!inRoom;},
         eyes:eyePivots.map((pivot,i)=>({side:i===0?1:-1,pivot,globe:model.getObjectByName(i===0?'Sclera_L':'ScleraR'),optical:pivot})),
         whiskers:whisker?[whisker]:[],setFace,
         setPlacement(nextScale=scale,nextOffset=offset){

@@ -47,6 +47,9 @@ export class UserService implements OnModuleInit {
     });
 
     if (!existingAdmin) {
+      if (adminPassword.length < 12 || Buffer.byteLength(adminPassword, 'utf8') > 72) {
+        throw new Error('ADMIN_DEFAULT_PASSWORD 至少需要 12 个字符且最多 72 个 UTF-8 字节');
+      }
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
       await this.prisma.user.create({
         data: {

@@ -9,6 +9,7 @@ vi.mock('three', async importOriginal => ({
   ...await importOriginal<typeof import('three')>(),
   WebGLRenderer: class {
     domElement = document.createElement('canvas')
+    info = { render: { calls: 1 } }
     shadowMap = {}
     capabilities = { getMaxAnisotropy: () => 1 }
     extensions = { has: () => shaders.parallel }

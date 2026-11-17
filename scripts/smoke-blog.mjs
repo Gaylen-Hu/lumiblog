@@ -19,6 +19,16 @@ for (const [route, status] of cases) {
   } else await response.arrayBuffer()
   console.log(`${status} ${route}`)
 }
+// Follow a published article on this deployment; a home-page 200 can hide a broken reader.
+const listing = await fetch(new URL('/zh/posts', base), { signal: AbortSignal.timeout(30000) })
+const articleHref = (await listing.text()).match(/href="(\/zh\/posts\/[^"?#]+)"/)?.[1]
+if (!articleHref) throw new Error('Article listing has no crawlable article link')
+const article = await fetch(new URL(articleHref, base), { signal: AbortSignal.timeout(30000) })
+const html = await article.text()
+if (article.status !== 200 || !/<h1[\s>]/i.test(html) || !html.includes('id="post-body"')) {
+  throw new Error('Article HTML is missing the heading or body')
+}
+console.log(`200 article ${articleHref}`)
 if (revision) {
   const response = await fetch(new URL('/blog-release.json', base), { cache: 'no-store', signal: AbortSignal.timeout(10000) })
   if (!response.ok || (await response.json()).revision !== revision) throw new Error('Release revision mismatch')

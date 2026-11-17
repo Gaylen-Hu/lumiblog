@@ -59,6 +59,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   host.appendChild(renderer.domElement)
   const diagnostics = roomDiagnostics(host, renderer)
   let previousContinuous = false
+  let sampledMs = 0, sampledFrames = 0, slowFrames = 0
   const camera = new THREE.PerspectiveCamera(57, 1, 0.05, 45)
   const home = new THREE.Vector3(-.15, 1.72, .65)
   const homeLook = new THREE.Vector3(.05, 1.51, -2.5)
@@ -88,7 +89,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const textures = new Set<THREE.Texture>()
   const extraMaterials = new Set<THREE.Material>()
   const hits: THREE.Object3D[] = []
-  const leaves: { mesh: THREE.Object3D; angle: number }[] = []
+  const leaves: { mesh: THREE.Mesh<THREE.BufferGeometry, THREE.Material>; angle: number }[] = []
   let seed = 71
   const random = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646
   function mat(color: string, glow = false) {
@@ -396,6 +397,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   rounded([0,.143,.22],[.33,.108,.014],brass,readingCase)
   mesh(new THREE.PlaneGeometry(.283,.081),plate,[0,.143,.229],readingCase)
   const indexCards = new THREE.Group(); readingCase.add(indexCards)
+  indexCards.visible = false
   const ruledCard = new THREE.MeshStandardMaterial({roughness:1,map:paintedTexture(320,160,ctx=>{
     ctx.fillStyle='#f0e5ca';ctx.fillRect(0,0,320,160);ctx.fillStyle='#a19172'
     for(const y of [58,79,100,121])ctx.fillRect(18,y,284,1)
@@ -458,14 +460,18 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   for (const y of [.41, .623, .855]) timber([cabinetX, y, 0], [.76,.024,1.1], true, desk)
 
   const drawerTravel = .76
+  const drawerInteriors: THREE.Group[] = []
   const drawers = [.735, .52].map((y, index) => {
     const drawer = new THREE.Group()
     drawer.position.set(cabinetX, y, 0); desk.add(drawer)
     timber([0, 0, .58], [.746,.183,.05], false, drawer)
-    timber([0,-.074,.065], [.69,.022,.98], false, drawer)
-    for (const side of [-1, 1]) timber([side * .336,-.004,.064], [.024,.15,.98], false, drawer)
-    timber([0,-.004,-.416], [.68,.15,.026], false, drawer)
-    rounded([0,-.060,.067], [.645,.006,.93], mat('#76725b'), drawer)
+    const interior = new THREE.Group()
+    interior.visible = false
+    drawer.add(interior); drawerInteriors.push(interior)
+    timber([0,-.074,.065], [.69,.022,.98], false, interior)
+    for (const side of [-1, 1]) timber([side * .336,-.004,.064], [.024,.15,.98], false, interior)
+    timber([0,-.004,-.416], [.68,.15,.026], false, interior)
+    rounded([0,-.060,.067], [.645,.006,.93], mat('#76725b'), interior)
     for (const x of [-.105, .105]) {
       const rose = cylinder([x,0,.612],.024,.024,.012,'#ab8e60',drawer)
       rose.rotation.x = Math.PI / 2
@@ -475,7 +481,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     // Index cards lie inside the box and travel with it.
     const cards = new THREE.Group()
     cards.position.set(index ? .07 : -.06,-.056,.30)
-    cards.rotation.y = index ? .13 : -.10; drawer.add(cards)
+    cards.rotation.y = index ? .13 : -.10; interior.add(cards)
     rounded([-.028,.007,-.014],[.39,.014,.23],mat('#cdbb93'),cards)
     rounded([0,.017,0],[.39,.013,.23],mat('#f4e6ce'),cards)
     box([-.10,.0245,-.047],[.115,.002,.012],index ? '#936a51' : '#607965',cards)
@@ -485,7 +491,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     const envelope = new THREE.Group()
     envelope.position.set(.16, -.042, .29)
     envelope.rotation.y = -.12
-    drawer.add(envelope)
+    interior.add(envelope)
     rounded([0,0,0], [.28,.009,.16], mat('#e4d5b6'), envelope)
     cylinder([0,.009,0],.023,.024,.01,'#863e33',envelope)
     hit('drawer', [0,0,.6], [.76,.205,.16], drawer).userData.drawerIndex = index
@@ -1647,6 +1653,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       drawers.forEach((drawer, index) => {
         const end = target === 'drawer' && openingDrawer === index ? drawerTravel : 0
         const z = THREE.MathUtils.lerp(drawerStarts[index], end, slide)
+        drawerInteriors[index].visible = z > .001
         if (drawer.position.z !== z) { drawer.position.z = z; renderer.shadowMap.needsUpdate = true }
       })
       const gesture = THREE.MathUtils.smoothstep(progress, target ? .28 : 0, target ? .90 : .7)
@@ -1659,6 +1666,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       readingCase.position.z=THREE.MathUtils.lerp(objectStarts.caseZ,openingBox ? -2.05 : -2.65,THREE.MathUtils.smoothstep(progress,openingBox ? .08 : .46,openingBox ? .53 : .96))
       caseTray.position.z=-2.73+(readingCase.position.z+2.65)*.94
       caseLid.rotation.x=THREE.MathUtils.lerp(objectStarts.lid,openingBox ? -1.37 : 0,THREE.MathUtils.smoothstep(progress,openingBox ? .48 : 0,openingBox ? .93 : .51))
+      indexCards.visible = caseLid.rotation.x < -.001
       screenMaterial.emissiveIntensity = THREE.MathUtils.lerp(objectStarts.screen, target === 'computer' ? .72 : .52, gesture)
       printFrame.position.z = THREE.MathUtils.lerp(objectStarts.albumZ, target === 'album' ? -3.56 : -3.86, gesture)
       printFrame.rotation.y = THREE.MathUtils.lerp(objectStarts.albumY, target === 'album' ? -.09 : 0, gesture)
@@ -1693,12 +1701,12 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     // this frame's camera pose rather than the preceding rendered matrix.
     camera.updateMatrixWorld()
     const companionMoving = isCompanionActive() && companionDriver?.update(THREE.MathUtils.clamp(delta / 1000, 0, .1)) === true
-    // Flush one final settled pose as well; otherwise a stopped paw can leave
-    // the cached shadow behind. A pending flush keeps only enough frames alive
-    // to respect the same 30 Hz shadow budget.
-    companionShadowPending ||= companionMoving || companionWasMoving
-    companionWasMoving = companionMoving
-    if (companionShadowPending && now - lastCompanionShadow >= 1000 / 30) {
+    // Blinks, breathing and speech need frames but do not change the room-scale
+    // shadow. Refresh it during locomotion and once more on settling.
+    const movingShadow = isCompanionActive() && (companionDriver?.shadowMoving ?? companionMoving)
+    companionShadowPending ||= movingShadow || companionWasMoving
+    companionWasMoving = movingShadow
+    if (companionShadowPending && now - lastCompanionShadow >= 1000 / 15) {
       renderer.shadowMap.needsUpdate = true
       lastCompanionShadow = now
       companionShadowPending = false
@@ -1722,20 +1730,47 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
     if (!target && !reduced && ambientMotion) {
       const time = now * .001
       if (windowVisible) gardenBreeze.value.set(Math.sin(time * .28) * .009, Math.sin(time * .19) * .004)
-      for (const leaf of leaves) leaf.mesh.rotation.z = .3 + Math.sin(time * .7 + leaf.angle) * .035
+      updateLeaves(time)
     }
     if (reduced || !ambientMotion) gardenBreeze.value.set(0, 0)
     if (catalogAnimating) drawCatalogCue(delta)
+    const sampleInterval = presented && previousContinuous && delta > 0
     previousContinuous = !!((!target && !reduced && ambientMotion) || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || catalogAnimating || companionMoving)
     diagnostics?.mode(`${quality === 'light' ? 'light' : 'auto'}:${previousContinuous ? 'animated' : 'idle'}:${environment.preset}`)
     if (!drawScene()) return
+    if (sampledMs < 5000 && sampleInterval && previousContinuous) {
+      sampledMs += delta
+      sampledFrames++
+      if (delta > 50) slowFrames++
+      if (sampledMs >= 5000) {
+        const metrics = {
+          room_fps: Math.round(sampledFrames * 1000 / sampledMs),
+          room_slow_frame_pct: Math.round(slowFrames * 100 / sampledFrames),
+          room_draw_calls: renderer.info.render.calls,
+        }
+        for (const [name, value] of Object.entries(metrics)) {
+          window.dispatchEvent(new CustomEvent('study-metric', { detail: { name, value } }))
+        }
+      }
+    }
     if (catalogAnimating || windowViewMix !== previewGoal) requestFrame()
     if (!target && !reduced && ambientMotion || transitioning || curtainsMoving || lightMoving || weatherMoving || glassMoving || companionMoving || companionShadowPending) requestFrame()
   }
   // Generated albedo assets progressively replace procedural fallbacks.
   // Track every texture for teardown, including late completion after navigation.
-  function loadArt(name: string, apply: (texture: THREE.Texture) => void, repeat = false, series = 'v1', onError?: () => void) {
-    const texture = new THREE.TextureLoader().load(`/study-assets/${series}/${name}.webp`, loaded => {
+  const roomArt = {
+    'bookcloth': 'bookcloth.19d880a6c34f.webp',
+    'garden-snow': 'garden-snow.8845be9d98ff.webp',
+    'garden': 'garden.b2ca157b72df.webp',
+    'kingfisher': 'kingfisher.cfeb077bf546.webp',
+    'landscape': 'landscape.20cfd8836796.webp',
+    'leaf': 'leaf.a745a1c3b89b.webp',
+    'linen': 'linen.1c1f4cdc90b5.webp',
+    'oak': 'oak.196046371a6e.webp',
+    'paper': 'paper.64148e22c9e6.webp',
+  } as const
+  function loadArt(name: keyof typeof roomArt, apply: (texture: THREE.Texture) => void, repeat = false, onError?: () => void) {
+    const texture = new THREE.TextureLoader().load(`/study-assets/web/${roomArt[name]}`, loaded => {
       if (disposed) { loaded.dispose(); return }
       loaded.colorSpace = THREE.SRGBColorSpace
       loaded.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy())
@@ -1750,12 +1785,12 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   }
   loadArt('kingfisher', texture => {
     printPaper.map = texture; printPaper.needsUpdate = true
-  }, false, 'daylight')
+  }, false)
   loadArt('leaf', texture => {
     for(const m of foliage){m.map=texture;m.needsUpdate=true}
     // The cutout changes the leaf silhouettes in the cached shadow map.
     renderer.shadowMap.needsUpdate = true
-  }, false, 'daylight')
+  }, false)
   let garden: THREE.Texture | null = null
   let snowyGarden: THREE.Texture | null = null
   let snowRequested = false
@@ -1775,16 +1810,16 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       loadArt('garden-snow', loaded => {
         snowyGarden = loaded
         updateGarden() // The visitor may already have switched back to clear weather.
-      }, false, 'daylight', () => { snowRequested = false })
+      }, false, () => { snowRequested = false })
     }
   }
-  loadArt('garden', loaded => { garden = loaded; updateGarden() }, false, 'daylight')
+  loadArt('garden', loaded => { garden = loaded; updateGarden() }, false)
   loadArt('oak', texture => {
     wood.map = darkWood.map = texture
     wood.color.set('#f1e5d2'); darkWood.color.set('#b59a7c')
     wood.needsUpdate = darkWood.needsUpdate = true
     floorTexture.image = texture.image; floorTexture.needsUpdate = true; floorMaterial.color.set('#baada1')
-  }, true, 'daylight')
+  }, true)
   wood.color.set('#ead4af'); darkWood.color.set('#c7ad87'); floorMaterial.color.set('#dbc7a7')
   loadArt('linen', texture => {
     for(const m of [throwMaterial,cushionCloth,fabric,...pillowFabric]) { m.map=texture; m.needsUpdate=true }
@@ -1798,12 +1833,51 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
   const picture = mesh(new THREE.PlaneGeometry(.46, .59), pictureMaterial, [-.95, 2.45, -3.76])
   picture.castShadow = false
   loadArt('landscape', texture => { pictureMaterial.map = texture; pictureMaterial.needsUpdate = true })
+  // Animate the original leaf transforms in two instanced draws.
+  scene.updateMatrixWorld(true)
+  const leafBatches = foliage.map(material => {
+    const instances = leaves.filter(leaf => leaf.mesh.material === material).map(leaf => {
+      const plantMatrix = leaf.mesh.parent!.matrixWorld.clone()
+      leaf.mesh.removeFromParent()
+      return { ...leaf, plantMatrix }
+    })
+    const batch = new THREE.InstancedMesh(leafGeo, material, instances.length)
+    batch.castShadow = batch.receiveShadow = true
+    batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    return { batch, instances }
+  })
+  const leafMatrix = new THREE.Matrix4()
+  function updateLeaves(time: number) {
+    for (const { batch, instances } of leafBatches) {
+      instances.forEach(({ mesh, angle, plantMatrix }, i) => {
+        mesh.rotation.z = .3 + Math.sin(time * .7 + angle) * .035
+        mesh.updateMatrix()
+        batch.setMatrixAt(i, leafMatrix.multiplyMatrices(plantMatrix, mesh.matrix))
+      })
+      batch.instanceMatrix.needsUpdate = true
+    }
+  }
+  updateLeaves(0)
+  // Combine only fixed, flat paints. The cloth materials receive their maps
+  // asynchronously and must keep their own bindings.
+  const painted = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85, metalness: .03 })
+  extraMaterials.add(painted)
+  const cloth = new Set([cushionCloth, ...pillowFabric])
+  const flatPaints = new Set([...materials.values()].filter(material =>
+    !cloth.has(material) && !material.map && !material.bumpMap && !material.transparent &&
+    material.side === THREE.FrontSide && !material.emissive.getHex() &&
+    material.roughness === .85 && material.metalness === .03))
   batchStaticScene(scene, new Set<THREE.Object3D>([
     ...hits, rocker, curtains, diary, readingCase, caseTray, display,
     ...drawers, ...markedVolumes.map(value => value.book), ...rails,
     ...plates.map(value => value.holder), printFrame, ...editionModels,
-    hourHand, minuteHand, secondHand, ...leaves.map(value => value.mesh), ...steam,
-  ]), geometries)
+    hourHand, minuteHand, secondHand, ...steam,
+  ]), geometries, { members: flatPaints, material: painted })
+  for (const { batch } of leafBatches) {
+    batch.computeBoundingSphere()
+    batch.boundingSphere!.radius += .1 // room-space wind margin
+    scene.add(batch)
+  }
   scene.add(companionRoot)
   // Separate, invisible landing planes preserve exact desk/seat identity after
   // furniture batching. Visible meshes still decide whether a click is blocked.
@@ -1975,6 +2049,7 @@ export function createRoom(host: HTMLElement, options: RoomOptions) {
       canvas.removeEventListener('lostpointercapture', cancel)
       canvas.removeEventListener('pointerleave', cancel); canvas.removeEventListener('webglcontextlost', lost)
       precipitation.dispose(); rainGlass.dispose()
+      for (const { batch } of leafBatches) batch.dispose()
       geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); textures.forEach(t => t.dispose())
       extraMaterials.forEach(m => m.dispose())
       sun.shadow.dispose(); renderer.dispose(); renderer.forceContextLoss(); canvas.remove()

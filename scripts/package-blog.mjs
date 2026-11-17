@@ -1,6 +1,20 @@
-import { cp, mkdir, writeFile, access, readdir } from 'node:fs/promises'
+import { cp, mkdir, writeFile, readFile, access, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import { brotliCompressSync, constants } from 'node:zlib'
+
+async function compressChunks(directory, destination) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const from = path.join(directory, entry.name), to = path.join(destination, entry.name)
+    if (entry.isDirectory()) await compressChunks(from, to)
+    else if (entry.isFile() && /\.(css|js)$/.test(entry.name)) {
+      await mkdir(path.dirname(to), { recursive: true })
+      const data = brotliCompressSync(await readFile(from), { params: { [constants.BROTLI_PARAM_QUALITY]: 6 } })
+      await writeFile(to, data)
+    }
+  }
+}
 
 export async function packageBlog(app, output, revision) {
   app = path.resolve(app); output = path.resolve(output)
@@ -36,6 +50,7 @@ export async function packageBlog(app, output, revision) {
     filter: file => !path.basename(file).startsWith('.env') })
   const destination = path.join(output, entryDir)
   await cp(path.join(app, '.next/static'), path.join(destination, '.next/static'), { recursive: true })
+  await compressChunks(path.join(app, '.next/static'), path.join(output, 'static-br/_next/static'))
   await cp(path.join(app, 'public'), path.join(destination, 'public'), { recursive: true })
   if (entryDir !== '.') {
     await writeFile(path.join(output, 'server.js'), `// Generated launcher; keep traced dependencies in their original locations.\nrequire(${JSON.stringify('./' + relativeEntry.split(path.sep).join('/'))});\n`)

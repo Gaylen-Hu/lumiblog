@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { RoomRegistrationContext, StudyNavigationContext, useStudyLocation } from './StudyNavigation'
 import type { StudyRoomProps } from './StudyRoom'
-import { loadRoomScene, prefersSimpleStudy } from './room-loader'
+import { loadRoomScene, deferStudyGraphics } from './room-loader'
 import { notifyStudyLocation, resolveStudyRoute, spatialReadingHref, stampStudyHistory, studyHistory } from './study-route'
 import PaperLoading from './PaperLoading'
 import WebsiteCompanion from '../companion/WebsiteCompanion'
@@ -15,7 +15,7 @@ import './magazine.css'
 const SpatialContent = dynamic(() => import('./SpatialContent'), { loading: () => <PaperLoading /> })
 const PersistentRoom = dynamic(() => {
   // Download the renderer alongside the room controls. StudyRoom handles load failures.
-  if (!prefersSimpleStudy()) void loadRoomScene().catch(() => {})
+  if (!deferStudyGraphics()) void loadRoomScene().catch(() => {})
   return import('./StudyRoom')
 }, { ssr: false })
 
@@ -79,7 +79,7 @@ export default function StudyShell({ locale, children }: { locale: string; child
   }, [])
   useEffect(() => { if (phase === 'reading') focusContent() }, [phase, route.key, focusContent])
   useEffect(() => {
-    if (route.spatial) magazine.current?.querySelector<HTMLButtonElement>('.study-return')?.focus({ preventScroll: true })
+    if (route.spatial) magazine.current?.querySelector<HTMLAnchorElement>('.study-return')?.focus({ preventScroll: true })
   }, [route.spatial, route.key])
 
   const close = useCallback(() => {
@@ -118,6 +118,7 @@ export default function StudyShell({ locale, children }: { locale: string; child
   function navigate(event: MouseEvent<HTMLDivElement>) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     const anchor = (event.target as Element).closest<HTMLAnchorElement>('a[href]')
+    if (!roomData && anchor?.closest('.study-home-entry')) return
     if (!anchor || anchor.hasAttribute('download') || anchor.hasAttribute('data-study-native') || (anchor.target && anchor.target !== '_self')) return
     const raw = anchor.getAttribute('href') || ''
     if (raw.startsWith('#')) return
@@ -166,7 +167,11 @@ export default function StudyShell({ locale, children }: { locale: string; child
         {(reading || coverVisible) && <section className="study-magazine" ref={magazine} data-phase={phase} data-direct={!roomData || undefined}
           role={route.spatial ? 'dialog' : undefined} aria-modal={route.spatial || undefined}
           aria-label={en ? 'Reading room' : '阅览室'} aria-hidden={!reading} inert={!reading}>
-          {reading && <button className="study-return" onClick={close}>{en ? '← Return to study' : '← 回到书房大厅'}<kbd>Esc</kbd></button>}
+          {reading && <a className="study-return" href={home} onClick={event => {
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+            close()
+          }}>{en ? '← Return to study' : '← 回到书房大厅'}<kbd>Esc</kbd></a>}
           {reading && phase === 'opening' && <div className="study-turning"><PaperLoading locale={locale} /></div>}
           {reading && <div className="study-magazine-content" data-study-content ref={content} inert={phase === 'opening'} aria-hidden={phase === 'opening'}>
             {route.spatial ? <SpatialContent key={route.readingPath} path={route.readingPath!} locale={locale} onReady={focusContent} /> : children}

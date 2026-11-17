@@ -165,6 +165,7 @@ export default function RoomJournal({ timeline, locale, siteName, motion = true,
       turn(dx < 0 ? 1 : -1)
     }
   }
+  /* eslint-disable react-hooks/refs -- React invokes the button's ref callback during commit and its click handler on user input. */
   function preview(entryIndex: number, side: 'left' | 'right') {
     const entry = entries[entryIndex]
     return <article className={styles.pageSlot} data-side={side} key={side}>
@@ -175,6 +176,7 @@ export default function RoomJournal({ timeline, locale, siteName, motion = true,
       </button> : <PagePreview siteName={siteName} number={entryIndex + 1} en={en} />}
     </article>
   }
+  /* eslint-enable react-hooks/refs */
   // The leaf's front is the outgoing page and its back is the incoming page.
   const left = turning && !turning.forward ? turning.to : index
   const right = turning?.forward ? turning.to + 1 : index + 1

@@ -77,7 +77,7 @@ export class SelfHostedAnalyticsProvider {
       }),
       this.prisma.analyticsSession.findMany({
         where: { createdAt: { gte: since } },
-        select: { _count: { select: { events: true } } },
+        select: { _count: { select: { events: { where: { eventType: 'pageview' } } } } },
       }),
     ]);
 
@@ -194,10 +194,10 @@ export class SelfHostedAnalyticsProvider {
     const device = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
 
     let os = 'unknown';
-    if (/windows/.test(lower)) os = 'Windows';
+    if (/iphone|ipad|ipod/.test(lower)) os = 'iOS';
+    else if (/windows/.test(lower)) os = 'Windows';
     else if (/mac os x|macintosh/.test(lower)) os = 'macOS';
     else if (/android/.test(lower)) os = 'Android';
-    else if (/iphone|ipad|ipod/.test(lower)) os = 'iOS';
     else if (/linux/.test(lower)) os = 'Linux';
 
     let browser = 'unknown';

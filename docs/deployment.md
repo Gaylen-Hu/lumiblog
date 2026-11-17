@@ -75,12 +75,14 @@ REDIS_PORT=6379
 REDIS_PASSWORD=your_redis_password
 
 # JWT 配置
-JWT_SECRET=your_jwt_secret
+# 通过私密环境变量设置随机密钥，可用 openssl rand -hex 32 生成。
+JWT_SECRET=
 JWT_EXPIRES_IN=7d
 
 # 默认管理员账号（首次启动自动创建）
 ADMIN_DEFAULT_EMAIL=admin@example.com
-ADMIN_DEFAULT_PASSWORD=your_admin_password
+# 首次创建管理员时通过私密环境变量设置随机密码，至少 12 个字符。
+ADMIN_DEFAULT_PASSWORD=
 
 # 微信配置
 WX_NAME="your_wechat_name"

@@ -5,6 +5,7 @@ import type { mountWebsiteCat } from './runtime/website-cat.js'
 import { getRoomStage, subscribeRoomStage } from './room-stage'
 import { websiteAssistant } from './website-assistant'
 import { getWebsiteAgentConnection } from './website-agent-connection'
+import { deferStudyGraphics } from '../study/room-loader'
 import styles from './website-companion.module.css'
 
 type Companion = Awaited<ReturnType<typeof mountWebsiteCat>>
@@ -101,11 +102,15 @@ export default function WebsiteCompanion({ locale, reading }: { locale: string; 
       if (cancelled) return
       let saved = false
       try { saved = localStorage.getItem(visibilityKey) === 'true' } catch { /* Optional preference. */ }
-      const collapsed = narrow.matches || saved
+      const collapsed = readingRef.current || deferStudyGraphics() || narrow.matches || motion.matches || saved
       hiddenRef.current = collapsed; setHidden(collapsed); setMounted(true)
       if (collapsed) return
       const load = () => {
         if (cancelled || hiddenRef.current) return
+        if (readingRef.current || deferStudyGraphics() || motion.matches) {
+          hiddenRef.current = true; setHidden(true)
+          return
+        }
         setPhase('loading'); setRequested(true)
       }
       if (typeof window.requestIdleCallback === 'function') idle = window.requestIdleCallback(load, { timeout: 2200 })

@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { gzipSync } from 'node:zlib';
+import { MeshoptEncoder } from 'meshoptimizer/encoder';
 
 // Use the same image processor as the blog's installed Next version.
 const require = createRequire(import.meta.url);
@@ -11,6 +12,7 @@ const source = await readFile(new URL('kitten-head.glb', directory));
 const jsonEnd = 20 + source.readUInt32LE(12);
 const model = JSON.parse(source.toString('utf8', 20, jsonEnd));
 const bin = source.subarray(jsonEnd + 8);
+await MeshoptEncoder.ready;
 
 // The toon shader reads only pigment on these two materials. Eye materials
 // still use their original surface maps.
@@ -57,21 +59,48 @@ model.bufferViews = retainReferenced(model.bufferViews, viewRefs);
 
 const chunks = [];
 let length = 0;
+let decodedLength = 0;
+const meshopt = 'EXT_meshopt_compression';
 for (const [index, view] of model.bufferViews.entries()) {
   const offset = view.byteOffset || 0;
   let data = bin.subarray(offset, offset + view.byteLength);
   const image = model.images.find(entry => entry.bufferView === index);
   if (image?.name === 'coat-color' || image?.name === 'Eye-normal') {
-    const width = image.name === 'coat-color' ? 2048 : 512;
+    const width = image.name === 'coat-color' ? 1024 : 512;
     data = await sharp(data).resize({ width, withoutEnlargement: true })
-      .jpeg({ quality: 94, chromaSubsampling: '4:4:4', mozjpeg: true }).toBuffer();
+      .jpeg({ quality: 88, chromaSubsampling: '4:4:4', mozjpeg: true }).toBuffer();
   }
   view.byteOffset = length;
   view.byteLength = data.length;
+  // Encode only dense standalone vertex/index views. Preserve sparse facial
+  // morphs and accessor ordering, including the exact order of index triples.
+  const refs = model.accessors.filter(accessor => accessor.bufferView === index);
+  if (refs.length === 1 && !refs[0].byteOffset && (view.target === 34962 || view.target === 34963)) {
+    const count = refs[0].count;
+    const stride = data.length / count;
+    const indices = view.target === 34963;
+    const mode = indices ? 'INDICES' : 'ATTRIBUTES';
+    const valid = indices ? [2, 4].includes(stride) : stride > 0 && stride <= 256 && stride % 4 === 0;
+    if (valid) {
+      const encoded = MeshoptEncoder.encodeGltfBuffer(data, count, stride, mode);
+      if (encoded.length < data.length) {
+        view.extensions = { ...view.extensions, [meshopt]: { buffer: 0, byteOffset: length, byteLength: encoded.length, byteStride: stride, count, mode } };
+        view.buffer = 1;
+        view.byteOffset = decodedLength;
+        decodedLength += Math.ceil(data.length / 4) * 4;
+        data = encoded;
+      }
+    }
+  }
   chunks.push(data, Buffer.alloc((4 - data.length % 4) % 4));
   length += data.length + chunks.at(-1).length;
 }
 model.buffers[0].byteLength = length;
+if (decodedLength) {
+  model.buffers.push({ byteLength: decodedLength, extensions: { [meshopt]: { fallback: true } } });
+  model.extensionsRequired = [...(model.extensionsRequired || []), meshopt];
+  model.extensionsUsed = [...(model.extensionsUsed || []), meshopt];
+}
 const json = Buffer.from(JSON.stringify(model));
 const paddedJson = Buffer.alloc(Math.ceil(json.length / 4) * 4, 0x20);
 json.copy(paddedJson);

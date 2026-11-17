@@ -128,27 +128,27 @@ html.dark {
 }
 
 /* highlight.js 暗色模式覆盖（基于 github-dark 主题色） */
-.dark .markdown-content pre code.hljs {
+.dark .markdown-content pre code.hljs:not(:where(.study-magazine *)) {
   background: transparent;
   color: #c9d1d9;
 }
-.dark .hljs-comment,
-.dark .hljs-quote { color: #8b949e; }
-.dark .hljs-keyword,
-.dark .hljs-selector-tag { color: #ff7b72; }
-.dark .hljs-number,
-.dark .hljs-literal { color: #79c0ff; }
-.dark .hljs-string,
-.dark .hljs-doctag { color: #a5d6ff; }
-.dark .hljs-title,
-.dark .hljs-section { color: #d2a8ff; }
-.dark .hljs-type,
-.dark .hljs-class .hljs-title { color: #ffa657; }
-.dark .hljs-tag,
-.dark .hljs-name,
-.dark .hljs-attribute { color: #7ee787; }
-.dark .hljs-built_in { color: #ffa657; }
-.dark .hljs-meta { color: #8b949e; }
+.dark .hljs-comment:not(:where(.study-magazine *)),
+.dark .hljs-quote:not(:where(.study-magazine *)) { color: #8b949e; }
+.dark .hljs-keyword:not(:where(.study-magazine *)),
+.dark .hljs-selector-tag:not(:where(.study-magazine *)) { color: #ff7b72; }
+.dark .hljs-number:not(:where(.study-magazine *)),
+.dark .hljs-literal:not(:where(.study-magazine *)) { color: #79c0ff; }
+.dark .hljs-string:not(:where(.study-magazine *)),
+.dark .hljs-doctag:not(:where(.study-magazine *)) { color: #a5d6ff; }
+.dark .hljs-title:not(:where(.study-magazine *)),
+.dark .hljs-section:not(:where(.study-magazine *)) { color: #d2a8ff; }
+.dark .hljs-type:not(:where(.study-magazine *)),
+.dark .hljs-class .hljs-title:not(:where(.study-magazine *)) { color: #ffa657; }
+.dark .hljs-tag:not(:where(.study-magazine *)),
+.dark .hljs-name:not(:where(.study-magazine *)),
+.dark .hljs-attribute:not(:where(.study-magazine *)) { color: #7ee787; }
+.dark .hljs-built_in:not(:where(.study-magazine *)) { color: #ffa657; }
+.dark .hljs-meta:not(:where(.study-magazine *)) { color: #8b949e; }
 
 .markdown-content table {
   @apply w-full mb-6 border-collapse;

@@ -37,6 +37,7 @@ export async function getArticles(params?: {
   tag?: string
   search?: string
   locale?: string
+  throwOnError?: boolean
 }): Promise<PaginatedResponse<Post>> {
   try {
     const searchParams = new URLSearchParams()
@@ -53,7 +54,8 @@ export async function getArticles(params?: {
     })
     if (!res.ok) throw new Error('Failed to fetch articles')
     return res.json()
-  } catch {
+  } catch (error) {
+    if (params?.throwOnError) throw error
     return { data: [], total: 0, page: 1, pageSize: 10 }
   }
 }
@@ -63,26 +65,14 @@ export async function getArticleBySlug(
   slug: string,
   locale?: string,
 ): Promise<PostDetail | null> {
-  try {
-    const searchParams = new URLSearchParams()
-    if (locale) searchParams.set('locale', locale)
-    const qs = searchParams.toString()
-    const url = `${API_BASE_URL}/articles/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`
-
-    const res = await fetch(url, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(12000),
-    })
-    if (!res.ok) {
-      if (res.status === 404) return null
-      console.error(`Failed to fetch article "${slug}": ${res.status} ${res.statusText}`)
-      return null
-    }
-    return res.json()
-  } catch (err) {
-    console.error(`Error fetching article "${slug}":`, err)
-    return null
-  }
+  const searchParams = new URLSearchParams()
+  if (locale) searchParams.set('locale', locale)
+  const qs = searchParams.toString()
+  const url = `${API_BASE_URL}/articles/${encodeURIComponent(slug)}${qs ? `?${qs}` : ''}`
+  const res = await fetch(url, { next: { revalidate: 60 }, signal: AbortSignal.timeout(12000) })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Article service returned HTTP ${res.status}`)
+  return res.json()
 }
 
 // 文章 slugs（用于 SSG generateStaticParams）

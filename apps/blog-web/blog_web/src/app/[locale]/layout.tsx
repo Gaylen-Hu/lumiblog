@@ -90,7 +90,9 @@ export default async function LocaleLayout({
 
   const [messages, config] = await Promise.all([getMessages(), getSiteConfig()])
 
-  const GA_ID = config.analyticsGoogle || process.env.NEXT_PUBLIC_GA_ID || ''
+  const configuredGA = config.analyticsGoogle || process.env.NEXT_PUBLIC_GA_ID || ''
+  const GA_ID = /^G-[A-Z0-9]+$/.test(configuredGA) ? configuredGA : ''
+  const baiduId = /^[a-f0-9]{32}$/i.test(config.analyticsBaidu || '') ? config.analyticsBaidu : null
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -101,24 +103,22 @@ export default async function LocaleLayout({
             __html: `(function(){try{var t=localStorage.getItem('theme');var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||((t==='system'||!t)&&prefersDark)){document.documentElement.classList.add('dark');}}catch(e){}})()`,
           }}
         />
-        {config.analyticsBaidu ? (
-          <script dangerouslySetInnerHTML={{ __html: config.analyticsBaidu }} />
-        ) : null}
       </head>
-      {GA_ID ? (
-        <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-            strategy="afterInteractive"
-          />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
-          </Script>
-        </>
-      ) : null}
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-[#FBF9F5]`}
       >
+        {baiduId && <Script src={`https://hm.baidu.com/hm.js?${baiduId}`} strategy="afterInteractive" />}
+        {GA_ID ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
+            </Script>
+          </>
+        ) : null}
         <SiteJsonLd config={config} />
         <ThemeProvider>
           <NextIntlClientProvider messages={messages}>
@@ -127,7 +127,7 @@ export default async function LocaleLayout({
             </LetterDeliveryProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
-        <Analytics />
+        {process.env.VERCEL === '1' && <Analytics />}
         <SiteAnalytics />
       </body>
     </html>

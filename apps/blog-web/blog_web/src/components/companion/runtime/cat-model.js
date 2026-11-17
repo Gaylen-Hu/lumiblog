@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {HEAD,headPoint,headNormal,headSurface,headUv,uvToParam,halfFaceWidth,jawOffset,createHeadGeometry,eyeBoundary} from './cat-face-surface.js';
 import {createToonPalette,toonifyCat} from './cat-toon-material.js';
 import {addKittenFur,silverBibTexture,silverEarTexture,silverFaceTexture,silverIrisTexture} from './kitten-fur.js';
@@ -306,12 +307,14 @@ export function createToonCat({legacyHeadFur=true,detailedFur=true,nativeHeadOnl
     const floorUV=underside.attributes.uv;
     for(let i=0;i<floorUV.count;i++)floorUV.setY(i,.0009);
     solid(leg.paw,underside,legMat).name='PawSole_'+id;
-    const beanGeometry=new T.SphereGeometry(1,14,8);
-    const bean=(x,z,rx,rz,name)=>{
-      const m=solid(leg.paw,beanGeometry,padMat);m.name=name+'_'+id;m.position.set(x,-.0174,z);m.scale.set(rx,.00155,rz);m.rotation.y=-x*14;m.castShadow=false;
-    };
-    bean(0,.004,.0116,.0087,'PawPad');
-    for(const [j,x] of [-.0117,-.0042,.0042,.0117].entries())bean(x,.0200-.46*Math.abs(x),.00365,.0043,'ToePad'+j);
+    // All five pads are rigidly attached to the same paw and share one paint.
+    function pad(x,z,rx,rz){
+      return new T.SphereGeometry(1,14,8).scale(rx,.00155,rz).rotateY(-x*14).translate(x,-.0174,z);
+    }
+    const pads=[pad(0,.004,.0116,.0087),...[-.0117,-.0042,.0042,.0117].map(x=>pad(x,.0200-.46*Math.abs(x),.00365,.0043))];
+    const padMesh=solid(leg.paw,mergeGeometries(pads),padMat);
+    padMesh.name='PawPads_'+id;padMesh.castShadow=false;
+    for(const geometry of pads)geometry.dispose();
   }
   const tc=new T.CatmullRomCurve3(tailPath.map(p=>vec(...p)));
   const tailGeom=ribbonGeometry(56,32,(u,v)=>{

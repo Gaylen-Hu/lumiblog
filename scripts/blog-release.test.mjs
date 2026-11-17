@@ -1,3 +1,4 @@
+import { brotliDecompressSync } from 'node:zlib'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, readFile, access, rm } from 'node:fs/promises'
@@ -82,6 +83,7 @@ for (const nested of [false, true]) test(`standalone ${nested ? 'nested' : 'root
     const runtime = path.dirname(path.join(output, result.entry))
     await access(path.join(runtime, 'public/study-assets/daylight/garden.webp'))
     await access(path.join(runtime, '.next/static/chunk.js'))
+    assert.equal(brotliDecompressSync(await readFile(path.join(output, 'static-br/_next/static/chunk.js'))).toString(), 'test')
     await access(path.join(output, 'node_modules/dependency.js'))
     assert.equal(JSON.parse(await readFile(path.join(runtime, 'public/blog-release.json'), 'utf8')).revision, 'a'.repeat(40))
     await assert.rejects(access(path.join(output, '.env.local')))

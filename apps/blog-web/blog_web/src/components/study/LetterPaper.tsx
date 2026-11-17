@@ -177,6 +177,7 @@ export default function LetterPaper({
     if (!initialDraft || appliedDraft.current === initialDraft.id) return
     appliedDraft.current = initialDraft.id
     if (phase !== 'draft' || JSON.stringify(fields) !== JSON.stringify(empty)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Notify once when a newly delivered draft conflicts with unsaved local text.
       setMessage(en ? 'Your existing letter has been kept. The new draft did not replace it.' : '已保留你原来的信，没有用新草稿覆盖。')
       return
     }

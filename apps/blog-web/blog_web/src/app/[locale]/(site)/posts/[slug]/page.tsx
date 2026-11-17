@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
-import { getArticleBySlug, getArticleSlugs, toApiLocale } from '@/lib/api'
+import { getArticleBySlug, toApiLocale } from '@/lib/api'
 import type { Metadata } from 'next'
 import { ArticleJsonLd, BreadcrumbJsonLd } from '@/components/JsonLd'
 import ArticleSubscription from '@/components/ArticleSubscription'
+import ArticleMarkdown from '@/components/study/ArticleMarkdown'
 import MagazineArticle from '@/components/study/MagazineArticle'
 
 // 未预生成的 slug 在运行时按需渲染
@@ -17,32 +18,21 @@ interface PostPageProps {
   params: Promise<{ slug: string; locale: string }>
 }
 
-export async function generateStaticParams() {
-  try {
-    const slugs = await getArticleSlugs()
-    return slugs.flatMap((slug) => [
-      { locale: 'zh', slug },
-      { locale: 'en', slug },
-    ])
-  } catch {
-    // API 不可用时返回 mock slugs，运行时按需生成
-    return [
-      { locale: 'zh', slug: 'future-of-neural-interfaces' },
-      { locale: 'en', slug: 'future-of-neural-interfaces' },
-    ]
-  }
-}
-
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.new-universe.cn'
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug, locale } = await params
   const post = await getArticleBySlug(slug, toApiLocale(locale))
-  if (!post) return { title: 'Post not found' }
+  if (!post) return { title: locale === 'en' ? 'Article not found' : '文章不存在', robots: { index: false }, alternates: null }
 
   const title = post.seo.metaTitle || `${post.title} - 墨千`
   const description = post.seo.metaDescription || post.excerpt || ''
-  const canonical = `${SITE_URL}/${locale}/posts/${slug}`
+  const canonical = `${SITE_URL}/${locale}/posts/${encodeURIComponent(slug)}`
+  const languages: Record<string, string> = { [locale]: canonical }
+  for (const translation of post.translations ?? []) {
+    const route = translation.locale === 'zh-CN' ? 'zh' : translation.locale === 'en-US' ? 'en' : null
+    if (route && route !== locale) languages[route] = `${SITE_URL}/${route}/posts/${encodeURIComponent(translation.slug)}`
+  }
   const ogImage = post.seo.ogImage || post.coverImage || undefined
 
   return {
@@ -61,10 +51,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
     },
     alternates: {
       canonical,
-      languages: {
-        zh: `${SITE_URL}/zh/posts/${slug}`,
-        en: `${SITE_URL}/en/posts/${slug}`,
-      },
+      languages: Object.keys(languages).length > 1 ? languages : undefined,
     },
     openGraph: {
       title,
@@ -91,14 +78,17 @@ export default async function PostPage({ params }: PostPageProps) {
   const post = await getArticleBySlug(slug, toApiLocale(locale))
 
   if (!post) notFound()
+  const { content, ...details } = post
 
   return <>
     <ArticleJsonLd post={post} locale={locale} />
     <BreadcrumbJsonLd items={[
       { name: '首页', url: `${SITE_URL}/${locale}` },
       { name: '文章', url: `${SITE_URL}/${locale}/posts` },
-      { name: post.title, url: `${SITE_URL}/${locale}/posts/${slug}` },
+      { name: post.title, url: `${SITE_URL}/${locale}/posts/${encodeURIComponent(slug)}` },
     ]} />
-    <MagazineArticle post={post} locale={locale} subscription={<ArticleSubscription />} />
+    <MagazineArticle post={details} locale={locale} subscription={<ArticleSubscription />}>
+      <ArticleMarkdown content={content} title={post.title} />
+    </MagazineArticle>
   </>
 }

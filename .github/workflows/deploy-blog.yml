@@ -19,6 +19,10 @@ on:
         description: 'Also deploy the compatible search API without database migrations'
         type: boolean
         default: false
+      deploy_admin:
+        description: 'Also release the tested static admin with the API and blog'
+        type: boolean
+        default: false
       deploy_companion:
         description: 'Release the companion with the blog, API and same-origin proxy'
         type: boolean
@@ -89,6 +93,7 @@ jobs:
           node scripts/audit-study-assets.mjs
           bash -n scripts/deploy-blog.sh
           bash -n scripts/deploy-search-server.sh
+          bash -n scripts/deploy-admin.sh
           bash -n scripts/deploy-companion.sh
           bash -n scripts/configure-companion-production.sh
           bash -n scripts/refresh-companion-proxy.sh
@@ -118,7 +123,7 @@ jobs:
           mkdir -p ../../../_artifacts
           tar -czf ../../../_artifacts/server.tar.gz dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc scripts/replay-letter-privacy.cjs scripts/prune-letter-tombstones.cjs
       - name: Build administration
-        if: ${{ inputs.deploy_environment || inputs.deploy_letters }}
+        if: ${{ inputs.deploy_admin || inputs.deploy_environment || inputs.deploy_letters }}
         working-directory: apps/admin-web/myapp
         run: |
           pnpm install --frozen-lockfile
@@ -170,6 +175,7 @@ jobs:
             scripts/patch-blog-nginx.mjs
             scripts/smoke-blog.mjs
             scripts/deploy-search-server.sh
+            scripts/deploy-admin.sh
             scripts/smoke-search.mjs
             scripts/deploy-environment.sh
             scripts/prepare-environment-db.mjs
@@ -318,6 +324,7 @@ jobs:
           SOURCE_RUN: ${{ steps.candidate.outputs.run_id }}
           SOURCE_ATTEMPT: ${{ steps.candidate.outputs.attempt }}
           DEPLOY_SERVER: ${{ inputs.deploy_server }}
+          DEPLOY_ADMIN: ${{ inputs.deploy_admin }}
           DEPLOY_COMPANION: ${{ inputs.deploy_companion }}
           DEPLOY_ENVIRONMENT: ${{ inputs.deploy_environment }}
           DEPLOY_LETTERS: ${{ inputs.deploy_letters }}
@@ -326,6 +333,10 @@ jobs:
           QWEATHER_API_KEY: ${{ secrets.QWEATHER_API_KEY }}
         run: |
           REMOTE="/tmp/blog-frontend-$SOURCE_RUN-$SOURCE_ATTEMPT"
+          if [[ "$DEPLOY_ADMIN" = true && ( "$DEPLOY_SERVER" != true || "$DEPLOY_LETTERS" = true || "$DEPLOY_COMPANION" = true || "$DEPLOY_ENVIRONMENT" = true ) ]]; then
+            echo 'The standalone admin release requires deploy_server and deploy' >&2
+            exit 1
+          fi
           if [[ "$DEPLOY_COMPANION" = true && ( "$DEPLOY_SERVER" = true || "$DEPLOY_ENVIRONMENT" = true || "$DEPLOY_LETTERS" = true ) ]]; then
             echo 'Choose the companion release by itself' >&2
             exit 1
@@ -373,6 +384,10 @@ jobs:
             test -f release/_artifacts/server.tar.gz
             scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/server.tar.gz scripts/deploy-search-server.sh scripts/smoke-search.mjs "$SSH_USER@$SSH_HOST:$REMOTE/"
             ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-search-server.sh'"
+          fi
+          if [[ "$DEPLOY_ADMIN" = true ]]; then
+            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/admin.tar.gz release/scripts/deploy-admin.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
+            ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-admin.sh'"
           fi
           if [[ "$DEPLOY_COMPANION" != true && "$DEPLOY_ENVIRONMENT" != true && "$DEPLOY_LETTERS" != true ]]; then
             ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-blog.sh'"

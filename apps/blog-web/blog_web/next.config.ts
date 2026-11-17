@@ -14,10 +14,11 @@ const nextConfig: NextConfig = {
   async rewrites() {
     // Vercel serves the frontend without the origin server's Nginx routes.
     if (process.env.VERCEL_ENV === 'production') {
-      return [{
-        source: '/api/v1/public/letters',
-        destination: 'https://api.new-universe.cn/v1/public/letters',
-      }]
+      return [
+        { source: '/api/v1/collect', destination: 'https://api.new-universe.cn/v1/collect' },
+        { source: '/blog-release.json', destination: '/api/release' },
+        { source: '/api/v1/public/letters', destination: 'https://api.new-universe.cn/v1/public/letters' },
+      ]
     }
     // Self-hosted releases use Nginx. Preview writes require an explicit local mailbox.
     const local = process.env.LETTERS_PREVIEW_API
@@ -31,28 +32,24 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-      },
-      {
-        protocol: 'http',
+      ...(process.env.NODE_ENV === 'development' ? [{
+        protocol: 'http' as const,
         hostname: 'localhost',
         port: '3000',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**',
         pathname: '/uploads/**',
-      },
+      }] : []),
+      ...['www.new-universe.cn', 'api.new-universe.cn', 'badmin.new-universe.cn'].map(hostname => ({
+        protocol: 'https' as const, hostname, port: '', pathname: '/uploads/**',
+      })),
       {
         protocol: 'https',
-        hostname: '*.oss-cn-beijing.aliyuncs.com',
+        hostname: 'myblog-rkcy.oss-cn-beijing.aliyuncs.com',
+        port: '',
         pathname: '/**',
       },
     ],
-    formats: ['image/avif', 'image/webp'],
+    maximumRedirects: 0,
+    formats: ['image/webp'],
   },
   async headers() {
     return [
@@ -61,18 +58,22 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          ...(process.env.NODE_ENV === 'production' ? [
+            { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+            { key: 'Content-Security-Policy', value: [
+              "default-src 'self'", "base-uri 'self'", "object-src 'none'", "frame-ancestors 'none'",
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://hm.baidu.com https://giscus.app https://va.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline'", "img-src 'self' https: data: blob:", "font-src 'self' data:",
+              "connect-src 'self' blob: data: https://*.new-universe.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://hm.baidu.com https://vitals.vercel-insights.com",
+              "worker-src 'self' blob:", "frame-src https://giscus.app", "media-src 'self' https: blob:", "form-action 'self'", "upgrade-insecure-requests",
+            ].join('; ') },
+          ] : []),
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
         ],
       },
       ...(process.env.NODE_ENV === 'production' ? [{
-        source: '/companion/v1/kitten-head.:hash([a-f0-9]{12}).glb.gz',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      }, {
-        source: '/(.*)\\.(js|css|woff2|woff|ttf|ico|svg|png|jpg|jpeg|webp|avif)',
+        source: '/companion/v1/:name.:hash([a-f0-9]{12}).:ext(glb\\.gz|webp)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
@@ -88,6 +89,10 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
         ],
+      },
+      {
+        source: '/study-assets/web/:name.:hash([0-9a-f]{12}).webp',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
       {
         // Public content is locale-specific in its URL and has no user state.
