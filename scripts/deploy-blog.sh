@@ -118,6 +118,22 @@ curl -fsS --max-time 30 --resolve www.new-universe.cn:443:127.0.0.1 'https://www
   | node -e 'let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{if(JSON.parse(s).kind!=="timeline")process.exit(1)})'
 curl -fsS --max-time 30 --resolve www.new-universe.cn:443:127.0.0.1 'https://www.new-universe.cn/api/study/search?q=Flutter&page=1&locale=zh' \
   | node -e 'let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{if(!Array.isArray(JSON.parse(s).data))process.exit(1)})'
+if [[ -d "$RELEASE/static-br/_next/static/chunks" ]]; then
+  # Exercise content negotiation on the active virtual host, including clients without Brotli.
+  curl -fsS --resolve www.new-universe.cn:443:127.0.0.1 https://www.new-universe.cn/zh/posts > "$WORK/listing.html"
+  CHUNK="$(node -e 'const page=require("fs").readFileSync(process.argv[1],"utf8"); const match=page.match(/(?:src|href)="(\/_next\/static\/chunks\/[a-zA-Z0-9_.~-]+\.js)(?:\?[^"]*)?"/);if(!match)process.exit(1);console.log(match[1])' "$WORK/listing.html")"
+  for encoding in identity gzip br; do
+    curl -fsS -D "$WORK/chunk-$encoding.headers" -H "Accept-Encoding: $encoding" --resolve www.new-universe.cn:443:127.0.0.1 "https://www.new-universe.cn$CHUNK" -o "$WORK/chunk-$encoding"
+  done
+  node - "$WORK" <<'ENCODINGS'
+const fs = require('node:fs'), zlib = require('node:zlib'), path = require('node:path')
+const read = name => fs.readFileSync(path.join(process.argv[2], name))
+const plain = read('chunk-identity')
+if (!plain.length || !/content-encoding: br/i.test(read('chunk-br.headers').toString()) || !zlib.brotliDecompressSync(read('chunk-br')).equals(plain)) throw Error('Brotli variant mismatch')
+const gzip = read('chunk-gzip')
+if (!(/content-encoding: gzip/i.test(read('chunk-gzip.headers').toString()) ? zlib.gunzipSync(gzip) : gzip).equals(plain)) throw Error('Gzip variant mismatch')
+ENCODINGS
+fi
 LIVE_REVISION="$(curl -fsS --resolve www.new-universe.cn:443:127.0.0.1 https://www.new-universe.cn/blog-release.json)"
 printf '%s' "$LIVE_REVISION" | node -e 'let s=""; process.stdin.on("data",x=>s+=x).on("end",()=>{if(JSON.parse(s).revision!==process.argv[1])process.exit(1)})' "$REVISION"
 trap - ERR

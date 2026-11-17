@@ -60,11 +60,17 @@ const webAssetsBlock = `location ^~ /study-assets/web/ {
         proxy_set_header Host $host;
     }`
 
-const chunkBlock = String.raw`location ^~ /_next/static/chunks/ {
+const brotliMaps = String.raw`map $http_accept_encoding $myblog_br {
+    default unavailable;
+    "~*(^|,)\s*br\s*(;\s*q=(1(\.0+)?|0\.\d*[1-9]\d*))?\s*(,|$)" br;
+}
+map $http_range $myblog_variant {
+    default unavailable;
+    "" $myblog_br;
+}`
+
+const chunkBlock = `location ^~ /_next/static/chunks/ {
         root /var/cache/myblog-static;
-        set $myblog_variant br;
-        if ($http_accept_encoding !~* "(^|,)\s*br\s*(;\s*q=(1(\.0+)?|0\.\d*[1-9]\d*))?\s*(,|$)") { set $myblog_variant unavailable; }
-        if ($http_range != "") { set $myblog_variant unavailable; }
         try_files /$myblog_variant$uri @myblog_static_upstream;
         gzip off;
         add_header Content-Encoding br;
@@ -80,6 +86,9 @@ const chunkFallback = `location @myblog_static_upstream {
     }`
 
 export function patchBlogNginx(source) {
+  // Nginx 1.18 creates nested location contexts for "if"; negotiate outside the location.
+  source = source.replace(/(location \^~ \/_next\/static\/chunks\/ \{\s*root \/var\/cache\/myblog-static;\n)\s*set \$myblog_variant br;[^]*?(?=        try_files )/, '$1')
+  if (!source.includes('map $http_accept_encoding $myblog_br {')) source = brotliMaps + '\n\n' + source
   const nodes = directives(source)
   const zones = nodes.filter(({ head }) => head.startsWith('limit_req_zone ') && /\bzone=study_letter_requests:/.test(head))
   if (zones.length > 1 || zones.some(node => node.head !== zone)) {
