@@ -342,13 +342,17 @@ jobs:
             exit 1
           fi
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "install -d -m 0700 '$REMOTE'"
-          LOCAL_HASH="$(sha256sum release/_artifacts/blog.tar.gz | awk '{print $1}')"
-          REMOTE_HASH="$(ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "if test -f '$REMOTE/blog.tar.gz'; then sha256sum '$REMOTE/blog.tar.gz' | cut -d' ' -f1; fi")"
-          if [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
-            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/blog.tar.gz "$SSH_USER@$SSH_HOST:$REMOTE/"
-          else
-            printf 'Reusing identical uploaded archive (SHA-256 verified)\n'
-          fi
+          upload_archive() {
+            local archive="$1" local_hash remote_hash
+            [[ "$archive" =~ ^(blog|server|admin)\.tar\.gz$ ]]
+            local_hash="$(sha256sum "release/_artifacts/$archive" | cut -d' ' -f1)"
+            remote_hash="$(ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "if test -f '$REMOTE/$archive'; then sha256sum '$REMOTE/$archive' | cut -d' ' -f1; fi")"
+            if [[ "$local_hash" != "$remote_hash" ]]; then
+              scp -i ~/.ssh/deploy_key -P "$SSH_PORT" "release/_artifacts/$archive" "$SSH_USER@$SSH_HOST:$REMOTE/$archive.part"
+              ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd '$REMOTE' && echo '$local_hash  $archive.part' | sha256sum -c - && mv -f '$archive.part' '$archive'"
+            fi
+          }
+          upload_archive blog.tar.gz
           scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/revision.txt scripts/patch-blog-nginx.mjs scripts/smoke-blog.mjs scripts/deploy-blog.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
           if [[ "$DEPLOY_COMPANION" = true ]]; then
             test -f release/_artifacts/server.tar.gz
@@ -382,11 +386,13 @@ jobs:
             fi
           elif [ "$DEPLOY_SERVER" = true ]; then
             test -f release/_artifacts/server.tar.gz
-            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/server.tar.gz scripts/deploy-search-server.sh scripts/smoke-search.mjs "$SSH_USER@$SSH_HOST:$REMOTE/"
+            upload_archive server.tar.gz
+            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" scripts/deploy-search-server.sh scripts/smoke-search.mjs "$SSH_USER@$SSH_HOST:$REMOTE/"
             ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-search-server.sh'"
           fi
           if [[ "$DEPLOY_ADMIN" = true ]]; then
-            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/_artifacts/admin.tar.gz release/scripts/deploy-admin.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
+            upload_archive admin.tar.gz
+            scp -i ~/.ssh/deploy_key -P "$SSH_PORT" release/scripts/deploy-admin.sh "$SSH_USER@$SSH_HOST:$REMOTE/"
             ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "ARTIFACTS_DIR='$REMOTE' bash '$REMOTE/deploy-admin.sh'"
           fi
           if [[ "$DEPLOY_COMPANION" != true && "$DEPLOY_ENVIRONMENT" != true && "$DEPLOY_LETTERS" != true ]]; then

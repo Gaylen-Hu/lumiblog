@@ -62,7 +62,7 @@ const nextConfig: NextConfig = {
             { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
             { key: 'Content-Security-Policy', value: [
               "default-src 'self'", "base-uri 'self'", "object-src 'none'", "frame-ancestors 'none'",
-              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://hm.baidu.com https://giscus.app https://va.vercel-scripts.com",
+              "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://www.googletagmanager.com https://hm.baidu.com https://giscus.app https://va.vercel-scripts.com",
               "style-src 'self' 'unsafe-inline'", "img-src 'self' https: data: blob:", "font-src 'self' data:",
               "connect-src 'self' blob: data: https://*.new-universe.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://hm.baidu.com https://vitals.vercel-insights.com",
               "worker-src 'self' blob:", "frame-src https://giscus.app", "media-src 'self' https: blob:", "form-action 'self'", "upgrade-insecure-requests",
