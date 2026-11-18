@@ -45,7 +45,9 @@ export class SelfHostedAnalyticsProvider {
         language: dto.locale ?? null,
         referrer: this.normalizeReferrer(dto.referrer),
       },
-      update: {},
+      // A nonempty update lets Prisma use PostgreSQL ON CONFLICT atomically.
+      // The fingerprint contains this date, so existing first-visit metadata is preserved.
+      update: { date },
     });
 
     await this.prisma.analyticsEvent.create({
