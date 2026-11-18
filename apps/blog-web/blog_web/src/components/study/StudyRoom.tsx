@@ -281,17 +281,19 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     if (simple || !host.current) return
     window.dispatchEvent(new CustomEvent('study-metric', { detail: { name: 'room_init', value: 1 } }))
     let cancelled = false, timedOut = false, presented = false
-    const fail = () => {
+    let failureStage: 'module' | 'renderer' = 'module'
+    const fail = (reason: 'timeout' | 'module' | 'renderer' = 'renderer') => {
       if (cancelled || timedOut) return
       timedOut = true
-      if (!presented) window.dispatchEvent(new CustomEvent('study-metric', { detail: { name: 'room_init_error', value: 1 } }))
+      if (!presented) window.dispatchEvent(new CustomEvent('study-metric', { detail: { name: 'room_init_error', value: 1, reason } }))
       window.clearTimeout(timeout)
       setRecovering(false); reflectClockView('room'); setFailed(true); setReady(false)
       setSettled(activeRef.current); controller.current?.dispose(); controller.current = null
     }
-    const timeout = window.setTimeout(fail, 15000)
+    const timeout = window.setTimeout(() => fail('timeout'), 15000)
     loadRoomScene().then(({ createRoom }) => {
       if (cancelled || timedOut || !host.current) return
+      failureStage = 'renderer'
       controller.current = createRoom(host.current, {
         columns, categories, seriesLabel: en ? 'SERIES' : '专栏', projects, en, siteName, note: notes[0],
         onReady: () => { if (cancelled || timedOut) return; presented = true; window.clearTimeout(timeout); setReady(true); setRoomGeneration(value => value + 1); setCurtainsDrawn(false); setFailed(false); setRecovering(false) },
@@ -344,7 +346,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
       const current = navigationRef.current.route
       if (current.mode === 'object' && current.target === 'computer') setPortfolioTrip(true)
       controller.current.setTarget(current.target, current.column)
-    }).catch(fail)
+    }).catch(() => fail(failureStage))
     return () => { cancelled = true; window.clearTimeout(timeout); controller.current?.dispose(); controller.current = null; reflectClockView('room'); setReady(false) }
   }, [simple, retry, revealNavigationSound, columns, projects, en, siteName, reflectClockView, notes, categories])
   const { phase, season, weather, preset } = environment.state

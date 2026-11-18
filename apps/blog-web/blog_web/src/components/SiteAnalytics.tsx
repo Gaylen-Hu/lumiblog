@@ -19,15 +19,21 @@ function send(event: EventPayload) {
   } catch { /* Analytics must never interrupt reading. */ }
 }
 
-function metric(name: string, value: number, url: string) {
+function metric(name: string, value: number, url: string, reason?: string) {
   if (!Number.isFinite(value) || value < 0) return
   const network = (navigator as BrowserNavigator).connection?.effectiveType || 'unknown'
   const query = new URLSearchParams({ value: String(Math.round(value * 1000) / 1000), network })
+  if (reason) query.set('reason', reason)
   send({ type: 'custom', url, name, query: query.toString() })
 }
 
 const roomEvents = new Set(['room_init', 'room_init_error', 'room_fps', 'room_slow_frame_pct', 'room_draw_calls'])
 const articlePath = /^\/(zh|en)\/posts\/[^/]+\/?$/
+
+function errorKind(value: unknown) {
+  if (!(value instanceof Error)) return 'unknown'
+  return ['Error', 'TypeError', 'SyntaxError', 'ReferenceError', 'RangeError', 'SecurityError', 'AbortError'].includes(value.name) ? value.name : 'other'
+}
 
 export default function SiteAnalytics() {
   const pathname = usePathname() || '/'
@@ -78,22 +84,23 @@ export default function SiteAnalytics() {
 
   useEffect(() => {
     const seen = new Set<string>()
-    const once = (name: string, value = 1) => {
-      if (!seen.has(name)) { seen.add(name); metric(name, value, path) }
+    const once = (name: string, value = 1, reason?: string) => {
+      if (!seen.has(name)) { seen.add(name); metric(name, value, path, reason) }
     }
     const room = (event: Event) => {
-      const { name, value } = (event as CustomEvent).detail || {}
-      if (roomEvents.has(name)) metric(name, value ?? 1, path)
+      const { name, value, reason } = (event as CustomEvent).detail || {}
+      const failure = ['timeout', 'module', 'renderer'].includes(reason) ? reason : undefined
+      if (roomEvents.has(name)) metric(name, value ?? 1, path, failure)
     }
     const contextLost = () => once('webgl_context_lost')
     const error = (event: Event) => {
-      if (event instanceof ErrorEvent) once('js_error')
+      if (event instanceof ErrorEvent) once('js_error', 1, errorKind(event.error))
       else if (event.target instanceof HTMLElement) {
         const src = event.target.getAttribute('src')
         if (src && /^\/(study-assets|companion)\//.test(src)) once('room_asset_error')
       }
     }
-    const rejected = () => once('unhandled_rejection')
+    const rejected = (event: PromiseRejectionEvent) => once('unhandled_rejection', 1, errorKind(event.reason))
     const resources = typeof PerformanceObserver !== 'undefined' ? new PerformanceObserver(list => {
       for (const item of list.getEntries() as PerformanceResourceTiming[]) {
         if (!item.name.startsWith(location.origin + '/')) continue

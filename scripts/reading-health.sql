@@ -7,7 +7,7 @@ BEGIN READ ONLY;
 SET LOCAL statement_timeout = '20s';
 WITH metrics AS (
   SELECT e."eventName" AS metric, e."sessionId", s.device, s.browser,
-    substring(e."urlQuery" from 'network=(slow-2g|2g|3g|4g|unknown)$') AS network,
+    substring(e."urlQuery" from 'network=(slow-2g|2g|3g|4g|unknown)(&|$)') AS network,
     substring(e."urlQuery" from '^value=([0-9]{1,12}(?:\.[0-9]{1,3})?)&')::double precision AS value
   FROM analytics_events e JOIN analytics_sessions s ON s.id=e."sessionId"
   WHERE e."createdAt" >= now() - (:'hours'::int * interval '1 hour')
