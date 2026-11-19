@@ -335,6 +335,9 @@ test('article semantic routing supports ordered plans and asks about ambiguous o
  for(const body of requests){
   assert.equal(body.tools[0].function.name,'route_room_request');
   assert.ok(!JSON.stringify(body).includes(article.slug));
+  const branches=body.tools[0].function.parameters.properties.steps.items.oneOf;
+  assert.deepEqual(branches.find(branch=>branch.properties.kind.enum.includes('site')).properties.value.enum,[...SITE_ACTIONS]);
+  assert.ok(!branches.some(branch=>branch.properties.kind.enum.includes('action')&&branch.properties.value.enum.includes('curtains_open')));
   assert.match(body.messages[0].content,/否定、引用、文章解读、教学、能力询问和事件叙述用none/);
   assert.match(body.messages[0].content,/单独“打开关闭窗帘”方向含糊/);
  }
@@ -375,6 +378,7 @@ test('untrusted article history and free-text receipt reasons never enter contro
 
 test('invalid semantic routes fail closed and never start a reading call or execute arbitrary commands',async()=>{
  const invalid=[
+  {intent:'room',steps:[{kind:'action',value:'curtains_close'}],question:''},
   {intent:'room',steps:[{kind:'site',value:'eval'}],question:''},
   {intent:'room',steps:[{kind:'site',value:'lamp_off'}],question:''},
   {intent:'room',steps:[{kind:'site',value:'curtains_close',code:'x'}],question:''},
