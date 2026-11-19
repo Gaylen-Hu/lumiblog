@@ -24,11 +24,13 @@ export async function prepareBodyCoat(signal){
   signal?.throwIfAborted();dorsal=image;dorsalReady=true;
 }
 
-// Copy each tile at native resolution so GPU mipmaps never bleed between limbs.
+// Crop each region before making its texture so mipmaps cannot blend limbs.
+// The atlas has three columns and rows even when its download is resized.
 export function drawBakedCoat(c,region){
   if(!coatAtlas)return false;
   const [x,y,size]=coatTiles[region];
-  c.drawImage(coatAtlas,x*512,y*512,size*512,size*512,0,0,1,1);
+  const tileWidth=coatAtlas.naturalWidth/3,tileHeight=coatAtlas.naturalHeight/3;
+  c.drawImage(coatAtlas,x*tileWidth,y*tileHeight,size*tileWidth,size*tileHeight,0,0,1,1);
   return true;
 }
 
