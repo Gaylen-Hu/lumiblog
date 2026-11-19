@@ -203,7 +203,10 @@ test('built HTTP streams NDJSON, scopes actions, pairs real receipts and rejects
   assert.equal((await client.post('result', { ...receipt, results: [{ ...receipt.results[0], status: 'blocked' }] })).status, 409);
   const next = await ndjson(await client.chat(id));
   assert.ok(next.some(frame => frame.type === 'text'));
-  assert.ok(history.some(message => message.role === 'tool' && message.tool_call_id));
+  const controlHistory = JSON.parse(history.at(-1).content.split('\n')[1]);
+  assert.deepEqual(controlHistory, [{ message: '伸爪', results: receipt.results }]);
+  assert.ok(!history.some(message => message.role === 'assistant' || message.role === 'tool'));
+  assert.ok(!JSON.stringify(history).includes('我这就伸爪。'));
   assert.equal(calls, 2);
 });
 
