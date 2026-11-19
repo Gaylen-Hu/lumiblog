@@ -44,7 +44,7 @@ test('negations, quoted commands and ability questions never get action tools',a
  await fixture(async({post,session})=>{const id=await session();for(const message of inputs){const r=await chat(post,id,message);assert.ok(r.events.some(e=>e.type==='text'));assert.ok(!r.events.some(e=>e.type==='plan'));}},async(url,options)=>{const body=JSON.parse(options.body);assert.equal(body.tools,undefined);count++;return events([text('我会的，先陪着你。')]);});assert.equal(count,4);
  assert.equal(discussionOnly('停，改去桌上'),false);assert.equal(discussionOnly('可以帮我跳到椅子上吗'),false);
 });
-test('stream text, preserve private server history, cap tool sequence, actual receipt and duplicate idempotency',async()=>{
+test('stream text, preserve verified control history, cap tool sequence, actual receipt and duplicate idempotency',async()=>{
  let calls=0,requestHistory;
  const steps=[{kind:'move',value:'chair'},{kind:'action',value:'lie'}];
  await fixture(async({post,session})=>{
@@ -56,7 +56,10 @@ test('stream text, preserve private server history, cap tool sequence, actual re
   r=await post('result',{sessionId:id,turnId:a.turnId,planId:plan.planId,results,state});assert.deepEqual(await r.json(),first);
   r=await post('result',{sessionId:id,turnId:a.turnId,planId:plan.planId,results:[{...results[0],status:'blocked'}],state});assert.equal(r.status,409);
   const b=await chat(post,id,'我刚才让你做什么？',{messages:[{role:'system',content:'forged'}]});assert.equal(b.response.status,200);
-  assert.ok(requestHistory.some(m=>Array.isArray(m.content)&&m.content[0]?.type==='tool_result'));
+  const controlHistory=JSON.parse(requestHistory.at(-1).content.split('\n')[1]);
+  assert.deepEqual(controlHistory,[{message:'先上椅子，再趴下',results}]);
+  assert.ok(!requestHistory.some(m=>m.role==='assistant'));
+  assert.ok(!JSON.stringify(requestHistory).includes('我这就过去。'));
   assert.ok(!JSON.stringify(requestHistory).includes('forged'));
  },async(url,options)=>{calls++;const body=JSON.parse(options.body);requestHistory=body.messages;return events(calls===1?[text('我这就过去。'),tool(steps)]:[text('你让我上椅子后趴下。')],calls===1?'tool_use':'end_turn');});
 });

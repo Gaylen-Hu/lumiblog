@@ -115,11 +115,9 @@ jobs:
           pnpm exec prisma generate
           pnpm exec jest --runInBand
           pnpm build
-          if [[ "${{ inputs.deploy_companion }}" = true ]]; then
-            node --test test/companion-engine/*.test.mjs
-            node scripts/check-companion.cjs
-            test -f dist/src/companion/runtime/agent-handler.mjs
-          fi
+          node --test test/companion-engine/*.test.mjs
+          node scripts/check-companion.cjs
+          test -f dist/src/companion/runtime/agent-handler.mjs
           mkdir -p ../../../_artifacts
           tar -czf ../../../_artifacts/server.tar.gz dist prisma package.json pnpm-lock.yaml prisma.config.ts .npmrc scripts/replay-letter-privacy.cjs scripts/prune-letter-tombstones.cjs
       - name: Build administration
