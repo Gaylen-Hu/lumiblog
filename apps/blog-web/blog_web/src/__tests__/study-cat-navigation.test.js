@@ -97,14 +97,15 @@ describe('the website room navigation', () => {
     expect(toChair(site.takeoff).z).toBeLessThan(-.75);
     const center = toChair(site.landing);
     expect(center.x).toBeCloseTo(0, 8);
-    expect(center.z).toBeCloseTo(-.20, 8);
-    // Actual pad anchors from cat-model.js, with radius and landing recovery.
-    for (const [x, z] of [[.032, .101], [-.032, .101], [.058, -.071], [-.058, -.071]]) {
+    expect(center.z).toBeCloseTo(-.165, 8);
+    // Measured skinned low-paw envelope of d8883406b6aa at .348 normalized
+    // height, after settling idle. This includes sole radii, unlike bone anchors.
+    // Apply the room stage scale once, then preserve a .025 recovery margin.
+    for (const x of [-.06890, .06890]) for (const z of [-.13435, .09801]) {
       const pad = { x: center.x + x * STUDY_CAT_SCALE, z: center.z + z * STUDY_CAT_SCALE };
-      const radius = .026 * STUDY_CAT_SCALE;
-      expect(Math.abs(pad.x) + radius).toBeLessThan(.375 - .025);
-      expect(pad.z - radius).toBeGreaterThan(-.375 + .025);
-      expect(pad.z + radius).toBeLessThan(.045 - .025); // pillow starts here
+      expect(Math.abs(pad.x)).toBeLessThan(.375 - .025);
+      expect(pad.z).toBeGreaterThan(-.375 + .025);
+      expect(pad.z).toBeLessThan(.045 - .025); // pillow starts here
     }
   });
 

@@ -1,19 +1,15 @@
 import * as T from 'three';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {RoomDirector} from './room-director.js';
-import {createToonCat} from './cat-model.js';
-import {attachNativeHead,fetchNativeHeadAsset} from './native-head.js';
-import {createCatAnimator} from './cat-animation.js';
+import {loadWebsiteCatModel} from './website-cat-model.js';
 import {createCompanionAgent} from './agent/index.js';
 import {createActionBridge} from './agent/action-bridge.js';
 import {createCatPress} from './cat-press.js';
 import {matchSiteCommand,runSiteCommand} from './agent/site-commands.js';
-import {prepareBodyCoat} from './cat-coat.js';
-import {prepareKittenFur} from './kitten-fur.js';
 import {createStudyNavigation,STUDY_SPAWN,STUDY_USER_POINT,STUDY_WANDER_POINTS} from './motion/study-navigation.js';
 
 const ACTIONS=Object.freeze(['idle','look','sniff','tail','sit','lie','sleep','stretch','paw','groom','knead','meow','yawn','nuzzle','shake','alert','sitUp','lieUp','wink']);
 const ROOM_ACTIONS=Object.freeze([...ACTIONS,'walk','trot','gallop','jump','turn']);
-const GAITS={walk:{stride:.19,duration:.72},trot:{stride:.265,duration:.46},gallop:{stride:.44,duration:.36}};
 
 // One cat and one conversation can move between a host's shared room scene
 // and the transparent reading companion, without reloading model resources.
@@ -38,7 +34,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
   const hide=document.createElement('button');hide.type='button';hide.textContent=initialHidden?labels.show:labels.hide;
   tools.append(hide);
   pet.append(note,tools);shadow.append(style,pet);container.append(host);
-  let cat=null,renderer=null,agent=null,director=null,disposed=false,raf=null,last=0,engaged=false,hidden=Boolean(initialHidden),suspended=false,reducedMotion=false;
+  let cat=null,renderer=null,envTarget=null,agent=null,director=null,disposed=false,raf=null,last=0,engaged=false,hidden=Boolean(initialHidden),suspended=false,reducedMotion=false;
   let roomStage=null,detachStage=null,savedRoom=null,roomTime=0,nextWander=0,roomFrameTime=0,roomQuiet=null;
   const wanderMin=Number.isFinite(wanderInterval?.[0])?Math.max(15,Math.min(300,wanderInterval[0])):40;
   const wanderMax=Number.isFinite(wanderInterval?.[1])?Math.max(wanderMin,Math.min(600,wanderInterval[1])):70;
@@ -47,27 +43,16 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
   const cleanups=[];let observer;
   const listen=(node,event,fn,options)=>{node.addEventListener(event,fn,options);cleanups.push(()=>node.removeEventListener(event,fn,options));};
   function stopFrames(){if(raf!==null)cancelAnimationFrame(raf);raf=null;last=0;}
-  function destroy(){if(disposed)return;disposed=true;loadController.abort();stopFrames();detachStage?.();detachStage=null;roomStage=null;agent?.destroy();director?.destroy();observer?.disconnect();cleanups.splice(0).forEach(fn=>fn());renderer?.dispose();renderer?.forceContextLoss();cat?.dispose();host.remove();notify(onChatOpenChange,false);}
+  function destroy(){if(disposed)return;disposed=true;loadController.abort();stopFrames();detachStage?.();detachStage=null;roomStage=null;agent?.destroy();director?.destroy();observer?.disconnect();cleanups.splice(0).forEach(fn=>fn());envTarget?.dispose();envTarget=null;renderer?.dispose();renderer?.forceContextLoss();cat?.dispose();host.remove();notify(onChatOpenChange,false);}
   if(signal)listen(signal,'abort',destroy,{once:true});
   try{
-    // The high-detail fibre generator uses the full rest-pose surface order.
-    // At ordinary website quality the imported head supplies all face meshes.
-    const nativeHeadOnly=quality!=='high';
-    const [headAsset]=await Promise.all([
-      fetchNativeHeadAsset({url:headUrl,signal:loadController.signal}),
-      prepareBodyCoat(loadController.signal),
-      prepareKittenFur(loadController.signal,{nativeHeadOnly})
-    ]);
-    if(disposed||signal?.aborted)throw cancelled();
-    cat=createToonCat({legacyHeadFur:false,detailedFur:quality==='high',nativeHeadOnly});
-    await attachNativeHead(cat,{asset:headAsset,signal:loadController.signal});
-    if(disposed||signal?.aborted)throw cancelled();
-    cat.fur?.setDetail(quality==='high');
-    const animator=createCatAnimator(cat);let interactionUntil=0;
+    const model=await loadWebsiteCatModel({headUrl,quality,signal:loadController.signal});
+    if(disposed||signal?.aborted){model.cat.dispose();throw cancelled();}
+    cat=model.cat;
+    const {animator,supports,gaits,walkSpeed}=model;
+    let interactionUntil=0;
     const interactiveAnimator={...animator,wink(){interactionUntil=performance.now()+1200;animator.wink();roomStage?.requestRender();}};
-    // Keep the original skeleton/gait and inject the website's real routes.
-    // Reading mode still advertises no furniture or floor movement.
-    director=new RoomDirector({settings:{autonomous:false,furQuality:quality},navigation:createStudyNavigation(),gaits:GAITS,onInteract:event=>{
+    director=new RoomDirector({settings:{autonomous:false,furQuality:quality,walkSpeed},navigation:createStudyNavigation(),gaits,supports,onInteract:event=>{
       postponeWander();
       interactionUntil=performance.now()+1500;
       if(event.type==='rest-touch'){animator.touch();return;}
@@ -77,30 +62,42 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       agent?.reactToTouch({count:event.count});
     }});director.position.set(0,0,0);
     const blocked=()=>Promise.resolve({status:'blocked',reason:'这个页面没有可前往的桌椅或地面路线。'});
+    const actionUnavailable=()=>Promise.resolve({status:'blocked',reason:'这个页面尚未开放这个动作。'});
+    const actionsForPage=()=> (roomStage?ROOM_ACTIONS:ACTIONS).filter(supports);
     const actor={get state(){return director.state;},get destroyed(){return director.destroyed;},
-      readingPose:()=>director.readingPose(),requestPose:(id,options)=>{roomStage?.requestRender();return director.requestPose(id,options);},
+      readingPose:()=>director.readingPose(),requestPose:(id,options)=>{roomStage?.requestRender();return supports(id)?director.requestPose(id,options):actionUnavailable();},
       play(id){
+        if(!actionsForPage().includes(id))return actionUnavailable();
         postponeWander();roomStage?.requestRender();
         if(roomStage&&['walk','trot','gallop'].includes(id))return director.move(id,wanderPoint());
         if(roomStage&&id==='jump')return director.jumpTo(director.state.surface==='ground'?'chair':'ground');
-        return (roomStage?ROOM_ACTIONS:ACTIONS).includes(id)?director.play(id):Promise.resolve({status:'blocked',reason:'这个页面尚未开放这个动作。'});
+        return director.play(id);
       },
       setMode(value){postponeWander();roomStage?.requestRender();return director.setMode(value);},
       jumpTo(value){postponeWander();roomStage?.requestRender();return roomStage?director.jumpTo(value):blocked();},
-      walkTo(value){postponeWander();roomStage?.requestRender();return roomStage?director.walkTo(value):blocked();},
+      walkTo(value){postponeWander();roomStage?.requestRender();return roomStage?walkAcrossRoom(value):blocked();},
       approachUser(){return actor.walkTo(STUDY_USER_POINT);}};
+    function walkAcrossRoom(point){
+      const distance=Math.hypot(point?.x-director.position.x,point?.z-director.position.z);
+      return director.walkTo(point,distance>1&&supports('trot'));
+    }
     function wanderPoint(){
       const available=STUDY_WANDER_POINTS.filter(p=>Math.hypot(p.x-director.position.x,p.z-director.position.z)>.35);
       return available[Math.floor(Math.random()*available.length)]||STUDY_USER_POINT;
     }
     const scene=new T.Scene(),camera=new T.PerspectiveCamera(30,240/270,.01,8);
-    scene.add(cat.root);camera.position.set(.04,.245,1.02);camera.lookAt(0,.225,.03);
+    scene.add(cat.root);camera.position.set(.06,.225,.95);camera.lookAt(0,.185,.02);
     renderer=new T.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});renderer.setClearColor(0x000000,0);
-    renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
-    const hemi=new T.HemisphereLight('#f6f5f0','#d2c3b8',1.04),sun=new T.DirectionalLight('#fff1db',2.18),fill=new T.DirectionalLight('#dce8ee',.34);
-    sun.position.set(-2,3.9,1.8);fill.position.set(1.7,1.6,-.6);scene.add(hemi,sun,fill);
+    renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+    try{
+      const pmrem=new T.PMREMGenerator(renderer),roomEnv=new RoomEnvironment();
+      envTarget=pmrem.fromScene(roomEnv,.045);scene.environment=envTarget.texture;scene.environmentIntensity=.34;
+      roomEnv.dispose();pmrem.dispose();
+    }catch{/* Environment reflections are optional on constrained WebGL contexts. */}
+    const hemi=new T.HemisphereLight('#fffaf0','#c8c0b7',1.25),sun=new T.DirectionalLight('#fff4e4',2.45),fill=new T.DirectionalLight('#eef0f0',.65),rim=new T.DirectionalLight('#fff9e8',1.25);
+    sun.position.set(-3.2,5.2,4.8);fill.position.set(3.6,2.2,2.8);rim.position.set(1.8,4.4,-3.6);scene.add(hemi,sun,fill,rim);
     const canvas=renderer.domElement;canvas.setAttribute('aria-label',labels.canvas);canvas.setAttribute('aria-keyshortcuts','Enter Space');canvas.tabIndex=0;pet.prepend(canvas);
-    const gaze={x:0,y:0,active:false},head=cat.bones.head,point=new T.Vector3(),anchor={x:120,y:80,faceRadius:40,width:240,height:270,visible:true,moving:false};
+    const gaze={x:0,y:0,active:false},point=new T.Vector3(),anchor={x:120,y:80,faceRadius:40,width:240,height:270,visible:true,moving:false};
     let width=0,height=0,lastPointer=-Infinity,press=null,blockClick=null;
     const contacts=new Set();
     const ray=new T.Raycaster(),pointer=new T.Vector2();
@@ -111,7 +108,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       const site=matchSiteCommand(text);
       if(site)return probe?true:runSiteCommand(website,site);
       const normalized=text.replace(/^(小灰[，,、\s]*)/,'').replace(/[。！!\s]+$/,'');
-      const match=[[/^(伸个?懒腰|伸懒腰吧)$/,'stretch'],[/^(坐下|坐好)$/,'sit'],[/^(趴下|趴着)$/,'lie'],[/^(睡觉|打盹)$/,'sleep'],[/^(握爪|挥手)$/,'paw'],[/^(走走|散步|走一走)$/,'walk'],[/^(跑跑|小跑)$/,'trot']].find(([rx])=>rx.test(normalized));
+      const match=[[/^(伸个?懒腰|伸懒腰吧)$/,'stretch'],[/^(坐下|坐好)$/,'sit'],[/^(趴下|趴着)$/,'lie'],[/^(睡觉|打盹)$/,'sleep'],[/^(握爪|挥手)$/,'paw'],[/^(喵|喵一声|叫一声)$/,'meow'],[/^(走走|散步|走一走)$/,'walk'],[/^(跑跑|小跑)$/,'trot']].find(([rx])=>rx.test(normalized));
       const surface=[[/^(上桌子?|到桌子上)$/,'table'],[/^(上椅子?|到椅子上)$/,'chair'],[/^(回地面|下来|下去)$/,'ground']].find(([rx])=>rx.test(normalized));
       const approach=/^(来这里|过来|到我这来)$/.test(normalized);
       if(probe)return Boolean(match||surface||approach);
@@ -122,7 +119,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
     }
     agent=createCompanionAgent({anchorElement:canvas,uiRoot:container,apiBase,transport,preferenceKey:'companion:website:chat-enabled',
       website,
-      bridgeFactory:()=>{const bridge=createActionBridge({getDirector:()=>actor,getAnimator:()=>interactiveAnimator,website});bridge.getCapabilities=()=>({actions:[...(roomStage?ROOM_ACTIONS:ACTIONS)],moves:roomStage?['ground','chair','table','user']:[],modes:['room','reading'],repeat:true,...(website?.getCapabilities?.()||{})});return bridge;},
+      bridgeFactory:()=>{const bridge=createActionBridge({getDirector:()=>actor,getAnimator:()=>interactiveAnimator,website});bridge.getCapabilities=()=>({actions:actionsForPage(),moves:roomStage?['ground','chair','table','user']:[],modes:['room','reading'],repeat:true,...(website?.getCapabilities?.()||{})});return bridge;},
       onEngagementChange:value=>{engaged=value;postponeWander();if(!value)gaze.active=false;roomStage?.requestRender();},onChatOpenChange:value=>notify(onChatOpenChange,value),onLocalCommand:localCommand});
     function start(){if(!roomStage&&!disposed&&raf===null&&!document.hidden&&!hidden&&!suspended)raf=requestAnimationFrame(tick);}
     function tick(now){raf=null;if(roomStage||disposed||document.hidden||hidden||suspended)return;
@@ -133,7 +130,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       const s=director.update(advance);if(!engaged&&now-lastPointer>2200)gaze.active=false;
       if(engaged&&s.stage==='holding'&&s.mode!=='reading'){gaze.active=true;gaze.x=0;gaze.y=.08;}
       animator.update(s,advance,gaze);scene.updateMatrixWorld();renderer.render(scene,camera);
-      head.localToWorld(point.set(0,.029,.069));point.project(camera);
+      cat.getSpeechAnchor(point).project(camera);
       anchor.viewport=false;anchor.x=(point.x+1)*width/2;anchor.y=(1-point.y)*height/2;anchor.faceRadius=width*.29;anchor.width=width;anchor.height=height;anchor.visible=s.visible;anchor.moving=s.moving;
       agent.updateScene(anchor,dt);start();
     }
@@ -221,7 +218,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       const dt=Math.min(.1,roomFrameTime);roomFrameTime=0;roomTime+=dt;
       const now=performance.now(),before=director.state;
       if(!quietMotion&&!engaged&&before.mode==='room'&&before.stage==='holding'&&!before.currentCommand&&roomTime>=nextWander){
-        postponeWander();director.walkTo(wanderPoint());
+        postponeWander();walkAcrossRoom(wanderPoint());
       }
       const advance=!quietMotion||director.state.currentCommand||director.state.stage!=='holding'||now<interactionUntil?dt:0;
       const state=director.update(advance);applyLocation(state);
@@ -231,7 +228,7 @@ export async function mountWebsiteCat({container=document.body,apiBase='/api/com
       if(quietMotion)gaze.active=false;
       else if(engaged&&state.stage==='holding'&&state.mode!=='reading'){gaze.active=true;gaze.x=0;gaze.y=.08;}
       animator.update(state,advance,gaze);cat.root.updateWorldMatrix(true,true);
-      head.localToWorld(point.set(0,.029,.069));point.project(roomStage.camera);
+      cat.getSpeechAnchor(point).project(roomStage.camera);
       const rect=roomStage.canvas.getBoundingClientRect();
       anchor.viewport=true;anchor.x=rect.left+(point.x+1)*rect.width/2;anchor.y=rect.top+(1-point.y)*rect.height/2;
       anchor.faceRadius=Math.max(12,Math.min(60,rect.height*.025));anchor.width=innerWidth;anchor.height=innerHeight;

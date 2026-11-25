@@ -27,7 +27,9 @@ function chairWorld(x, z, y = .535) {
 // Keep clear of the diary's complete drag envelope (including its -.29 yaw),
 // not only its initial position. Approach slightly from the right of this pad.
 const tablePad = local(-1.35, 1, -.88);
-const chairPad = chairWorld(0, -.20);
+// The whole-cat asset has a longer rear footprint than the former assembled
+// model. Move its resting center back enough to keep both hind soles supported.
+const chairPad = chairWorld(0, -.165);
 const pads = { chair: chairPad, table: tablePad };
 const approaches = { chair: chairWorld(0, -.85, GROUND_Y), table: local(-1.25, GROUND_Y, -.18) };
 
