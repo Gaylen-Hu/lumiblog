@@ -36,7 +36,7 @@ export default function CatalogLeaf({ path, locale, posts, motion }: {
     }
   },[])
   const post = displayed && posts.find(post => displayed.split('?')[0] === `/${locale}/posts/${encodeURIComponent(post.slug)}`)
-  return <section className={paper.leaf} data-open={!!path} inert={!path} aria-hidden={!path} aria-label={en ? 'Article page' : '文章内页'}>
+  return <section className={`${paper.leaf} study-paper`} data-open={!!path} inert={!path} aria-hidden={!path} aria-label={en ? 'Article page' : '文章内页'}>
     <div className={paper.bar}>
       <button ref={back} type="button" onClick={() => window.history.back()}>← {en ? 'Back to contents' : '返回目录'}</button>
       {post && <span>{post.category?.name}</span>}

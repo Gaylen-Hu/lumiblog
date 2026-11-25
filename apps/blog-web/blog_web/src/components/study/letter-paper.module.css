@@ -2,11 +2,7 @@
 .dialog {
   color-scheme: light;
   color: #433a2d;
-  font:
-    16px/1.55 Georgia,
-    'Songti SC',
-    'Noto Serif CJK SC',
-    serif;
+  font: 16px/1.55 var(--font-study-serif);
 }
 .page {
   min-height: 100svh;
@@ -50,6 +46,12 @@
 .heading button {
   font-size: 24px;
   line-height: 1;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: -10px;
 }
 .sheet h1 {
   font-size: clamp(1.8rem, 4vw, 2.65rem);
@@ -114,12 +116,15 @@
 .form textarea {
   font-size: 17px;
   line-height: 1.9;
+  padding: 0 3px;
   resize: vertical;
   background: repeating-linear-gradient(
     transparent 0,
     transparent calc(1.9em - 1px),
     #d8cbbb 1.9em
   );
+  background-attachment: local;
+  background-origin: content-box;
   min-height: 8em;
 }
 .pair {
@@ -227,7 +232,7 @@
 .envelope i,
 .sealLink i {
   position: absolute;
-  left: 50%;
+  left: calc(50% - 8.5px);
   top: 55%;
   width: 17px;
   height: 17px;
@@ -251,10 +256,7 @@
   position: absolute;
   left: 16px;
   bottom: 10px;
-  font:
-    17px Georgia,
-    'Songti SC',
-    serif;
+  font: 17px var(--font-study-serif);
 }
 .sealLink i {
   top: 45%;
@@ -282,9 +284,6 @@
   background: repeating-linear-gradient(#fff9eb 0 8px, #dfd2b8 8px 9px);
   transform-origin: center bottom;
   opacity: 0;
-}
-.envelope i {
-  left: calc(50% - 8px);
 }
 .sheet .deliveryTitle {
   margin: 8px 0 4px;

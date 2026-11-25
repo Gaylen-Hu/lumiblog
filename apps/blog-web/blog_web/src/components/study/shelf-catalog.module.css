@@ -12,9 +12,10 @@
   animation: unfold .38s cubic-bezier(.17,.71,.24,1) backwards;
 }
 .back {
-  position: absolute; right: clamp(16px,3vw,42px); top: 18px; z-index: 1; cursor: pointer;
-  padding: 10px 15px; border: 1px solid #e6d7bb77; border-radius: 24px;
-  background: #32362de8; color: #fff5df; font: 13px/1.5 Georgia,'Songti SC',serif;
+  position: absolute; left: max(20px,env(safe-area-inset-left)); top: max(18px,env(safe-area-inset-top)); z-index: 1; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; min-height: 44px;
+  padding: 10px 16px; border: 1px solid #e6d7bb77; border-radius: 24px;
+  background: #32362de8; color: #fff5df; font: 13px/1.5 var(--font-study-serif);
 }
 .back span {margin-right: 3px}
 .rail {
@@ -25,10 +26,10 @@
 }
 .rail::before,.rail::after {content:'';position:absolute;top:calc(50% - 2px);width:4px;height:4px;border-radius:50%;background:#715d3d;box-shadow:0 1px 0 #e5cca0}
 .rail::before {left:8px}.rail::after {right:8px}
-.rail label {flex:none;color:#554932;font:600 14px/1.4 Georgia,'Songti SC',serif;letter-spacing:.1em;cursor:text}
+.rail label {flex:none;color:#554932;font:600 14px/1.4 var(--font-study-serif);letter-spacing:.1em;cursor:text}
 .rail input {
   flex:1;width:0;min-width:0;height:38px;border:0;border-left:1px solid #b5a17a80;border-radius:0;outline:0;
-  padding:0 0 0 12px;background:transparent;color:#323d32;caret-color:#79572e;font:16px/1.5 Georgia,'Songti SC',serif;
+  padding:0 0 0 12px;background:transparent;color:#323d32;caret-color:#79572e;font:16px/1.5 var(--font-study-serif);
 }
 .rail input::placeholder {color:#776c57}.rail:focus-within {outline:2px solid #d5b579;outline-offset:2px}
 .rail button,.pager button,.status button {color:#63533a;background:none;border:0;cursor:pointer;min-width:34px;min-height:36px}
@@ -48,12 +49,11 @@
   background:#fffaed;border:1px solid #d9cbae;border-left:2px solid #c4ad80;border-radius:2px;box-shadow:1px 2px 1px #725c3820}
 .card:is(:hover,:focus-visible) {background:#fffcf2;border-left-color:#637457;box-shadow:1px 3px 5px #725c3833}
 .card span,.card small {display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card span {font:10px/1.45 system-ui,sans-serif;color:#73674f;letter-spacing:.035em}
-.card i {font-style:normal;padding:0 3px}.card strong {display:block;margin:3px 0;font:500 clamp(15px,1.35vw,19px)/1.5 Georgia,'Songti SC',serif;color:#384435;overflow-wrap:anywhere}
-.card small {font:12px/1.65 Georgia,'Songti SC',serif;color:#726751}.card mark {color:#574724;background:#ead9a7}
+.card span {font:11px/1.45 system-ui,sans-serif;color:#685c46;letter-spacing:.035em}
+.card i {font-style:normal;padding:0 3px}.card strong {display:block;margin:3px 0;font:500 clamp(15px,1.35vw,19px)/1.5 var(--font-study-serif);color:#384435;overflow-wrap:anywhere}
+.card small {font:12px/1.65 var(--font-study-serif);color:#655a46}.card mark {color:#574724;background:#ead9a7}
 .pager {display:flex;justify-content:center;align-items:center;gap:17px;flex:none;border-top:1px solid #cdbd9d;color:#695d48;font:12px/1.6 system-ui,sans-serif}
 .pager button {font-size:18px}.pager button:disabled {opacity:.34;cursor:default}
-.stage > section {inset:clamp(12px,4vh,44px) max(3vw,calc((100% - 860px)/2));border-radius:3px 8px 8px 3px;border:1px solid #c4b598;box-shadow:0 14px 45px #2822184d}
 .stage[data-search=true][data-motion=full] > section[data-open=true] {transition-delay:120ms,0s}
 .stage[data-reading=true] .back {visibility:hidden}
 .stage[data-live=false] {--rail-x:calc(50% - var(--width)/2);--rail-y:18%;background:#30362bc9}
@@ -65,9 +65,8 @@
 @media(max-width:700px) {
   .stage {bottom:var(--keyboard-inset,0px);--width:calc(100% - 22px);--top:clamp(60px,calc(var(--rail-y,32%) + 14px),42%)}
   .file {left:11px;max-height:calc(100% - var(--top) - 12px)}
-  .back {top:10px;right:12px;padding:7px 12px}
+  .back {top:max(10px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));padding:8px 14px}
   .rail {min-height:48px;padding:0 19px}.rail input {padding-left:9px}
-  .stage > section {inset:9px 8px max(10px,env(safe-area-inset-bottom))}
 }
-@media(max-height:480px) {.stage {--top:54px}.back {top:5px}}
+@media(max-height:480px) {.stage {--top:54px}.back {top:5px;min-height:40px;padding:6px 12px}}
 @media(prefers-reduced-motion:reduce) {.file {animation:none}}

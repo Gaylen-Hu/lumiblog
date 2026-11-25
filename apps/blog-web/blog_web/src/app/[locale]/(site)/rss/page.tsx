@@ -3,8 +3,8 @@ import { Link } from '@/i18n/navigation'
 import { CopyButton } from '@/components/CopyButton'
 
 export const metadata: Metadata = {
-  title: 'RSS - NOVA',
-  description: '通过 RSS 订阅 NOVA 博客，获取最新文章更新。',
+  title: 'RSS - 墨千',
+  description: '通过 RSS 订阅墨千博客，获取最新文章更新。',
 }
 
 const RSS_ICON = (
@@ -24,22 +24,22 @@ export default function RSSPage() {
   const feedUrl = '/feed.xml'
 
   return (
-    <div className="min-h-screen bg-transparent dark:bg-slate-950">
-      <div className="max-w-3xl mx-auto px-6 py-20">
+    <div className="magazine-page min-h-screen bg-transparent">
+      <div className="max-w-3xl mx-auto py-8">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-50 dark:bg-orange-900/20 text-orange-500 mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#f1e9d9] text-[#806849] mb-6">
             {RSS_ICON}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-[#111111] dark:text-white mb-4">RSS 订阅</h1>
-          <p className="text-lg text-[#555555] dark:text-gray-400 font-light max-w-lg mx-auto">
+          <h1 className="text-4xl font-bold tracking-tight text-[#39352f] mb-4">RSS 订阅</h1>
+          <p className="text-lg text-[#665c4f] font-light max-w-lg mx-auto">
             通过 RSS 订阅，在你喜欢的阅读器中获取最新文章更新。
           </p>
         </div>
 
-        <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl p-8 mb-12">
-          <h2 className="text-sm font-semibold text-[#111111] dark:text-white uppercase tracking-wider mb-4">订阅地址</h2>
+        <div className="bg-[#f3ece0] border border-[#e4dac7] rounded-2xl p-8 mb-12">
+          <h2 className="text-sm font-semibold text-[#39352f] uppercase tracking-wider mb-4">订阅地址</h2>
           <div className="flex items-center gap-3">
-            <code className="magazine-panel flex-1 bg-white dark:bg-slate-900 px-4 py-3 rounded-lg text-sm text-[#555555] dark:text-gray-300 font-mono border border-gray-100 dark:border-slate-700 overflow-x-auto">
+            <code className="flex-1 bg-[#fbf9f5] px-4 py-3 rounded-lg text-sm text-[#494136] font-mono border border-[#dfd4bf] overflow-x-auto">
               {feedUrl}
             </code>
             <CopyButton text={feedUrl} />
@@ -53,17 +53,17 @@ export default function RSSPage() {
               href={reader.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group p-5 bg-gray-50 dark:bg-slate-800 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+              className="group p-5 bg-[#f3ece0] border border-[#e4dac7] rounded-xl hover:bg-[#ebe2d2] transition-colors"
             >
-              <h3 className="font-medium text-[#111111] dark:text-white group-hover:text-orange-500 transition-colors">{reader.name}</h3>
-              <p className="text-sm text-[#555555] dark:text-gray-400 mt-1">{reader.description}</p>
+              <h3 className="font-medium text-[#39352f] group-hover:text-[#806849] transition-colors">{reader.name}</h3>
+              <p className="text-sm text-[#665c4f] mt-1">{reader.description}</p>
             </a>
           ))}
         </div>
 
         <div className="mt-16 text-center">
-          <Link href="/" className="text-sm text-gray-400 hover:text-[#111111] dark:hover:text-white transition-colors">
-            ← 返回首页
+          <Link href="/" className="text-sm text-[#706351] hover:text-[#39352f] transition-colors">
+            ← 返回书房
           </Link>
         </div>
       </div>

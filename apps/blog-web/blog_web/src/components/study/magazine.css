@@ -7,10 +7,10 @@
 .study-defocused { filter: blur(14px); pointer-events: none; transition-delay: 180ms; }
 .study-persistent [data-magazine] > :not(:first-child) { visibility: hidden; }
 .study-magazine {
-  --paper: #fbf9f5; --ink: #39352f; --muted-ink: #6f6354; --accent: #806849;
+  --paper: #fbf9f5; --ink: #39352f; --muted-ink: #665c4f; --accent: #806849;
   position: relative; z-index: 10; min-height: 100dvh; padding: 112px 0 80px;
   background: var(--paper); color: var(--ink); color-scheme: light;
-  font-family: Georgia, 'Noto Serif SC', 'Songti SC', 'SimSun', serif; line-height: 1.95;
+  font-family: var(--font-study-serif); line-height: 1.95;
   overflow-wrap: anywhere; transition: background-color 650ms ease;
 }
 .study-magazine::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1;
@@ -32,42 +32,42 @@
 .study-magazine .markdown-content :is(pre,code) { font-family: var(--font-geist-mono), monospace; }
 .study-magazine .markdown-content :not(pre) > code { color: #9b1657; }
 .study-magazine .markdown-content pre { background: #f1ece3; color: #494136; border: 0; border-radius: 0; }
-.study-magazine .markdown-content blockquote { border-color: #cdbfa7; background: transparent; color: #6f6354; }
+.study-magazine .markdown-content blockquote { border-color: #cdbfa7; background: transparent; color: var(--muted-ink); }
 .study-return { position: fixed; top: max(20px, env(safe-area-inset-top)); left: clamp(16px, 4vw, 64px); z-index: 30;
   display: flex; align-items: center; gap: 24px; min-height: 44px; border: 0; background: #fbf9f5eb;
-  color: #65594b; padding: 8px 12px; cursor: pointer; text-decoration: none; font-size: 13px !important; letter-spacing: .06em; }
-.study-return kbd { font: 10px/1.6 system-ui, sans-serif; color: #726653; }
+  color: #5a4f42; padding: 8px 12px; cursor: pointer; text-decoration: none; font-size: 13px !important; letter-spacing: .06em; }
+.study-return kbd { font: 11px/1.6 system-ui, sans-serif; color: #706351; }
 .study-turning { position: absolute; inset: 140px 0 auto; pointer-events: none; }
-.study-loading { min-height: 46vh; display: grid; align-content: center; justify-items: center; gap: 28px; color: #726653; font: 13px/1.8 Georgia, 'Songti SC', serif; letter-spacing: .12em; }
+.study-loading { min-height: 46vh; display: grid; align-content: center; justify-items: center; gap: 28px; color: #6e6150; font: 13px/1.8 var(--font-study-serif); letter-spacing: .12em; }
 .study-paper-loader { width: 56px; height: 76px; position: relative; background: #f4eddf; box-shadow: 3px 4px 0 #e2d8c6, 0 12px 32px #79654815; transform-origin: bottom left; animation: paper-breathe 1.6s ease-in-out infinite alternate; }
 .study-paper-loader i { position: absolute; left: 12px; right: 12px; height: 1px; background: #cfbfa6; top: 24px; }
 .study-paper-loader i:nth-child(2) { top: 34px; }.study-paper-loader i:nth-child(3) { top: 44px; right: 24px; }
-.study-imprint { font: 10px/1.8 system-ui, sans-serif; letter-spacing: .24em; color: #726653; }
+.study-imprint { font: 11px/1.8 system-ui, sans-serif; letter-spacing: .22em; color: #6e6150; }
 .magazine-page { padding: 24px clamp(24px, 6vw, 96px) 60px; max-width: 1280px; margin: 0 auto; }
 .magazine-heading { margin-bottom: clamp(48px, 7vw, 96px); }
 .magazine-heading h1 { font-size: clamp(32px, 5vw, 58px); margin-bottom: 20px; }
-.magazine-heading p { max-width: 42em; color: #6f6354; }
+.magazine-heading p { max-width: 42em; color: var(--muted-ink); }
 .magazine-story-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 64px 9%; list-style: none; }
 .magazine-story { display: flex; flex-direction: column; align-items: flex-start; height: 100%; padding: 0; }
 .magazine-story h2 { font-size: clamp(22px, 2.5vw, 30px); line-height: 1.65; margin: 14px 0 18px; }
-.magazine-story p { font-size: 15px; color: #6f6354; line-height: 2; }
-.magazine-story small { display: block; color: #726653; font: 11px/1.8 system-ui, sans-serif; letter-spacing: .1em; }
+.magazine-story p { font-size: 15px; color: var(--muted-ink); line-height: 2; }
+.magazine-story small { display: block; color: #706351; font: 11px/1.8 system-ui, sans-serif; letter-spacing: .1em; }
 .magazine-story a { text-decoration: none; }.magazine-story a:hover { color: #9b8058; }
-.magazine-story > a:last-child { display: inline-block; margin-top: 22px; font-size: 13px; color: #806849; }
+.magazine-story > a:last-child { display: inline-block; margin-top: 22px; font-size: 13px; color: #735c3d; }
 .magazine-collection { display: block; }.magazine-collection h2 { font-size: 27px; margin: 24px 0 12px; line-height: 1.65; }
-.magazine-collection p { font-size: 15px; color: #6f6354; }.magazine-collection small { color: #726653; }
-.magazine-collection-cover { position: relative; overflow: hidden; aspect-ratio: 16/10; background: #f0e9dd; display: grid; place-items: center; color: #a9977d; }
+.magazine-collection p { font-size: 15px; color: var(--muted-ink); }.magazine-collection small { color: #706351; }
+.magazine-collection-cover { position: relative; overflow: hidden; aspect-ratio: 16/10; background: #f0e9dd; display: grid; place-items: center; color: #8c7a5f; }
 .magazine-collection-cover svg { width: 48px; height: 48px; }
 .magazine-reading-column { max-width: 780px; margin: 0 auto; }
 .magazine-chapters { list-style: none; display: grid; gap: 40px; }.magazine-chapters a { display: flex; gap: 28px; }
-.magazine-chapters .chapter-number { color: #a28d6a; font-style: italic; }.magazine-chapters h2 { font-size: 24px; }
-.magazine-chapters :is(p,time) { color: #6f6354; font-size: 14px; }
-.magazine-empty { padding: 12vh 0; text-align: center; color: #6f6354; }.magazine-empty h2 { font-size: 28px; margin: 20px 0; }
+.magazine-chapters .chapter-number { color: #7a6646; font-style: italic; }.magazine-chapters h2 { font-size: 24px; }
+.magazine-chapters :is(p,time) { color: var(--muted-ink); font-size: 14px; }
+.magazine-empty { padding: 12vh 0; text-align: center; color: var(--muted-ink); }.magazine-empty h2 { font-size: 28px; margin: 20px 0; }
 .magazine-error { max-width: 560px; margin: 10vh auto; padding: 24px; text-align: center; }.magazine-error h1 { font-size: 32px; margin: 24px 0; }
-.magazine-error p { color: #6f6354; }.magazine-error button { margin-top: 28px; border: 0; background: transparent; color: #806849; text-decoration: underline; text-underline-offset: 6px; cursor: pointer; min-height: 44px; }
+.magazine-error p { color: var(--muted-ink); }.magazine-error button { margin-top: 28px; border: 0; background: transparent; color: #735c3d; text-decoration: underline; text-underline-offset: 6px; cursor: pointer; min-height: 44px; }
 .magazine-panel { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
 .magazine-article { padding: 20px 24px 80px; max-width: 828px; margin: 0 auto; }
-.magazine-article .magazine-deck { font-size: 21px; line-height: 1.9; font-style: normal; color: #6f6354; margin: 40px 0; }
+.magazine-article .magazine-deck { font-size: 21px; line-height: 1.9; font-style: normal; color: var(--muted-ink); margin: 40px 0; }
 .magazine-article .magazine-cover { margin: 48px -24px; }
 .magazine-journal { max-width: 760px; }.magazine-journal article { padding: 32px 0 48px; }
 @keyframes paper-breathe { to { transform: translateY(-7px) rotate(3deg); } }
@@ -76,6 +76,6 @@
 @media(max-width:700px) { .study-magazine { padding-top: 72px; }.study-return kbd { display: none; }.magazine-story-list { grid-template-columns: 1fr; gap: 48px; }.magazine-article .magazine-deck { font-size: 1.05rem; line-height: 1.75; margin: 1rem 0; }.magazine-article .magazine-cover { margin: 1rem 0; } }
 @media(prefers-reduced-motion:reduce) { .study-experience * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
-.magazine-pagination { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; margin: 48px 0 0; font-size: 14px; color: #6f6354; }
-.magazine-intro { color: #6f6354; line-height: 2; font-size: 19px; margin: 0 0 48px; }
+.magazine-pagination { display: flex; flex-wrap: wrap; gap: 24px; justify-content: space-between; margin: 48px 0 0; font-size: 14px; color: var(--muted-ink); }
+.magazine-intro { color: var(--muted-ink); line-height: 2; font-size: 19px; margin: 0 0 48px; }
 .study-magazine .magazine-journal h2 { font-size: 26px; margin: 16px 0; }

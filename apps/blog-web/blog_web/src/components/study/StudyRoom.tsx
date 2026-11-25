@@ -444,7 +444,7 @@ export default function StudyRoom({ locale, siteName, posts, projects, timeline,
     <div className={styles.vignette} aria-hidden="true" />
     <div className={styles.shell} inert={busy || undefined}>
       <header className={styles.header}>
-        <Link prefetch={false} className={styles.brand} href={`/${locale}`} aria-label={siteName}><Logo height={28} /><strong>{siteName}<span className="text-blue-500">.</span></strong></Link>
+        <Link prefetch={false} className={styles.brand} href={`/${locale}`} aria-label={siteName}><Logo height={28} /><strong>{siteName}<span className="text-[#c5aa7e]">.</span></strong></Link>
         <div className={styles.actions}>
           <button onClick={() => { previousFocus.current = document.activeElement as HTMLElement; setSettings(true) }} aria-label={en ? 'Settings' : '环境设置'}>☷</button>
           <button data-room-menu onClick={() => { previousFocus.current = document.activeElement as HTMLElement; setMenu(true) }}>☰ <span>{en ? 'Explore' : '导航'}</span></button>

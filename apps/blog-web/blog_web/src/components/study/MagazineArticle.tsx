@@ -25,11 +25,11 @@ export default function MagazineArticle({ post, locale, subscription, catalogHea
         {!catalogHeading && <><p className="study-imprint">FROM THE BOOKSHELF / A PAGE TO KEEP</p>
         <div className="flex items-center gap-4 mb-3 md:mb-6">
           {post.category && (
-            <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold tracking-widest uppercase rounded-full">
+            <span className="px-3 py-1 bg-[#f1e9d9] text-[#735c3d] text-[11px] font-semibold tracking-widest uppercase rounded-full">
               {post.category.name}
             </span>
           )}
-          <div className="flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+          <div className="flex items-center gap-1.5 text-xs text-[#706351] font-medium">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -38,13 +38,13 @@ export default function MagazineArticle({ post, locale, subscription, catalogHea
           <ArticleReadingCard locale={locale} title={post.title} slug={post.slug} />
         </div>
 
-        <h1 className="text-3xl md:text-6xl font-bold text-[#111111] dark:text-white leading-[1.1] mb-4 md:mb-8 tracking-tight">
+        <h1 className="text-3xl md:text-6xl font-bold text-[#39352f] leading-[1.1] mb-4 md:mb-8 tracking-tight">
           {post.title}
         </h1>
 
         <div className="flex items-center justify-between py-2 mb-4 md:py-6 md:mb-12">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#687a5e] to-[#4e6049] overflow-hidden">
               {post.author.avatar && (
                 <Image src={post.author.avatar} alt={post.author.name} width={40} height={40} className="w-full h-full object-cover" />
               )}
@@ -52,11 +52,11 @@ export default function MagazineArticle({ post, locale, subscription, catalogHea
             <div>
               <Link
                 href="/about"
-                className="inline-flex min-h-6 min-w-6 items-center text-sm font-bold text-[#111111] dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                className="inline-flex min-h-6 min-w-6 items-center text-sm font-bold text-[#39352f] hover:text-[#806849] transition-colors"
               >
                 {post.author.name}
               </Link>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-[#706351]">
                 {t('publishedAt')} {post.publishedAt.split('T')[0]}
               </p>
             </div>
@@ -87,7 +87,7 @@ export default function MagazineArticle({ post, locale, subscription, catalogHea
           <div className="mt-16 pt-8">
             <div className="flex flex-wrap gap-2">
               {post.tags.map((tag) => (
-                <span key={tag.id} className="py-2 pr-4 text-sm text-gray-500">
+                <span key={tag.id} className="py-2 pr-4 text-sm text-[#6e6150]">
                   #{tag.name}
                 </span>
               ))}

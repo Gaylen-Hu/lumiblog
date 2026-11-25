@@ -46,7 +46,7 @@
 .cat-chat__source{display:block;margin:5px 9px;font-size:11px;line-height:1.6;color:#647453;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
 .cat-chat__history-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none;padding:8px 12px;border-top:1px solid #e8e3d760}
 .cat-chat__toggle{display:flex;align-items:center;gap:6px;font-size:10px;color:#817a66;cursor:pointer;white-space:nowrap}
-.cat-chat__toggle input{appearance:auto;accent-color:#6b805a;width:14px;height:14px;margin:0}.cat-chat__history-note{color:#aaa18e;font-size:9px}
+.cat-chat__toggle input{appearance:auto;accent-color:#6b805a;width:14px;height:14px;margin:0}.cat-chat__history-note{color:#78705e;font-size:10px}
 .cat-chat[hidden],.cat-chat [hidden],.cat-chat-history[hidden],.cat-chat-history [hidden]{display:none!important}
 @media(max-width:480px){.cat-chat .cat-chat__input{font-size:16px}.cat-chat__compose{padding-left:12px}.cat-chat .cat-chat__history-toggle,.cat-chat .cat-chat__fold{width:30px}}
 @media(prefers-reduced-motion:reduce){.cat-chat *,.cat-chat-history *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
