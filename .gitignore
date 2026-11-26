@@ -41,3 +41,16 @@ jsStudy
 # 临时脚本（可能含密钥，禁止提交）
 _tmp_*.sh
 _tmp_*.ps1
+
+# Local tooling / build artifacts
+.pnpm-store/
+_artifacts/
+apps/blog-web/blog_web/_deploy/
+optix7cache.db
+
+# Personal machine files
+*.reg
+docs/environment-progress/新建 文本文档.txt
+
+# Large 3D model authoring sources (runtime assets live in public/companion)
+docs/design-draft/xiaohui-model-v1/
