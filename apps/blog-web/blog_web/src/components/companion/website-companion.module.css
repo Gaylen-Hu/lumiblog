@@ -1,0 +1,20 @@
+.root{position:fixed;inset:0;z-index:40;pointer-events:none;isolation:isolate;color-scheme:light}
+.root[hidden]{display:none}
+.keyboardEntry{position:absolute;right:20px;bottom:max(76px,calc(env(safe-area-inset-bottom) + 76px));width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;pointer-events:auto}
+.keyboardEntry:focus-visible{width:auto;height:auto;padding:10px 14px;clip-path:none;overflow:visible;border:1px solid #cfc5ad;border-radius:14px;background:#fffdf6;color:#536149;outline:2px solid #68795b;outline-offset:4px;font:13px/1.6 system-ui,sans-serif}
+.summon{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(76px,calc(env(safe-area-inset-bottom) + 76px));display:grid;place-items:center;width:42px;height:42px;padding:10px;border:1px solid #d5cebc;background:#faf8f0eb;color:#777b66;border-radius:50%;box-shadow:0 2px 12px #302c1812;pointer-events:auto;cursor:pointer;transition:background .2s,color .2s}
+.summon:hover{background:#fffdf7;color:#4f6148}
+.summon svg{width:22px;height:22px;fill:currentColor}
+.summon:focus-visible,.notice button:focus-visible{outline:2px solid #68795b;outline-offset:4px}
+.notice{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(76px,calc(env(safe-area-inset-bottom) + 76px));display:flex;flex-wrap:wrap;align-items:center;gap:9px;max-width:min(300px,calc(100vw - 36px));padding:10px 14px;border:1px solid #ded8c8;border-radius:16px;background:#faf8f1f2;color:#696553;font:12px/1.6 system-ui,sans-serif;pointer-events:none}
+.notice button{border:0;background:none;padding:5px;color:#5b7050;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;pointer-events:auto}
+.arrival{padding:5px 10px 5px 12px;border-radius:24px;box-shadow:0 2px 12px #302c1812;animation:arrive .2s ease-out both}
+.trail{position:relative;display:inline-block;flex:none;width:35px;height:19px;color:#78856b}
+.trail svg{position:absolute;width:12px;height:12px;fill:currentColor;animation:pawStep 1.8s ease-in-out infinite}
+.trail svg:nth-child(1){left:0;bottom:0;transform:rotate(37deg)}
+.trail svg:nth-child(2){left:10px;top:0;transform:rotate(54deg);animation-delay:.22s}
+.trail svg:nth-child(3){right:0;bottom:3px;transform:rotate(68deg);animation-delay:.44s}
+@keyframes pawStep{0%,58%,100%{opacity:.22}17%,32%{opacity:.95}}
+@keyframes arrive{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){.summon{width:38px;height:38px;padding:8px;right:max(12px,env(safe-area-inset-right))}}
+@media(prefers-reduced-motion:reduce){.summon{transition:none}.arrival,.trail svg{animation:none}.trail svg{opacity:.8}}

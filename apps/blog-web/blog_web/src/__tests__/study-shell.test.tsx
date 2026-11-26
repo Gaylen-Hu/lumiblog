@@ -17,6 +17,7 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('next/dynamic', () => ({ default: (_loader: unknown, options?: {ssr?:boolean}) => options?.ssr === false
   ? (props: StudyRoomProps) => <StudyRoom {...props} /> : () => <article><h1>Reading test content</h1></article> }))
+vi.mock('@/components/companion/WebsiteCompanion', () => ({ default: ({ reading }: { reading: boolean }) => <aside data-companion-root data-reading={reading} data-companion-chat-open="false"><button data-companion-keyboard-entry>和小灰说句话</button></aside> }))
 vi.mock('@/components/study/room-scene', () => ({ createRoom: (host: HTMLElement, options: {
   onReady: () => void; onSettled: (d: Destination | null) => void
 }) => {
@@ -87,12 +88,14 @@ describe('URL-driven spatial reading', () => {
     expect(html).not.toContain('study-persistent'); expect(html).not.toContain('<canvas')
     await mount(<article><h1>Direct article</h1></article>)
     expect(scene.created).toBe(0)
+    expect(document.querySelector('[data-companion-root]')).toHaveAttribute('data-reading','true')
     await act(async () => document.querySelector<HTMLButtonElement>('.study-return')!.click())
     expect(routing.push).toHaveBeenCalledWith('/zh', {scroll:false})
   })
   it('turns the catalog page in place; Back restores the same row, scroll and shelf camera', async () => {
     await mount()
     const canvas = document.querySelector('canvas')!
+    const cat = document.querySelector('[data-companion-root]')!
     expect(canvas).toBeTruthy()
     await open('diary'); await settle('diary')
     await open('computer'); await settle('computer')
@@ -107,11 +110,13 @@ describe('URL-driven spatial reading', () => {
     expect(window.history.state.__PRIVATE_NEXTJS_INTERNALS_TREE).toEqual(['tree'])
     expect(routing.push).not.toHaveBeenCalled(); expect(routing.replace).not.toHaveBeenCalled()
     expect(document.querySelector('[data-article-scroll] h1')?.textContent).toBe('第一篇')
+    expect(cat).toHaveAttribute('data-reading','true')
     expect(index.closest('[inert]')).toBeTruthy()
     expect(scene.targets.length).toBe(trips)
     expect(scene.paused.at(-1)).toBe(true)
     await traverse('back')
     expect(window.location.search).toBe('?room=bookshelf')
+    expect(cat).toHaveAttribute('data-reading','false')
     expect(index.closest('[inert]')).toBeNull()
     expect(index.scrollTop).toBe(240)
     expect(document.activeElement).toBe(article)
@@ -120,6 +125,7 @@ describe('URL-driven spatial reading', () => {
     expect(window.location.search).toBe('?article=first'); expect(scene.targets.at(-1)).toBe('bookshelf')
     expect(document.querySelector('canvas')).toBe(canvas)
     expect(scene.created).toBe(1); expect(scene.disposed).toBe(0)
+    expect(document.querySelector('[data-companion-root]')).toBe(cat)
   })
   it('Esc during a catalog page turn reveals the index and a second Esc returns to the room', async () => {
     await mount(); await open('bookshelf'); await settle('bookshelf')
@@ -143,5 +149,44 @@ describe('URL-driven spatial reading', () => {
     expect(scene.targets.at(-1)).toBe('computer')
     await act(async () => { window.history.replaceState(window.history.state,'','/zh'); window.dispatchEvent(new PopStateEvent('popstate')) })
     expect(scene.targets.at(-1)).toBeNull(); expect(scene.created).toBe(1)
+  })
+  it('chat Escape does not navigate away from the reading page', async () => {
+    window.history.replaceState(null,'','/zh/posts/direct')
+    await mount(<article><h1>Direct article</h1></article>)
+    const cat = document.querySelector<HTMLElement>('[data-companion-root]')!
+    cat.dataset.companionChatOpen = 'true'
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'})))
+    expect(routing.push).not.toHaveBeenCalled()
+    cat.dataset.companionChatOpen = 'false'
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'})))
+    expect(routing.push).toHaveBeenCalledWith('/zh', {scroll:false})
+  })
+  it('includes the companion keyboard entry in the spatial reader focus loop', async () => {
+    await mount()
+    await act(async () => { window.history.replaceState(window.history.state,'','/zh?view=posts'); notifyStudyLocation() })
+    await settle('bookshelf')
+    vi.spyOn(HTMLElement.prototype,'getClientRects').mockReturnValue([{}] as unknown as DOMRectList)
+    const first = document.querySelector<HTMLButtonElement>('.study-return')!
+    const cat = document.querySelector<HTMLButtonElement>('[data-companion-keyboard-entry]')!
+    first.focus()
+    await act(async () => first.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true})))
+    expect(document.activeElement).toBe(cat)
+    await act(async () => cat.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true})))
+    expect(document.activeElement).toBe(first)
+  })
+  it('keeps the cat reachable by keyboard when an article opens inside the shelf catalog', async () => {
+    await mount(); await open('bookshelf'); await settle('bookshelf')
+    await act(async () => document.querySelector<HTMLAnchorElement>('[role="dialog"] a[href="/zh/posts/first"]')!.click())
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!
+    const first = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input, textarea, select, [tabindex="0"]')).find(element => !element.closest('[inert], [hidden]'))!
+    const cat = document.querySelector<HTMLButtonElement>('[data-companion-keyboard-entry]')!
+    first.focus()
+    await act(async () => first.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true})))
+    expect(document.activeElement).toBe(cat)
+    await act(async () => cat.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true})))
+    expect(document.activeElement).toBe(first)
+    cat.parentElement!.dataset.companionChatOpen = 'true'
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'})))
+    expect(window.location.search).toBe('?article=first')
   })
 })

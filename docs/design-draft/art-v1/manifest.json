@@ -1,0 +1,50 @@
+[
+  {
+    "file": "sources/bookcloth.png",
+    "width": 1254,
+    "height": 1254,
+    "bytes": 3533915,
+    "source": "Built-in ImageGen",
+    "status": "generated; scene integration pending"
+  },
+  {
+    "file": "sources/exterior.png",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2688653,
+    "source": "Built-in ImageGen",
+    "status": "generated; scene integration pending"
+  },
+  {
+    "file": "sources/landscape.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 1709006,
+    "source": "Built-in ImageGen",
+    "status": "generated; scene integration pending"
+  },
+  {
+    "file": "sources/linen.png",
+    "width": 1254,
+    "height": 1254,
+    "bytes": 3357034,
+    "source": "Built-in ImageGen",
+    "status": "generated; scene integration pending"
+  },
+  {
+    "file": "sources/paper.png",
+    "width": 1536,
+    "height": 1024,
+    "bytes": 2983725,
+    "source": "Built-in ImageGen",
+    "status": "generated; scene integration pending"
+  },
+  {
+    "file": "sources/walnut.png",
+    "width": 1254,
+    "height": 1254,
+    "bytes": 2653628,
+    "source": "Built-in ImageGen",
+    "status": "generated; scene integration pending"
+  }
+]

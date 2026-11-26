@@ -5,12 +5,19 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, ty
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { RoomRegistrationContext, StudyNavigationContext, useStudyLocation } from './StudyNavigation'
 import type { StudyRoomProps } from './StudyRoom'
+import { loadRoomScene, prefersSimpleStudy } from './room-loader'
 import { notifyStudyLocation, resolveStudyRoute, spatialReadingHref, stampStudyHistory, studyHistory } from './study-route'
 import PaperLoading from './PaperLoading'
+import WebsiteCompanion from '../companion/WebsiteCompanion'
+import { WebsiteDrafts } from '../companion/website-drafts'
 import './magazine.css'
 
 const SpatialContent = dynamic(() => import('./SpatialContent'), { loading: () => <PaperLoading /> })
-const PersistentRoom = dynamic(() => import('./StudyRoom'), { ssr: false })
+const PersistentRoom = dynamic(() => {
+  // Download the renderer alongside the room controls. StudyRoom handles load failures.
+  if (!prefersSimpleStudy()) void loadRoomScene().catch(() => {})
+  return import('./StudyRoom')
+}, { ssr: false })
 
 function RouteObserver() {
   const pathname = usePathname(), search = useSearchParams()
@@ -88,6 +95,9 @@ export default function StudyShell({ locale, children }: { locale: string; child
   useEffect(() => {
     const keys = (event: KeyboardEvent) => {
       if (!reading || event.defaultPrevented || event.isComposing) return
+      // Shadow-DOM chat owns its Escape/Tab keys; it must not close the article.
+      const petEntry = event.target instanceof Element && event.target.hasAttribute('data-companion-keyboard-entry')
+      if (document.querySelector('[data-companion-chat-open="true"]') || (!petEntry && event.composedPath().some(node => node instanceof Element && node.hasAttribute('data-companion-root')))) return
       // Media viewers may live in a portal, outside the magazine DOM subtree.
       const nestedModal = Array.from(document.querySelectorAll<HTMLElement>('[aria-modal="true"]:not(.study-magazine)'))
         .some(element => !element.closest('[inert]'))
@@ -95,6 +105,7 @@ export default function StudyShell({ locale, children }: { locale: string; child
       if (event.key === 'Escape') { event.preventDefault(); close(); return }
       if (event.key !== 'Tab' || !route.spatial) return
       const controls = Array.from(magazine.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input, textarea, select, [tabindex="0"]') || [])
+        .concat(Array.from(document.querySelectorAll<HTMLElement>('[data-companion-keyboard-entry]')))
         .filter(element => !element.closest('[inert]') && element.getClientRects().length > 0)
       const first = controls[0], last = controls.at(-1)
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
@@ -161,6 +172,8 @@ export default function StudyShell({ locale, children }: { locale: string; child
             {route.spatial ? <SpatialContent key={route.readingPath} path={route.readingPath!} locale={locale} onReady={focusContent} /> : children}
           </div>}
         </section>}
+        <WebsiteCompanion locale={locale} reading={route.mode === 'magazine'} />
+        <WebsiteDrafts locale={locale} />
       </div>
     </StudyNavigationContext.Provider>
   </RoomRegistrationContext.Provider>

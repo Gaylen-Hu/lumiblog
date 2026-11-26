@@ -79,7 +79,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                   </div>
                 )}
               </div>
-              <div className="magazine-panel aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-blue-600 flex items-end p-8 text-white relative group">
+              <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-blue-600 flex items-end p-8 text-white relative group">
                 <div className="z-10 relative">
                   <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('interest')}</span>
                   <h4 className="text-2xl font-bold mt-2">{t('architecture')}</h4>
@@ -87,7 +87,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
               </div>
             </div>
             <div className="space-y-4 pt-12">
-              <div className="magazine-panel aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-[#111111] p-8 text-white group">
+              <div className="aspect-[3/4] rounded-3xl overflow-hidden shadow-sm bg-[#111111] p-8 text-white group">
                 <div className="h-full flex flex-col justify-between">
                   <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform text-2xl">
                     ☕️

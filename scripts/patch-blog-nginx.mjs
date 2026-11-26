@@ -15,7 +15,7 @@ const letterDirectives = [
 
 // Record direct children and source offsets; braces in comments, quoted strings
 // and variable expansions do not delimit Nginx blocks.
-function directives(source) {
+export function directives(source) {
   const root = [], stack = [root]
   let words = [], start = 0
   const tokens = /#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:\\.|\$\{[\w]+\}|[^\s{};#"'\\])+|[{};]/g

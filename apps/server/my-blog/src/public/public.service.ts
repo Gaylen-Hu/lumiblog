@@ -142,6 +142,19 @@ export class PublicService {
     return new PaginatedPublicArticleListDto({ data, total, page, pageSize });
   }
 
+  /** Read-only grounding for the companion; no view increment or locale fallback. */
+  async getArticleForCompanion(slug: string, locale: 'zh' | 'en') {
+    const article = await this.prisma.article.findFirst({
+      where: {
+        slug,
+        isPublished: true,
+        locale: { in: locale === 'zh' ? ['zh', 'zh-CN'] : ['en', 'en-US'] },
+      },
+      select: { slug: true, title: true, locale: true, content: true },
+    });
+    return article ? { ...article, locale, content: article.content ?? '' } : null;
+  }
+
   /**
    * 根据 slug 获取文章详情
    */

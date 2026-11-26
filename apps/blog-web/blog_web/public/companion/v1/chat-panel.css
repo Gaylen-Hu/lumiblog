@@ -1,0 +1,52 @@
+/* Portable companion composer. No host-page colors or layout are required. */
+.cat-chat,.cat-chat-history{box-sizing:border-box;direction:ltr;text-align:left;writing-mode:horizontal-tb;font:400 13px/1.5 "PingFang SC","Microsoft YaHei UI",system-ui,sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;white-space:normal;color:#4b473e;color-scheme:light}
+.cat-chat *,.cat-chat *::before,.cat-chat *::after,.cat-chat-history *,.cat-chat-history *::before,.cat-chat-history *::after{box-sizing:border-box}
+.cat-chat{width:100%;max-width:420px;min-width:0;margin:0;padding:0;background:none;border:0;position:relative;isolation:isolate;pointer-events:none}
+.cat-chat button,.cat-chat textarea,.cat-chat input,.cat-chat-history button,.cat-chat-history input{font:inherit;color:inherit;letter-spacing:normal;text-transform:none;margin:0}
+.cat-chat button,.cat-chat-history button{appearance:none;cursor:pointer;border:0;background:transparent;padding:0;line-height:1.5;text-align:center;box-shadow:none}
+.cat-chat button:disabled,.cat-chat-history button:disabled{cursor:default;opacity:.48}
+.cat-chat button:focus-visible,.cat-chat textarea:focus-visible,.cat-chat-history button:focus-visible,.cat-chat-history input:focus-visible,.cat-chat__messages:focus-visible{outline:2px solid #8b967a;outline-offset:2px}
+.cat-chat__panel,.cat-chat__form{margin:0;padding:0;min-width:0}
+.cat-chat__sr-only,.cat-chat__input-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;border:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important;pointer-events:none!important}
+.cat-chat__compose{display:flex;align-items:flex-end;gap:4px;min-width:0;padding:5px 6px 5px 14px;border:1px solid #d9d2c080;border-radius:25px;background:rgba(253,251,245,.91);box-shadow:0 5px 22px #534a3412,0 1px 3px #534a3408;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);pointer-events:auto}
+.cat-chat .cat-chat__input{display:block;appearance:none;resize:none;flex:1;min-width:0;width:100%;height:32px;min-height:32px;max-height:76px;overflow-y:auto;border:0;outline-offset:0;border-radius:10px;padding:5px 2px;background:transparent;font-size:14px;line-height:22px;scrollbar-width:thin;box-shadow:none;overscroll-behavior:contain}
+.cat-chat__input::placeholder{color:#918b7d;opacity:1}
+.cat-chat__bar,.cat-chat__toolbar{display:flex;align-items:center;flex:none;gap:0}
+.cat-chat .cat-chat__send,.cat-chat .cat-chat__history-toggle,.cat-chat .cat-chat__fold{display:grid;place-items:center;position:relative;flex:none;width:32px;height:32px;padding:7px;border-radius:50%;color:#827d70;transition:background-color .12s,color .12s}
+.cat-chat .cat-chat__send{background:#74856b;color:#fffdf7;margin-right:2px}
+.cat-chat button svg{display:block;width:17px;height:17px;flex:none;pointer-events:none}
+.cat-chat .cat-chat__send svg{width:19px;height:19px}
+.cat-chat .cat-chat__send:hover:enabled{background:#607555}
+.cat-chat .cat-chat__history-toggle:hover,.cat-chat .cat-chat__fold:hover{background:#e8e4d785;color:#5f6754}
+.cat-chat__history-toggle[aria-expanded=true]{background:#e9eddf}
+.cat-chat__unread{position:absolute;right:5px;top:4px;width:5px;height:5px;border-radius:50%;background:#7e936a;font-size:0;line-height:0;pointer-events:none}
+.cat-chat__notice{font-size:11px;line-height:1.6;color:#8b6747;background:rgba(255,248,233,.96);border:1px solid #e6d8bc80;border-radius:12px;padding:8px 11px;margin:0 0 7px;overflow-wrap:anywhere;pointer-events:auto}
+.cat-chat__activity{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:5px;margin:0 3px 6px;padding:0;pointer-events:auto}
+.cat-chat__status{flex:1;min-width:0;padding:5px 9px;border-radius:10px;background:rgba(255,248,233,.96);color:#8b6747;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.cat-chat__status[data-tone=error]{color:#935e45}.cat-chat__status[data-tone=warning]{color:#876a40}
+.cat-chat__activity-controls{display:flex;align-items:center;gap:5px;flex:none;margin-left:auto}
+.cat-chat .cat-chat__stop,.cat-chat .cat-chat__retry{font-size:11px;white-space:nowrap;border:1px solid #ded5c480;border-radius:14px;padding:5px 10px;background:rgba(253,250,242,.95);color:#7c715c;min-height:28px}
+.cat-chat .cat-chat__stop:hover,.cat-chat .cat-chat__retry:hover{background:#efeadc}
+.cat-chat .cat-chat__retry{color:#80643f}
+.cat-chat-history{display:flex;flex-direction:column;width:100%;min-width:0;min-height:0;height:220px;max-height:220px;margin:0 0 8px;border:1px solid #ddd7c780;border-radius:16px;background:rgba(253,251,245,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 5px 22px #534a340c;overflow:hidden;pointer-events:auto}
+.cat-chat__history-header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 12px;flex:none}
+.cat-chat__title{font:400 11px/1.5 "PingFang SC","Microsoft YaHei UI",system-ui,sans-serif;color:#8b8373;white-space:nowrap;margin:0}
+.cat-chat__history-controls{display:flex;gap:10px;flex:none}
+.cat-chat-history .cat-chat__clear,.cat-chat-history .cat-chat__history-close{border:0;border-radius:5px;padding:4px 2px;font-size:10px;white-space:nowrap;color:#817865}
+.cat-chat-history .cat-chat__clear:hover,.cat-chat-history .cat-chat__history-close:hover{color:#4c614c}
+.cat-chat__messages{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:5px 12px 10px;scrollbar-width:thin;scrollbar-color:#d3d0bf transparent;scroll-behavior:auto}
+.cat-chat__empty{margin:auto;text-align:center;padding:12px 8px;color:#928977}
+.cat-chat__invitation{font-size:12px;margin:0 0 5px}.cat-chat__hint{font-size:11px;line-height:1.7;margin:0;color:#a59c89}
+.cat-chat__message{max-width:96%;align-self:flex-start;min-width:0;margin:0}.cat-chat__message--user{align-self:flex-end}
+.cat-chat__author{display:block;margin:0 4px 4px;color:#a49a86;font-size:10px}.cat-chat__message--user .cat-chat__author{text-align:right}
+.cat-chat__text{margin:0;border:0;border-radius:4px 11px 11px;padding:7px 9px;background:#f0ecdf85;font-size:12px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;min-height:24px}
+.cat-chat__message--user .cat-chat__text{background:#e9efdf;border-radius:11px 4px 11px 11px}
+.cat-chat__message--system{align-self:center;max-width:98%}.cat-chat__message--system .cat-chat__author{display:none}.cat-chat__message--system .cat-chat__text{font-size:10px;border:0;background:none;color:#a09580;text-align:center;padding:3px 5px}
+.cat-chat__text:empty:before{content:"…";color:#a69d87}
+.cat-chat__source{display:block;margin:5px 9px;font-size:11px;line-height:1.6;color:#647453;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.cat-chat__history-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none;padding:8px 12px;border-top:1px solid #e8e3d760}
+.cat-chat__toggle{display:flex;align-items:center;gap:6px;font-size:10px;color:#817a66;cursor:pointer;white-space:nowrap}
+.cat-chat__toggle input{appearance:auto;accent-color:#6b805a;width:14px;height:14px;margin:0}.cat-chat__history-note{color:#78705e;font-size:10px}
+.cat-chat[hidden],.cat-chat [hidden],.cat-chat-history[hidden],.cat-chat-history [hidden]{display:none!important}
+@media(max-width:480px){.cat-chat .cat-chat__input{font-size:16px}.cat-chat__compose{padding-left:12px}.cat-chat .cat-chat__history-toggle,.cat-chat .cat-chat__fold{width:30px}}
+@media(prefers-reduced-motion:reduce){.cat-chat *,.cat-chat-history *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

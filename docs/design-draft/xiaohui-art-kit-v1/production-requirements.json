@@ -1,0 +1,819 @@
+{
+  "schemaVersion": "1.0",
+  "preparedAt": "2026-11-19",
+  "title": "小灰银虎斑动漫猫：制作资产与运行时接口清单",
+  "purpose": "为按已认可设计稿重新制作整只角色提供资产交接依据；本文件是需求与接口审计，不表示新模型、UV 或动画成品已经交付。",
+  "scope": {
+    "included": [
+      "角色美术参考",
+      "完整角色模型",
+      "皮毛与五官材质",
+      "骨骼与表情形态",
+      "现有动作兼容",
+      "项圈铃铛与胡须",
+      "可选轻量反馈素材"
+    ],
+    "excluded": [
+      "房间背景重做",
+      "网站页面重做",
+      "模型服务或 agent 网络接入",
+      "新玩法扩展",
+      "发布打包"
+    ],
+    "runtimeCodeModified": false,
+    "productionModelReplaced": false
+  },
+  "sourceAudit": {
+    "root": "D:/demo/myblog/_artifacts/companion-production-20261115/apps/blog-web/blog_web",
+    "files": [
+      {
+        "path": "src/components/companion/runtime/cat-model.js",
+        "observed": "createToonCat 构建身体、骨架、四肢、尾、配件，返回 cat 对象供动画器直接访问。"
+      },
+      {
+        "path": "src/components/companion/runtime/native-head.js",
+        "observed": "GLB 头部导入、特定节点/材质名称分流、5 个形态键、眼睛转轴、头部控制器接口。"
+      },
+      {
+        "path": "src/components/companion/runtime/native-neck.js",
+        "observed": "从旧头部特定封口环制作连接桥；不可视为通用新模型接口。"
+      },
+      {
+        "path": "src/components/companion/runtime/native-collar.js",
+        "observed": "根据连接桥适配项圈，并保留 BellPivot 与 GoldenBell。"
+      },
+      {
+        "path": "src/components/companion/runtime/cat-animation.js",
+        "observed": "直接驱动骨骼、四肢 IK、尾链、铃铛与 setFace；不是只需 glTF 动作名称就能替换的播放器。"
+      },
+      {
+        "path": "src/components/companion/runtime/website-cat.js",
+        "observed": "公开动作白名单、房间/阅读模式、导航与跳台接口、原生头加载。"
+      },
+      {
+        "path": "src/components/companion/runtime/room-director.js",
+        "observed": "运动状态、姿态切换、导航、站立/坐姿/趴卧保持状态。"
+      },
+      {
+        "path": "src/components/companion/runtime/motion/motions.js",
+        "observed": "动作定义与时长；含其他旧骨架作者工具，不应把其中 Wolf_ROOT 骨架误当当前卡通猫要求。"
+      },
+      {
+        "path": "src/components/companion/runtime/agent/action-bridge.js",
+        "observed": "wink 走 animator.wink()，不是 director 的普通身体动作片段。"
+      },
+      {
+        "path": "src/components/companion/runtime/head/eye-highlights.js",
+        "observed": "眼睛高光附着在 Pupil_L/R 的角膜表面；闭眼时必须被遮挡或隐藏。"
+      },
+      {
+        "path": "src/components/companion/runtime/head/whiskers.js",
+        "observed": "胡须根部随口鼻形态键移动，不能在嘴部变形时悬空。"
+      },
+      {
+        "path": "src/components/companion/runtime/agent/speech-bubble.js",
+        "observed": "文字气泡为 DOM/CSS 实现，保持现有功能不需要额外气泡 PNG。"
+      }
+    ]
+  },
+  "designLock": {
+    "subject": "圆脸、短吻、四足的小银虎斑幼猫；亲近、安静、好奇",
+    "invariants": [
+      "头颅有前后厚度，脸颊圆润，下巴圆收；避免横向压扁大饼脸和倒三角硬下颌。",
+      "眼睛为明亮琥珀色虹膜、圆润瞳孔与克制高光；左右眼距、视线和眼睑必须一致。",
+      "粉色小鼻子、自然前凸的双侧吻垫、细小柔和的 ω 形口线；中性态不露牙，不画人类笑脸。",
+      "圆角三角耳，外灰内粉，耳根与颅骨自然相接；不能是薄板插片、翻卷洞口或独立贴片。",
+      "银灰底毛、深灰虎斑、奶白口鼻/胸腹/爪尖；头、颈、躯干和四肢共享调色与条纹尺度。",
+      "窄炭灰项圈、小金铃、少量细胡须；四肢和尾巴保持猫的结构。",
+      "毛感通过干净色块、适量柔化的条纹与轮廓表达；普通动漫材质，不以逐根毛、透明毛层或毛发物理为基础。"
+    ],
+    "doNotUseAsArtMaster": [
+      "已被否决的实时预览截图",
+      "旧模型的错误头身比例",
+      "旧 UV 图作为新模型的自动适配贴图"
+    ],
+    "approvalRule": "先让灰模正面、侧面、三分之四角度符合设计稿，再做 UV 与细节。技术接口不能反向决定错误外形。"
+  },
+  "deliverableSemantics": {
+    "referenceBoards": "图片只规定形象、花纹和动作意图，不能证明真实网格、拓扑、UV 或动作已经完成。",
+    "generatedMultiView": "AI 多视图存在跨视角不一致风险，建模前必须由同一个灰模统一核对正侧背；不能当作精密正交蓝图。",
+    "generatedPatternBoard": "花纹定位图不是 UV 贴图。只有贴合最终网格 UV、验证接缝后的图像才可标记为运行时 baseColor。",
+    "generatedMotionBoard": "动作关键姿势板不是动画片段或科学标定数据；步幅、相位、接触点必须在最终骨架上制作与校准。",
+    "currentAssetReuse": "旧模型可保留作为接口和动作迁移参考，外观不作为已批准美术资产复用。",
+    "noFalseCompletion": "本素材阶段不能用图片数量替代 .blend/.glb、UV、蒙皮和动作片段的完成状态。"
+  },
+  "requiredVisualBoards": [
+    {
+      "id": "character_turnaround",
+      "required": true,
+      "content": [
+        "同一中性四足站姿的正面、左右侧面、背面、三分之四视角"
+      ],
+      "acceptance": [
+        "各视角比例与标志性花纹一致",
+        "全身、耳尖、爪尖和尾巴完整",
+        "同一基线与相近比例",
+        "避免强透视、动作姿势和大场景掩盖轮廓"
+      ]
+    },
+    {
+      "id": "head_construction",
+      "required": true,
+      "content": [
+        "头部正面、侧面、三分之四近景",
+        "同方向的无毛发灰模形体参考",
+        "眼球/眼睑/吻垫/耳根分区"
+      ],
+      "acceptance": [
+        "明确额头到鼻尖的侧面转折",
+        "清楚表现圆颅骨与前突吻部",
+        "不把绘画线条称为真实布线"
+      ]
+    },
+    {
+      "id": "coat_pattern",
+      "required": true,
+      "content": [
+        "头脸花纹",
+        "躯干侧面与背部花纹",
+        "胸腹奶白区域",
+        "四肢袜尖与尾环",
+        "颜色样例"
+      ],
+      "acceptance": [
+        "图中标明这是花纹定位参考",
+        "各视图条纹身份和数量尽量一致",
+        "不含烘焙灯光、投影与毛孔噪点"
+      ]
+    },
+    {
+      "id": "face_expressions",
+      "required": true,
+      "content": [
+        "自然",
+        "好奇",
+        "安心半眯",
+        "双眼闭合",
+        "单眼 wink",
+        "轻喵",
+        "哈欠",
+        "被摸头"
+      ],
+      "acceptance": [
+        "同一个头型和眼距",
+        "不以挤压整张脸完成眨眼",
+        "嘴角保持柔和",
+        "耳朵、眼睑、下颌相互协调"
+      ]
+    },
+    {
+      "id": "eyes_and_muzzle",
+      "required": true,
+      "content": [
+        "琥珀虹膜与瞳孔",
+        "角膜高光位置",
+        "上下眼睑闭合",
+        "粉鼻、口线、舌尖、吻垫"
+      ],
+      "acceptance": [
+        "睁眼、半闭、全闭有连续关系",
+        "眼神光不是白眼球或外露玻璃珠",
+        "鼻嘴与脸有真实前后关系"
+      ]
+    },
+    {
+      "id": "accessories_and_paws",
+      "required": true,
+      "content": [
+        "窄项圈与扣接",
+        "挂环与小金铃正侧背",
+        "前后爪与脚垫",
+        "胡须根部与弧线"
+      ],
+      "acceptance": [
+        "项圈松紧合理",
+        "铃铛有实际挂接结构",
+        "前爪抬起时脚垫可见",
+        "不额外添加服饰或玩具"
+      ]
+    },
+    {
+      "id": "locomotion_keyposes",
+      "required": true,
+      "content": [
+        "walk",
+        "trot",
+        "gallop",
+        "turn",
+        "jump 准备/起跳/腾空/前脚触地/后脚落地"
+      ],
+      "acceptance": [
+        "保持同一头身比例",
+        "标记支撑脚与身体方向",
+        "四足运动，无拟人双足行走",
+        "这里只定义关键姿势，不宣称完整时间标定"
+      ]
+    },
+    {
+      "id": "rest_and_interaction_keyposes",
+      "required": true,
+      "content": [
+        "sit/sitUp",
+        "lie/lieUp",
+        "sleep",
+        "stretch",
+        "paw",
+        "groom",
+        "knead",
+        "nuzzle",
+        "look/alert",
+        "meow/yawn",
+        "shake",
+        "tail"
+      ],
+      "acceptance": [
+        "坐卧前后衔接可读",
+        "项圈铃铛与腿/胸不相交",
+        "睡眠低头仍保持头颅完整"
+      ]
+    },
+    {
+      "id": "rig_and_contacts",
+      "required": true,
+      "content": [
+        "身体关节位置草图",
+        "四爪接触面",
+        "头与眼球转轴",
+        "尾链、耳根、铃铛支点"
+      ],
+      "acceptance": [
+        "使用最终比例标记",
+        "标明这是绑定规划，而非已完成骨架"
+      ]
+    }
+  ],
+  "productionAssets": [
+    {
+      "id": "editable_master",
+      "status": "must_create_for_new_design",
+      "required": true,
+      "proposedFilename": "xiaohui-master.blend",
+      "content": "完整头颈躯干、四肢尾巴、眼球眼睑、口腔、项圈铃铛的可编辑母版；保留源材质与形态键。",
+      "reuse": "不以旧头部与程序化身体的拼接方案作为最终母版。"
+    },
+    {
+      "id": "full_character_glb",
+      "status": "must_create_for_new_design",
+      "required": true,
+      "proposedFilename": "xiaohui-v1.glb",
+      "content": "可加载、可绑定、带正确中性态及表情的整猫；单一主骨架；头颈连续。",
+      "dependency": [
+        "editable_master",
+        "rig_and_skin",
+        "final_uv",
+        "basecolor",
+        "facial_shapes"
+      ],
+      "note": "现有 mountWebsiteCat 不会自动接收一个任意整猫 GLB，需要适配器。"
+    },
+    {
+      "id": "rig_and_skin",
+      "status": "must_create_for_new_design",
+      "required": true,
+      "content": "四足绑定与蒙皮权重、关节轴向、身体/四肢/尾部层级、眼睑形态与眼球转轴、铃铛支点。",
+      "reuse": "可复用控制器意图和骨骼名称映射，不能直接复用旧网格权重或旧脚长参数。"
+    },
+    {
+      "id": "final_uv",
+      "status": "must_create_after_mesh_approval",
+      "required": true,
+      "proposedFilename": "xiaohui-uv-layout.png",
+      "content": "最终网格的 UV 导出、纹素密度说明与接缝位置。",
+      "note": "设计图和花纹定位图不能代替此文件。"
+    },
+    {
+      "id": "basecolor",
+      "status": "must_create_after_final_uv",
+      "required": true,
+      "proposedFilename": "xiaohui-basecolor.png",
+      "content": "银灰/深灰/奶白/粉色区域按最终 UV 绘制，不烘焙强灯光或细毛阴影。",
+      "delivery": "保留无损绘制母版，发布时另做 WebP 或压缩纹理版本。"
+    },
+    {
+      "id": "eye_pigment",
+      "status": "must_create_for_new_design",
+      "required": true,
+      "proposedFilename": "xiaohui-eye-iris.png",
+      "content": "与独立眼球 UV 对应的琥珀虹膜与瞳孔；高光作为独立材质或轻量反光设计，不锁死视线。"
+    },
+    {
+      "id": "material_spec",
+      "status": "new_design_values_required",
+      "required": true,
+      "proposedFilename": "xiaohui-materials.json",
+      "content": "共用毛色、柔和明暗层级；鼻/虹膜/项圈/金铃区分粗糙度；默认不需要毛发专用贴图。",
+      "reuse": "现有 Three.js 材质层与颜色管理可复用结构，具体数值以新稿实测校准。"
+    },
+    {
+      "id": "facial_shapes",
+      "status": "must_create_for_new_mesh",
+      "required": true,
+      "content": "blink_L、blink_R、mouthOpen、ear_L、ear_R；中性全零；可选更多表情通过适配层组合。",
+      "note": "不可仅保留形态键名字却沿用旧顶点位移；不得让眨眼牵拉后脑或耳根。"
+    },
+    {
+      "id": "motion_transfer",
+      "status": "controller_reusable_asset_calibration_required",
+      "required": true,
+      "content": "覆盖所有既有动作与保持姿态，校准腿长、步幅、落脚与重心；可采用新作者片段加程序化修饰。",
+      "note": "匹配骨骼名称不等于动作已兼容。"
+    },
+    {
+      "id": "whiskers",
+      "status": "must_refit_to_new_muzzle",
+      "required": true,
+      "content": "少量低面数曲线/管线或合适的透明片；根部随吻部变形，远景可淡出。",
+      "reuse": "现有根部随形态键的机制可复用，旧坐标不能照抄。"
+    },
+    {
+      "id": "collar_bell",
+      "status": "must_create_for_new_design",
+      "required": true,
+      "content": "适配新脖围的窄项圈、扣环、挂环、小金铃；铃铛独立支点，动作姿态下有间隙。",
+      "reuse": "可复用现有铃铛摆动与避让控制思路，不复用错误的几何尺寸。"
+    },
+    {
+      "id": "preview_poster",
+      "status": "reference_or_loading_only",
+      "required": false,
+      "content": "统一角色正面或三分之四透明 PNG/WebP，适合缩略图/加载占位。",
+      "note": "不能以海报替换真实角色并声称是运行时模型。"
+    },
+    {
+      "id": "lightweight_feedback",
+      "status": "optional_not_needed_to_preserve_existing_features",
+      "required": false,
+      "content": "若后续启用爱心或困意符号，可少量 SVG/PNG 或代码形状；现有聊天气泡可继续使用 DOM/CSS。"
+    },
+    {
+      "id": "audio",
+      "status": "optional_not_found_as_required_asset_in_audited_runtime",
+      "required": false,
+      "content": "可后续制作短喵声、呼噜、轻铃声；当前动作名称 meow 不等于已有音频素材。",
+      "note": "不阻塞新外观；须单独考虑用户静音、触发频率与浏览器播放策略。"
+    },
+    {
+      "id": "advanced_fur_maps_and_simulation",
+      "status": "out_of_current_scope",
+      "required": false,
+      "content": "逐根毛、毛发模拟、壳层毛发、复杂各向异性毛发和高精度皮肤纹理不是本版必需。"
+    }
+  ],
+  "currentRuntimeContract": {
+    "rootObjectName": "Tabby",
+    "coordinateConvention": {
+      "up": "+Y",
+      "forward": "+Z",
+      "unit": "metres in existing runtime; final art scale must be calibrated and then frozen",
+      "warning": "设计图使用比例，不可未经测量直接照抄旧骨骼位置。"
+    },
+    "bones": {
+      "torso": [
+        "Hips",
+        "Spine",
+        "Chest",
+        "Neck",
+        "Head"
+      ],
+      "foreLeft": [
+        "FLUpper",
+        "FLLower",
+        "FLPaw"
+      ],
+      "foreRight": [
+        "FRUpper",
+        "FRLower",
+        "FRPaw"
+      ],
+      "hindLeft": [
+        "HLUpper",
+        "HLLower",
+        "HLPaw"
+      ],
+      "hindRight": [
+        "HRUpper",
+        "HRLower",
+        "HRPaw"
+      ],
+      "tail": [
+        "Tail0",
+        "Tail1",
+        "Tail2",
+        "Tail3",
+        "Tail4",
+        "Tail5",
+        "Tail6"
+      ],
+      "ears": [
+        "EarL",
+        "EarR"
+      ],
+      "note": "这些是当前骨骼名称，不是新灰模被迫沿用的几何比例。新母版可以使用清晰的作者命名，通过一处显式映射接入。"
+    },
+    "catObject": {
+      "requiredProperties": [
+        "root",
+        "bones.hips",
+        "bones.spine",
+        "bones.chest",
+        "bones.neck",
+        "bones.head",
+        "legs.FL",
+        "legs.FR",
+        "legs.HL",
+        "legs.HR",
+        "tail",
+        "ears",
+        "eyes",
+        "bellPivot",
+        "rig"
+      ],
+      "eachLeg": [
+        "upper",
+        "lower",
+        "paw",
+        "rest",
+        "restWorld"
+      ],
+      "requiredMethods": [
+        "setFace(values)",
+        "dispose()"
+      ],
+      "existingOptionalMethods": [
+        "updateCoatPose()",
+        "installHeadController(controller)",
+        "removeLegacyHead()"
+      ],
+      "caution": "updateCoatPose 是旧程序化网格更新钩子；完整 GLB 皮肤不能无条件继续调用其旧实现。"
+    },
+    "faceInputs": {
+      "blink": "0..1；左右眼同步闭合",
+      "wink": "0..1；现有原生头实现以 blink_R 通道叠加 wink",
+      "mouth": "0..1；驱动 mouthOpen",
+      "gazeX": "-1..1；眼球与头部的视线驱动",
+      "gazeY": "-1..1；眼球与头部的视线驱动",
+      "pupil": "0..1；native-head 目前记录此值但没有实际瞳孔变形，应标记待实现而非已支持",
+      "note": "耳动作当前由 EarL/EarR 控制骨的旋转转为 ear_L/R 形态权重。"
+    },
+    "morphTargets": {
+      "required": [
+        "blink_L",
+        "blink_R",
+        "mouthOpen",
+        "ear_L",
+        "ear_R"
+      ],
+      "restWeights": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "optionalNew": [
+        "squint_L",
+        "squint_R",
+        "pupilDilate",
+        "happyMuzzle"
+      ],
+      "optionalNote": "可选通道不是当前直接支持的接口；需明确适配后再作为功能验收。"
+    },
+    "legacyNativeHeadDropIn": {
+      "nodes": [
+        "KittenHead",
+        "EyePivot_L",
+        "EyePivot_R",
+        "Pupil_L",
+        "Pupil_R",
+        "Sclera_L",
+        "ScleraR",
+        "NoseSurface",
+        "Tongue"
+      ],
+      "namePrefixes": [
+        "Eyelid_",
+        "Lacrimal",
+        "Teeth_",
+        "OralCavity"
+      ],
+      "materialRoles": [
+        "Silver mackerel tabby",
+        "MuzzleIvory",
+        "Clear cornea",
+        "MouthInterior",
+        "KittenNose"
+      ],
+      "customAttributesWhenUsingExistingArtistShader": [
+        "_coat_rest",
+        "_coat_normal"
+      ],
+      "expressionPolicy": "KittenHead.userData.expressionPolicy === 'baked-friendly-mouth-v2' selects the existing authored-face path",
+      "warning": "上述是旧头部替换路径。标记 expressionPolicy 前必须确实满足其口部语义；不能用标记掩盖不兼容模型。ScleraR 的不对称拼写是现有代码事实。",
+      "neckWarning": "native-neck 依赖旧封口环、UV/材质分区和几何形状。新的整体猫模型应通过新适配器绕开此桥接，不继续制造新头旧身的接缝。"
+    },
+    "accessories": {
+      "existingNames": [
+        "CharcoalCollar",
+        "FittedCollar",
+        "BellPivot",
+        "BellCollarBail",
+        "GoldenBell"
+      ],
+      "proposedStableNames": [
+        "Collar",
+        "BellPivot",
+        "BellRing",
+        "GoldenBell"
+      ],
+      "note": "新作者命名需要映射；现有动画器直接查 GoldenBell 并访问 bellPivot，不能静默改名。"
+    },
+    "animator": {
+      "factory": "createCatAnimator(cat)",
+      "methods": [
+        "update(state, dt, attention)",
+        "touch()",
+        "wink()",
+        "reset()"
+      ],
+      "stateFields": [
+        "motion",
+        "phase",
+        "yaw",
+        "mode",
+        "visible",
+        "paused"
+      ],
+      "attentionFields": [
+        "active",
+        "x",
+        "y"
+      ]
+    },
+    "reusableWebsiteBehavior": [
+      "房间移动/导航",
+      "地面、椅子、桌子的路线与跳跃调度",
+      "自动阅读陪伴模式",
+      "点击抚摸与长按聊天",
+      "聊天气泡、历史及命令执行",
+      "网站操作入口"
+    ],
+    "notGuaranteedByAssetNames": [
+      "足部不滑动",
+      "跨高度跳跃正确落地",
+      "头身比例自然",
+      "铃铛不穿模",
+      "坐卧接触不穿透",
+      "动画迁移正确"
+    ]
+  },
+  "animationRequirements": {
+    "publicBodyActions": [
+      {
+        "id": "idle",
+        "label": "自然待机与呼吸",
+        "type": "loop"
+      },
+      {
+        "id": "look",
+        "label": "观察与歪头",
+        "type": "gesture"
+      },
+      {
+        "id": "sniff",
+        "label": "嗅闻",
+        "type": "gesture"
+      },
+      {
+        "id": "tail",
+        "label": "轻摆尾巴",
+        "type": "gesture"
+      },
+      {
+        "id": "sit",
+        "label": "站立到坐下",
+        "type": "transition"
+      },
+      {
+        "id": "lie",
+        "label": "站立/坐姿到趴下",
+        "type": "transition"
+      },
+      {
+        "id": "sleep",
+        "label": "低头闭眼休息",
+        "type": "loop"
+      },
+      {
+        "id": "stretch",
+        "label": "伸懒腰",
+        "type": "gesture"
+      },
+      {
+        "id": "paw",
+        "label": "抬爪招呼",
+        "type": "gesture"
+      },
+      {
+        "id": "groom",
+        "label": "舔爪洗脸",
+        "type": "gesture"
+      },
+      {
+        "id": "knead",
+        "label": "交替踩奶",
+        "type": "gesture"
+      },
+      {
+        "id": "meow",
+        "label": "轻喵嘴形",
+        "type": "gesture"
+      },
+      {
+        "id": "yawn",
+        "label": "哈欠",
+        "type": "gesture"
+      },
+      {
+        "id": "nuzzle",
+        "label": "侧头蹭蹭",
+        "type": "gesture"
+      },
+      {
+        "id": "shake",
+        "label": "轻抖头",
+        "type": "gesture"
+      },
+      {
+        "id": "alert",
+        "label": "抬头注意",
+        "type": "gesture"
+      },
+      {
+        "id": "sitUp",
+        "label": "坐姿起身",
+        "type": "transition"
+      },
+      {
+        "id": "lieUp",
+        "label": "趴卧起身",
+        "type": "transition"
+      },
+      {
+        "id": "walk",
+        "label": "慢走",
+        "type": "locomotion"
+      },
+      {
+        "id": "trot",
+        "label": "小跑",
+        "type": "locomotion"
+      },
+      {
+        "id": "gallop",
+        "label": "奔跑",
+        "type": "locomotion"
+      },
+      {
+        "id": "jump",
+        "label": "跳跃与落地",
+        "type": "contextual_transition"
+      },
+      {
+        "id": "turn",
+        "label": "迈步转向",
+        "type": "locomotion"
+      }
+    ],
+    "internalHolds": [
+      {
+        "id": "sitHold",
+        "label": "坐姿保持"
+      },
+      {
+        "id": "lieHold",
+        "label": "趴卧保持"
+      }
+    ],
+    "facialAction": {
+      "id": "wink",
+      "label": "单眼眨眼",
+      "implementedBy": "animator.wink() via action-bridge; not a RoomDirector body clip"
+    },
+    "contextualCoverage": [
+      "走到用户身边",
+      "地面转向不先僵硬原地转完",
+      "地面到椅子",
+      "椅子/桌子到地面",
+      "阅读时自动趋于安静/趴卧",
+      "动作被点击、聊天、停止命令打断后的安全过渡"
+    ],
+    "assetStrategy": "行为状态和动作 ID 保留。可以复用程序化驱动作为过渡方案，但最终比例确认后必须重设 IK 目标、腿长、步幅和转向范围；如制作作者动画，以这些 ID 作为动作语义标签并通过适配层接入。",
+    "existingWebsiteGaitsForCompatibilityOnly": {
+      "walk": {
+        "stride": 0.19,
+        "duration": 0.72
+      },
+      "trot": {
+        "stride": 0.265,
+        "duration": 0.46
+      },
+      "gallop": {
+        "stride": 0.44,
+        "duration": 0.36
+      }
+    },
+    "gaitWarning": "这些数值来自当前实现，不能当作新猫的生物学标准或未经校准的正式参数。",
+    "transitionCoverage": [
+      "idle↔sitHold",
+      "idle↔lieHold",
+      "lieHold↔sleep",
+      "walk↔idle",
+      "walk↔trot↔gallop",
+      "moving↔turn",
+      "jump preparation→flight→front contact→hind contact→idle",
+      "touch/wink/chat overlays across compatible body actions"
+    ]
+  },
+  "deliveryAcceptance": [
+    {
+      "stage": "art_reference",
+      "checks": [
+        "同一身份与比例",
+        "正侧背无明显互相矛盾",
+        "低成本动漫毛色表达",
+        "标注参考图与实际资产类型"
+      ]
+    },
+    {
+      "stage": "grey_model",
+      "checks": [
+        "使用相同焦距/构图对比设计稿",
+        "正面、侧面、三分之四、后脑和俯视均可看",
+        "无扁脸、尖下巴、插片耳、耳根裂缝",
+        "头颈连续，眼睑贴合眼球，嘴部前突关系正确"
+      ]
+    },
+    {
+      "stage": "uv_and_material",
+      "checks": [
+        "以最终UV烘焙或绘制，头身无毛色跳变",
+        "条纹不跨缝错位、无投影拉伸",
+        "毛色不夹带光影贴纸",
+        "中性光与网站暖光下分别验证",
+        "无黑腿、黑尾或整个atlas直接贴身的缺陷"
+      ]
+    },
+    {
+      "stage": "rig_and_expression",
+      "checks": [
+        "所有中性形态权重为0",
+        "blink=0/.5/1及wink分别截图",
+        "闭眼不漏虹膜或高光",
+        "眨眼和耳动不拉动后脑",
+        "嘴开合无外露长牙或黑色大洞",
+        "组合形态和极限视线下无裂片"
+      ]
+    },
+    {
+      "stage": "animation",
+      "checks": [
+        "全部23个公开身体动作、2个保持姿态和wink可调用",
+        "低头睡眠与俯视无颅顶折片",
+        "行走四爪接触稳定",
+        "坐趴脚掌/胸腹不穿地",
+        "抬爪/舔爪/蹭头时铃铛不穿爪或胸",
+        "跳跃前后肢触地与高度适配",
+        "动作中断不跳变或悬空"
+      ]
+    },
+    {
+      "stage": "web_integration",
+      "checks": [
+        "保留现有聊天/指挥/阅读功能",
+        "小尺寸和手机纵屏可辨认面部",
+        "未额外引入毛发层或每帧纹理重画",
+        "加载/销毁不遗留纹理、材质、几何或监听器",
+        "性能在目标设备测量，不能只凭减少毛发宣称达标"
+      ]
+    }
+  ],
+  "suggestedProductionOrder": [
+    "统一参考稿与花纹身份。",
+    "制作整只灰模并完成多角度外观验收。",
+    "锁定比例后完成最终拓扑、UV、材质与配件。",
+    "建立骨架、蒙皮和局部表情形态。",
+    "制作或迁移全部既有动作并校准接触。",
+    "完成整猫GLB适配器，接回现有网站行为层。",
+    "在真实网页尺寸与设备上验收，再压缩和发布。"
+  ]
+}

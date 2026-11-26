@@ -17,7 +17,7 @@ export default function StudyRoomEntry({ data }: { data: StudyRoomProps }) {
     <div className={styles.shell}>
       <header className={styles.header}>
         <Link prefetch={false} className={styles.brand} href={`/${data.locale}`} aria-label={data.siteName}>
-          <Logo height={28} /><strong>{data.siteName}<span className="text-blue-500">.</span></strong>
+          <Logo height={28} /><strong>{data.siteName}<span className="text-[#c5aa7e]">.</span></strong>
         </Link>
       </header>
       <StudyWelcome locale={data.locale} bio={data.bio} posts={data.posts} opening />

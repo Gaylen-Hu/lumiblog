@@ -1,8 +1,9 @@
 .stage[data-object=readingBox]{justify-content:flex-end;background:linear-gradient(90deg,transparent 30%,#332e213d);backdrop-filter:none}
-.panel[data-object=readingBox]{display:flex;flex-direction:column;width:min(410px,41vw);max-height:78svh;padding:30px 30px 23px;background:linear-gradient(115deg,#fff9e9,#ece0c6);border:1px solid #d2bf99;border-top:5px solid #90754c;border-radius:4px;color:#493f2e;box-shadow:2px 4px 0 #decfb5,3px 6px 0 #a89574,0 14px 36px #2d211b33}
-.panel[data-object=readingBox] h2{font:32px/1.35 Georgia,'Songti SC',serif;color:#473f31;margin:0 0 9px}
+.panel[data-object=readingBox]{display:flex;flex-direction:column;width:min(410px,max(350px,41vw),calc(100vw - 32px));max-height:78svh;padding:30px 30px 23px;background:linear-gradient(115deg,#fff9e9,#ece0c6);border:1px solid #d2bf99;border-top:5px solid #90754c;border-radius:4px;color:#493f2e;box-shadow:2px 4px 0 #decfb5,3px 6px 0 #a89574,0 14px 36px #2d211b33}
+.panel[data-object=readingBox]::before{display:none}
+.panel[data-object=readingBox] h2{font:32px/1.35 var(--font-study-serif);color:#473f31;margin:0 0 9px}
 .panel[data-object=readingBox]>div{overflow:auto;overscroll-behavior:contain;min-height:0}
-.file{font-family:Georgia,'Songti SC','SimSun',serif}
+.file{font-family:var(--font-study-serif)}
 .caption{font-size:14px;line-height:1.9;color:#645944;margin:0 0 19px}
 .count{display:flex;align-items:center;justify-content:space-between;gap:8px;border-block:1px solid #a9956c77;padding:8px 1px;color:#77684e;font:10px/1.4 system-ui,sans-serif;letter-spacing:.16em}
 .count>span:last-child{margin-inline-start:auto}.count b{margin-inline-start:4px;font-variant-numeric:tabular-nums}

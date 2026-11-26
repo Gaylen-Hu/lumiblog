@@ -37,7 +37,7 @@ export default function Comments({ slug }: CommentsProps) {
     script.setAttribute('data-reactions-enabled', '1');
     script.setAttribute('data-emit-metadata', '0');
     script.setAttribute('data-input-position', 'top');
-    script.setAttribute('data-theme', !container.closest('.study-magazine') && resolvedTheme === 'dark' ? 'dark' : 'light');
+    script.setAttribute('data-theme', !container.closest('.study-magazine, .study-paper') && resolvedTheme === 'dark' ? 'dark' : 'light');
     script.setAttribute('data-lang', locale === 'zh' ? 'zh-CN' : 'en');
     script.crossOrigin = 'anonymous';
     script.async = true;

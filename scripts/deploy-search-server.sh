@@ -14,6 +14,11 @@ PREVIOUS="$(readlink -f "$PREVIOUS")"
 [[ -f "$PREVIOUS/dist/src/main.js" && "$PREVIOUS" == /home/myblog/* ]]
 [[ ! -e "$CURRENT" || -L "$CURRENT" ]]
 [[ -f "$APP_HOME/apps/.env" ]]
+if [[ "${PRESERVE_API_UNIT:-false}" == true ]]; then
+  # The live drop-in also carries the mailbox and weather EnvironmentFiles.
+  [[ -L "$CURRENT" && "$(readlink -f "$CURRENT")" == "$PREVIOUS" ]]
+  [[ "$(systemctl show myblog-api.service -p WorkingDirectory --value)" == "$CURRENT" ]]
+fi
 tar -tzf "$ARTIFACTS_DIR/server.tar.gz" > "$ARTIFACTS_DIR/server-files.txt"
 if grep -Eq '(^/|(^|/)\.\.(/|$))' "$ARTIFACTS_DIR/server-files.txt"; then exit 1; fi
 RELEASE="$APP_HOME/server-releases/$(date -u +%Y%m%d_%H%M%S)-${REVISION:0:12}"
@@ -53,8 +58,10 @@ rollback() {
   exit "$code"
 }
 trap rollback ERR
-install -d /etc/systemd/system/myblog-api.service.d
-printf '[Service]\nWorkingDirectory=%s\nExecStart=\nExecStart=%s %s/dist/src/main.js\n' "$CURRENT" "$(command -v node)" "$CURRENT" > "$DROPIN"
+if [[ "${PRESERVE_API_UNIT:-false}" != true ]]; then
+  install -d /etc/systemd/system/myblog-api.service.d
+  printf '[Service]\nWorkingDirectory=%s\nExecStart=\nExecStart=%s %s/dist/src/main.js\n' "$CURRENT" "$(command -v node)" "$CURRENT" > "$DROPIN"
+fi
 switch_to "$RELEASE"
 systemctl daemon-reload
 systemctl restart myblog-api.service

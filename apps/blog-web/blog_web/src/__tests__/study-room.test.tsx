@@ -5,13 +5,15 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { webcrypto } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import StudyRoom from '@/components/study/StudyRoom'
+import * as roomLoader from '@/components/study/room-loader'
 import { LetterDeliveryProvider } from '@/components/study/LetterDelivery'
 import { isDestination, type ClockView, type RoomItem } from '@/components/study/model'
 import { clockHandAngles } from '@/components/study/wall-clock'
 import { localLightPeriod } from '@/components/study/room-light'
 import { findBookmarkedBlock, readBookmark, writeBookmark } from '@/lib/reading-bookmark'
+import { executeRoomAction, getRoomActions, getWebsiteRoomState } from '@/components/companion/website-room'
 
-const mocked = vi.hoisted(() => ({ setCeilingLight: vi.fn(), fail: false, holdReady: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
+const mocked = vi.hoisted(() => ({ setCeilingLight: vi.fn(), fail: false, holdReady: false, refuseCeiling: false, disposed: 0, created: 0, quality: [] as string[], targets: [] as (string | null)[] }))
 let slowRoom: () => boolean
 let loseContext: () => void
 let presentFrame: () => void
@@ -19,7 +21,7 @@ let pickItem: (item: RoomItem, columnSlug?: string) => void
 let finishDrawerSlide: () => void
 let clockPhase: (view: ClockView) => void
 vi.mock('@/components/study/room-scene', () => ({
-  createRoom: (_host: HTMLElement, options: { onSlowRoom: typeof slowRoom; onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void }) => {
+  createRoom: (_host: HTMLElement, options: { onSlowRoom: typeof slowRoom; onReady: () => void; onSettled: (d: string | null) => void; onPick: typeof pickItem; onClockView: typeof clockPhase; onContextLost: () => void; onLamp: (on: boolean) => void }) => {
     if (mocked.fail) throw new Error('WebGL unavailable')
     mocked.created++
     slowRoom = options.onSlowRoom
@@ -27,10 +29,15 @@ vi.mock('@/components/study/room-scene', () => ({
     presentFrame = options.onReady
     pickItem = options.onPick
     clockPhase = options.onClockView
+    const state = { ceilingOn: false, lampOn: false, curtainsClosed: false }
+    let disposed = false
     if (!mocked.holdReady) options.onReady()
     return {
       setMotion: vi.fn(),
-      setCeilingLight: mocked.setCeilingLight,
+      getRoomState: () => disposed ? null : { ...state },
+      setCeilingLight: (on: boolean) => { if (!mocked.refuseCeiling) state.ceilingOn = on; mocked.setCeilingLight(on) },
+      setLamp: (value: boolean | 'auto') => { state.lampOn = value === 'auto' ? false : value; options.onLamp(state.lampOn); return state.lampOn },
+      setCurtains: (closed: boolean) => { state.curtainsClosed = closed; return closed },
       setQuality: (value: string) => { mocked.quality.push(value) },
       setPaused: vi.fn(),
       inspectClock: () => clockPhase('approaching'),
@@ -40,7 +47,7 @@ vi.mock('@/components/study/room-scene', () => ({
         if (d === 'drawer') finishDrawerSlide = () => options.onSettled(d)
         else queueMicrotask(() => options.onSettled(d))
       },
-      dispose: () => { mocked.disposed++ },
+      dispose: () => { disposed = true; mocked.disposed++ },
     }
   },
 }))
@@ -75,7 +82,7 @@ beforeEach(() => {
   localStorage.clear()
   window.history.replaceState(null, '', '/zh')
   Object.defineProperty(window, 'matchMedia', { configurable: true, value: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }) })
-  mocked.fail = false; mocked.holdReady = false; mocked.disposed = 0; mocked.created = 0; mocked.quality = []; mocked.targets = []
+  mocked.fail = false; mocked.holdReady = false; mocked.refuseCeiling = false; mocked.disposed = 0; mocked.created = 0; mocked.quality = []; mocked.targets = []
 })
 afterEach(async () => { if (root) await act(async () => root.unmount()) })
 
@@ -114,6 +121,65 @@ describe('书房的内容与恢复流程', () => {
     expect(button?.getAttribute('aria-pressed')).toBe('false')
     expect(mocked.setCeilingLight).toHaveBeenLastCalledWith(false)
     expect(localStorage.getItem('study-ceiling-light')).toBe('false')
+  })
+  it('小灰房间动作幂等，并与按钮和已保存的顶灯偏好同步', async () => {
+    await mount()
+    expect(getRoomActions()).toHaveLength(7)
+    await act(async () => {
+      expect(await executeRoomAction('ceiling_on')).toEqual({ status: 'succeeded' })
+      expect(await executeRoomAction('ceiling_on')).toEqual({ status: 'succeeded' })
+      expect(await executeRoomAction('lamp_on')).toEqual({ status: 'succeeded' })
+      expect(await executeRoomAction('lamp_on')).toEqual({ status: 'succeeded' })
+      expect(await executeRoomAction('curtains_close')).toEqual({ status: 'succeeded' })
+      expect(await executeRoomAction('curtains_close')).toEqual({ status: 'succeeded' })
+    })
+    expect(getWebsiteRoomState()).toEqual({ ceilingOn: true, lampOn: true, curtainsClosed: true })
+    expect(localStorage.getItem('study-ceiling-light')).toBe('true')
+    for (const label of ['墙上开关 · 书房大灯', '阅读灯', '窗边 · 开合窗帘']) {
+      expect(screen.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
+    }
+    await click('墙上开关 · 书房大灯'); await click('阅读灯'); await click('窗边 · 开合窗帘')
+    expect(getWebsiteRoomState()).toEqual({ ceilingOn: false, lampOn: false, curtainsClosed: false })
+    expect(localStorage.getItem('study-ceiling-light')).toBe('false')
+    await act(async () => { await executeRoomAction('lamp_on'); await executeRoomAction('lamp_auto') })
+    expect(getWebsiteRoomState()?.lampOn).toBe(false)
+  })
+  it('房间动作在阅读暂停时保留，未就绪、简洁模式和卸载后不可用', async () => {
+    mocked.holdReady = true
+    await mount()
+    expect(getRoomActions()).toEqual([])
+    expect((await executeRoomAction('lamp_on')).status).toBe('blocked')
+    await act(async () => presentFrame())
+    expect(getRoomActions()).toHaveLength(7)
+    await act(async () => {
+      window.history.replaceState(null, '', '/zh?article=example')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    await act(async () => { expect((await executeRoomAction('lamp_on')).status).toBe('succeeded') })
+    expect(getWebsiteRoomState()?.lampOn).toBe(true)
+    await act(async () => {
+      window.history.replaceState(null, '', '/zh')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    await click('环境设置'); await click('室内设置'); await click('简洁模式')
+    expect(getRoomActions()).toEqual([])
+    expect(getWebsiteRoomState()).toBeNull()
+    expect((await executeRoomAction('ceiling_on')).status).toBe('blocked')
+    await act(async () => root.unmount())
+    expect(getRoomActions()).toEqual([])
+    expect((await executeRoomAction('curtains_close')).status).toBe('blocked')
+  })
+  it('真实状态未变化时不报成功，不写入错误偏好；活动房间卸载后撤销能力', async () => {
+    await mount()
+    mocked.refuseCeiling = true
+    await act(async () => { expect((await executeRoomAction('ceiling_on')).status).toBe('unknown') })
+    expect(getWebsiteRoomState()?.ceilingOn).toBe(false)
+    expect(localStorage.getItem('study-ceiling-light')).toBeNull()
+    expect(screen.getByRole('button', { name: '墙上开关 · 书房大灯' })).toHaveAttribute('aria-pressed', 'false')
+    await act(async () => root.unmount())
+    expect(getWebsiteRoomState()).toBeNull()
+    expect(getRoomActions()).toEqual([])
+    expect((await executeRoomAction('lamp_off')).status).toBe('blocked')
   })
   it('首帧一直未就绪时降级，迟到的成功回调不能复活已销毁场景', async () => {
     mocked.holdReady = true
@@ -317,12 +383,18 @@ describe('书房的内容与恢复流程', () => {
     await click('日记 · 日常')
     expect(document.querySelector('[role="dialog"] a')?.getAttribute('href')).toBe('/zh/timeline')
   })
-  it('简洁模式偏好保留正常内容入口', async () => {
+  it('简洁模式保留内容入口，只在选择进入 3D 后加载场景', async () => {
     localStorage.setItem('study-simple', 'true')
+    const loadScene = vi.spyOn(roomLoader, 'loadRoomScene')
     await mount()
+    expect(loadScene).not.toHaveBeenCalled()
     expect(document.body.textContent).toContain('进入 3D 书房')
     expect(document.querySelector('[role="status"]')).toBeNull()
     expect(document.querySelector('a[href="/zh/posts"]')).toBeTruthy()
+    await click('3D 模式')
+    expect(loadScene).toHaveBeenCalledOnce()
+    expect(mocked.created).toBe(1)
+    loadScene.mockRestore()
   })
   it('浏览器历史变动清除内容，拒绝未知物件参数', async () => {
     await mount()

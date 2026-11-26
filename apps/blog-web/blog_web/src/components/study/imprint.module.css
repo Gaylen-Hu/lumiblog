@@ -2,8 +2,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #78674f;
-  font: 500 11px/1.4 Georgia, 'Songti SC', 'SimSun', serif;
+  color: #6a5b45;
+  font: 500 11px/1.4 var(--font-study-serif);
   letter-spacing: .025em;
   white-space: nowrap;
 }

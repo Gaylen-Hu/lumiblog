@@ -6,6 +6,9 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   output: 'standalone',
+  env: {
+    NEXT_PUBLIC_COMPANION_SPLIT_HOST: process.env.VERCEL_ENV === 'production' ? 'true' : 'false',
+  },
   // Older local tabs cached unversioned dev chunks as immutable.
   deploymentId: process.env.NODE_ENV === 'development' ? 'study-daylight-preview' : undefined,
   async rewrites() {
@@ -64,6 +67,14 @@ const nextConfig: NextConfig = {
         ],
       },
       ...(process.env.NODE_ENV === 'production' ? [{
+        source: '/companion/v1/kitten-head.:hash([a-f0-9]{12}).glb.gz',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      }, ...['glb', 'glb.gz'].map(extension => ({
+        source: `/companion/v2/xiaohui.:hash([a-f0-9]{12}).${extension}`,
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      })), {
         source: '/(.*)\\.(js|css|woff2|woff|ttf|ico|svg|png|jpg|jpeg|webp|avif)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
