@@ -1,0 +1,16 @@
+-w /etc/passwd -p wa -k identity
+-w /etc/group -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/sudoers -p wa -k privilege
+-w /etc/sudoers.d -p wa -k privilege
+-w /etc/ssh -p wa -k ssh_config
+-w /root/.ssh -p wa -k root_keys
+-w /etc/systemd/system -p wa -k systemd_persistence
+-w /etc/cron.d -p wa -k cron_persistence
+-w /var/spool/cron -p wa -k cron_persistence
+-w /home/myblog/apps/.env -p wa -k app_secrets
+-w /root/myblog-new-secrets.env -p wa -k app_secrets
+-a always,exit -F arch=b64 -S execve -F dir=/tmp -k tmp_exec
+-a always,exit -F arch=b64 -S execve -F dir=/var/tmp -k tmp_exec
+-a always,exit -F arch=b64 -S execve -F dir=/dev/shm -k tmp_exec

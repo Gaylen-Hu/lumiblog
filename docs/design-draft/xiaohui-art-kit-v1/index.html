@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>小灰 · 角色美术素材包</title>
+  <link rel="stylesheet" href="art-kit.css">
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="回到素材包顶部"><span class="brand-mark" aria-hidden="true">灰</span><span>小灰<span class="brand-caption">角色美术档案</span></span></a>
+      <nav aria-label="页面导航"><a href="#sheets">素材图集</a><a href="#handoff">制作说明</a><span class="edition">V1 · 制作参考</span></nav>
+    </header>
+
+    <main id="top">
+      <section class="intro" aria-labelledby="page-title">
+        <div class="eyebrow"><span aria-hidden="true"></span>统一形象，再进入建模</div>
+        <h1 id="page-title">小灰 · 角色美术素材包</h1>
+        <p class="lead">从你认可的设计稿出发，让每个角度、每个表情，都是同一只小灰。</p>
+        <p class="delivery-status"><strong>本次交付：AI 视觉素材</strong><span>模型、UV、绑定与动画成品将在后续制作。</span></p>
+      </section>
+
+      <section class="hero-layout" aria-label="角色主设定">
+        <figure class="hero-figure">
+          <button class="image-button hero-image" type="button" data-open="1" aria-label="放大角色多视图">
+            <img src="01-turnaround.png" alt="小灰的正面、侧面、背面及斜侧面角色设定图" fetchpriority="high" decoding="async" data-asset-image="1">
+            <span class="image-unavailable" hidden>此素材尚未就绪</span>
+            <span class="zoom-hint">点击查看原图 <span aria-hidden="true">↗</span></span>
+          </button>
+          <figcaption><div><span class="sheet-number">01</span><strong>角色多视图</strong><span class="sheet-tag">造型基准</span></div><a href="01-turnaround.png" download data-download="1">下载原图 <span aria-hidden="true">↓</span></a></figcaption>
+        </figure>
+        <aside class="character-note" aria-label="形象要点">
+          <p class="note-kicker">这次，先把小灰定下来</p>
+          <h2>圆润、明亮，<br>带一点好奇心。</h2>
+          <p class="character-description">银灰虎斑幼猫，圆脸与饱满脸颊，琥珀色眼睛。奶白的口鼻、胸口和爪尖，搭配粉鼻、粉耳与一枚小金铃。</p>
+          <div class="style-line"><span>毛发表现</span><strong>清爽动漫色块 · 柔和明暗</strong></div>
+          <div class="style-line"><span>角色形态</span><strong>自然四足 · 幼猫比例</strong></div>
+          <p class="quiet-note">以 01 主多视图为造型基准，02 / 09 提示头部与全身体积。视图之间的差异，进入实际灰模后统一校准。</p>
+          <a class="text-link" href="#sheets">查看整套素材 <span aria-hidden="true">↘</span></a>
+        </aside>
+      </section>
+
+      <section class="palette-section" aria-labelledby="palette-title">
+        <div class="palette-heading"><div><p class="eyebrow small">颜色与表面</p><h2 id="palette-title">统一的材质起点</h2></div><p>以下为设计起点色值，并非从生成图精确采样。<br>最终颜色需在同一套光照下对齐。</p></div>
+        <ul class="palette-grid" aria-label="建议的起点色值">
+          <li><span class="swatch" style="--swatch:#BDC0C5"></span><strong>银灰底色</strong><code>#BDC0C5</code><small>柔和漫反射</small></li>
+          <li><span class="swatch" style="--swatch:#62656C"></span><strong>虎斑条纹</strong><code>#62656C</code><small>清楚、柔和的边缘</small></li>
+          <li><span class="swatch" style="--swatch:#F1EEE4"></span><strong>奶白毛色</strong><code>#F1EEE4</code><small>口鼻、胸口与爪尖</small></li>
+          <li><span class="swatch" style="--swatch:#D8AAA4"></span><strong>柔粉细节</strong><code>#D8AAA4</code><small>内耳、鼻子与肉垫</small></li>
+          <li><span class="swatch" style="--swatch:#C99A45"></span><strong>琥珀虹膜</strong><code>#C99A45</code><small>保留通透层次</small></li>
+          <li><span class="swatch" style="--swatch:#393832"></span><strong>炭灰项圈</strong><code>#393832</code><small>低反光的柔软表面</small></li>
+          <li><span class="swatch" style="--swatch:#BE984B"></span><strong>温金铃铛</strong><code>#BE984B</code><small>小面积柔和金属光</small></li>
+        </ul>
+        <p class="palette-footnote">画面中的细毛感只作绘画质感参考，实际角色采用简洁动漫材质，不要求制作毛发几何。</p>
+      </section>
+
+      <section id="sheets" class="sheets-section" aria-labelledby="sheets-title">
+        <div class="section-heading"><div><p class="eyebrow small">从形象到动作</p><h2 id="sheets-title">一套连贯的制作参考</h2></div><p>点图放大 · 下载保留原始尺寸</p></div>
+        <div id="asset-grid" class="asset-grid"></div>
+      </section>
+
+      <section id="handoff" class="handoff" aria-labelledby="handoff-title">
+        <div><p class="eyebrow small">制作交接</p><h2 id="handoff-title">这些素材，怎样用？</h2></div>
+        <div class="handoff-content">
+          <p>本次交付的是 <strong>AI 视觉素材</strong>，用于建模、贴图绘制和动画设计。清单中的新模型、UV、骨骼绑定及动画成品均为后续制作与验证项，本素材包不代表这些项目已经完成。</p>
+          <p>先以 <strong>01 主多视图</strong>为造型基准，02 头部图与 09 全身灰模图用作体积提示。AI 视图可能存在细节差异，需要在实际 3D 灰模中校准正侧面比例、五官、耳根和头身连接，再展开 UV 与绘制贴图。<strong>04 花纹图是分布参考，不是 UV 纹理。</strong></p>
+          <p>表情与动作图用于确认神态和关键姿态，不能直接当作已经绑定的 GLB 模型或可循环动画帧。图中的细毛感只表达绘画质感，后续采用普通动漫材质，不要求增加毛发几何。</p>
+          <div class="handoff-links"><a href="production-requirements.json" download>查看制作清单 <span aria-hidden="true">↗</span></a><a href="prompts.json" download>查看出图说明 <span aria-hidden="true">↗</span></a></div>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>小灰 · 角色美术素材包</span><span>V1 制作参考 · 实际模型另行验收</span></footer>
+  </div>
+
+  <dialog id="lightbox" aria-labelledby="lightbox-title">
+    <div class="lightbox-toolbar"><div><p id="lightbox-number" class="lightbox-number"></p><h2 id="lightbox-title"></h2></div><div class="lightbox-actions"><a id="lightbox-download" download>下载原图 <span aria-hidden="true">↓</span></a><button id="lightbox-close" type="button" aria-label="关闭大图">×</button></div></div>
+    <div class="lightbox-image-wrap"><img id="lightbox-image" alt=""></div>
+    <div class="lightbox-bottom"><button id="previous-image" type="button" aria-label="上一张素材">← 上一张</button><p id="lightbox-caption"></p><button id="next-image" type="button" aria-label="下一张素材">下一张 →</button></div>
+  </dialog>
+
+  <script>
+    const assets = [
+      {file:'references/approved-concept.png', number:'00', title:'原认可设计稿', tag:'方向依据', description:'保留最初认可的可爱感、五官关系与角色气质。', alt:'用户已认可的小灰角色概念图'},
+      {file:'01-turnaround.png', number:'01', title:'角色多视图', tag:'造型基准', description:'正面、侧面、背面与斜侧面，用于统一整体轮廓和比例。', alt:'小灰的角色多视图设定图'},
+      {file:'02-head-construction.png', number:'02', title:'头部与五官结构', tag:'体积提示', description:'提示颅顶、脸颊、口鼻与眼窝的体积关系，以 01 主设定校准。', alt:'小灰头部多角度与灰模体积结构参考'},
+      {file:'03-expressions.png', number:'03', title:'表情设定', tag:'神态参考', description:'让好奇、开心、眨眼与困倦，都保持同一张柔和的脸。', alt:'小灰的不同情绪与面部表情设定'},
+      {file:'04-coat-pattern.png', number:'04', title:'毛色与虎斑分布', tag:'绘制参考', description:'统一毛色和条纹位置；这是分布参考，并非可直接使用的 UV 纹理。', alt:'小灰全身毛色、虎斑位置与配色设定'},
+      {file:'05-details-accessories.png', number:'05', title:'五官与配件细节', tag:'细节参考', description:'眼睛、鼻子、肉垫、项圈和铃铛的形状与材质关系。', alt:'小灰眼睛鼻子肉垫及项圈铃铛细节参考'},
+      {file:'06-locomotion-keyposes.png', number:'06', title:'移动动作关键姿态', tag:'动作设计', description:'用关键姿态明确行走、奔跑与跳跃时的身体表达。', alt:'小灰行走奔跑与跳跃动作的关键姿态参考'},
+      {file:'07-companionship-keyposes.png', number:'07', title:'陪伴与互动姿态', tag:'陪伴设计', description:'坐、趴、打盹、伸懒腰和抚摸回应，表达安静的陪伴感。', alt:'小灰休息与互动时的陪伴姿态参考'},
+      {file:'08-character-cutout.png', number:'08', title:'角色透明底形象', tag:'展示素材', description:'用于形象对照和展示排版，透明底保留角色完整轮廓。', alt:'透明背景的小灰完整角色形象', transparent:true},
+      {file:'09-body-clay.png', number:'09', title:'全身灰模体积参考', tag:'体积提示', description:'去除项圈干扰，查看头颈、躯干与四肢的连续体积；以 01 校准比例。', alt:'无项圈的小灰全身灰模正面侧面与背面体积参考'},
+    ];
+    const grid = document.getElementById('asset-grid');
+    for (const [index,asset] of assets.entries()) {
+      if (index===1) continue;
+      const card=document.createElement('article'); card.className='asset-card';
+      const button=document.createElement('button'); button.type='button'; button.className='image-button card-image'+(asset.transparent?' checkerboard':''); button.dataset.open=index; button.setAttribute('aria-label','放大'+asset.title);
+      const image=document.createElement('img'); image.src=asset.file; image.alt=asset.alt; image.loading='lazy'; image.decoding='async'; image.dataset.assetImage=index;
+      const unavailable=document.createElement('span'); unavailable.className='image-unavailable'; unavailable.textContent='此素材尚未就绪'; unavailable.hidden=true;
+      const hint=document.createElement('span'); hint.className='zoom-hint'; hint.textContent='查看原图 ↗';
+      button.append(image,unavailable,hint);
+      const content=document.createElement('div'); content.className='card-content';
+      const meta=document.createElement('div'); meta.className='card-meta';
+      const number=document.createElement('span'); number.className='sheet-number'; number.textContent=asset.number;
+      const tag=document.createElement('span'); tag.className='sheet-tag'; tag.textContent=asset.tag;
+      const title=document.createElement('h3'); title.textContent=asset.title;
+      const description=document.createElement('p'); description.textContent=asset.description;
+      const download=document.createElement('a'); download.href=asset.file; download.download=''; download.dataset.download=index; download.className='card-download'; download.textContent='下载原图 ↓';
+      meta.append(number,tag);content.append(meta,title,description,download);card.append(button,content);grid.append(card);
+    }
+    const unavailableAssets=new Set();
+    document.querySelectorAll('[data-asset-image]').forEach(image=>{
+      const loaded=()=>{unavailableAssets.delete(Number(image.dataset.assetImage));image.hidden=false;image.nextElementSibling.hidden=true;image.parentElement.disabled=false;};
+      const failed=()=>{
+        unavailableAssets.add(Number(image.dataset.assetImage));image.hidden=true;image.nextElementSibling.hidden=false;image.parentElement.disabled=true;
+        document.querySelectorAll('[data-download="'+image.dataset.assetImage+'"]').forEach(link=>{link.removeAttribute('href');link.setAttribute('aria-disabled','true');});
+      };
+      image.addEventListener('load',loaded);image.addEventListener('error',failed);
+      if(image.complete){if(image.naturalWidth)loaded();else failed();}
+    });
+    const dialog=document.getElementById('lightbox');
+    const expandedImage=document.getElementById('lightbox-image');
+    let current=1;
+    function showImage(index) {
+      const asset=assets[index];current=index;
+      expandedImage.src=asset.file;expandedImage.alt=asset.alt;
+      expandedImage.parentElement.classList.toggle('checkerboard',Boolean(asset.transparent));
+      document.getElementById('lightbox-title').textContent=asset.title;
+      document.getElementById('lightbox-number').textContent=asset.number+' / '+asset.tag;
+      document.getElementById('lightbox-caption').textContent=asset.description;
+      document.getElementById('lightbox-download').href=asset.file;
+    }
+    function openImage(index){showImage(index);dialog.showModal();document.body.classList.add('lightbox-open');}
+    function changeImage(direction){
+      let next=current;
+      for(let attempt=0;attempt<assets.length;attempt++){
+        next=(next+direction+assets.length)%assets.length;
+        if(!unavailableAssets.has(next)){showImage(next);return;}
+      }
+    }
+    document.querySelectorAll('[data-open]').forEach(button=>button.addEventListener('click',()=>openImage(Number(button.dataset.open))));
+    document.getElementById('lightbox-close').addEventListener('click',()=>dialog.close());
+    document.getElementById('previous-image').addEventListener('click',()=>changeImage(-1));
+    document.getElementById('next-image').addEventListener('click',()=>changeImage(1));
+    dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
+    dialog.addEventListener('close',()=>document.body.classList.remove('lightbox-open'));
+    dialog.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'){event.preventDefault();changeImage(-1);}if(event.key==='ArrowRight'){event.preventDefault();changeImage(1);}});
+  </script>
+</body>
+</html>

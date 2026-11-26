@@ -1,0 +1,9 @@
+[sshd]
+enabled = true
+backend = systemd
+port = ssh
+mode = normal
+maxretry = 3
+findtime = 1h
+bantime = 24h
+bantime.increment = true
